@@ -373,6 +373,111 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
   });
 }
 
+// ─── Detail query ────────────────────────────────────────────────────────────
+
+export type ReservationVersionDetail = {
+  id: string;
+  startTime: string;
+  durationMinutes: number;
+  vehicleType: string;
+  licensePlate: string | null;
+  sealNumbers: string | null;
+  driverName: string | null;
+  driverContact: string | null;
+  notes: string | null;
+  createdAt: string;
+  createdByName: string;
+  items: {
+    id: string;
+    unitType: string;
+    quantity: number;
+    weightKg: number | null;
+    description: string | null;
+  }[];
+};
+
+export type ReservationDetail = {
+  id: string;
+  status: string;
+  gateName: string;
+  warehouseName: string;
+  clientName: string;
+  supplierName: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+  confirmedVersion: ReservationVersionDetail | null;
+  pendingVersion: ReservationVersionDetail | null;
+};
+
+function mapVersion(
+  v: Awaited<ReturnType<typeof prisma.reservationVersion.findUnique>> & {
+    createdBy: { name: string };
+    items: { id: string; unitType: string; quantity: number; weightKg: unknown; description: string | null }[];
+  }
+): ReservationVersionDetail {
+  return {
+    id: v.id,
+    startTime: v.startTime.toISOString(),
+    durationMinutes: v.durationMinutes,
+    vehicleType: v.vehicleType,
+    licensePlate: v.licensePlate,
+    sealNumbers: v.sealNumbers,
+    driverName: v.driverName,
+    driverContact: v.driverContact,
+    notes: v.notes,
+    createdAt: v.createdAt.toISOString(),
+    createdByName: v.createdBy.name,
+    items: v.items.map((i) => ({
+      id: i.id,
+      unitType: i.unitType,
+      quantity: i.quantity,
+      weightKg: i.weightKg !== null ? Number(i.weightKg) : null,
+      description: i.description,
+    })),
+  };
+}
+
+export async function getReservationDetail(reservationId: string): Promise<ReservationDetail | null> {
+  const session = await auth();
+  if (!session) return null;
+
+  const { role, warehouseId, clientId, supplierId } = session.user;
+
+  const r = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: {
+      gate: { include: { warehouse: true } },
+      client: true,
+      supplier: true,
+      createdBy: true,
+      confirmedVersion: { include: { createdBy: true, items: true } },
+      pendingVersion: { include: { createdBy: true, items: true } },
+    },
+  });
+
+  if (!r) return null;
+
+  // Visibility check
+  if (role === "WAREHOUSE_WORKER" && warehouseId && r.gate.warehouseId !== warehouseId) return null;
+  if (role === "CLIENT" && clientId && r.clientId !== clientId) return null;
+  if (role === "SUPPLIER" && supplierId && r.supplierId !== supplierId) return null;
+
+  return {
+    id: r.id,
+    status: r.status,
+    gateName: r.gate.name,
+    warehouseName: r.gate.warehouse.name,
+    clientName: r.client.name,
+    supplierName: r.supplier.name,
+    createdByName: r.createdBy.name,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    confirmedVersion: r.confirmedVersion ? mapVersion(r.confirmedVersion as Parameters<typeof mapVersion>[0]) : null,
+    pendingVersion: r.pendingVersion ? mapVersion(r.pendingVersion as Parameters<typeof mapVersion>[0]) : null,
+  };
+}
+
 // ─── Form data helpers ────────────────────────────────────────────────────────
 
 export async function getFormData(warehouseId: string) {
