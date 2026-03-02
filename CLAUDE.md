@@ -194,99 +194,38 @@ Vždy volej `auditLog()` z `src/lib/audit.ts` při každé změně entity.
 
 ---
 
-## ⚠️ KNOWN BUG — PRIORITA #1 (neřešeno)
+## Routing
 
-**Všechny `/dashboard/*` routy vrací 404.**
-
-- `(dashboard)/layout.tsx` je teď stripped na prázdný passthrough
-- `calendar/page.tsx` je stripped na `<h1>Kalendář TEST</h1>`
-- `next.config.ts` — `turbopack: { root: __dirname }` odstraněn
-- Login stránka `/cs/login` funguje (200) — problém specifický pro `(dashboard)` route group
-- Vyzkoušeno: smazání `.next` cache, stripped layout i page → pořád 404
-- Pravděpodobně Turbopack bug s route groups vnořenými pod `[locale]`
-
-**Nejdřív vyzkoušet:** `pnpm dev --turbopack` vs `pnpm dev --no-turbopack` — pokud bez Turbopack funguje, je to Turbopack bug a řešení je přidat do `next.config.ts` `experimental: { turbo: false }` nebo upgradovat Next.js.
-
-**Po fixu obnovit tyto dva soubory:**
-
-`src/app/[locale]/(dashboard)/layout.tsx`:
-```tsx
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/sonner";
-import { Separator } from "@/components/ui/separator";
-
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session) redirect("/login");
-
-  return (
-    <SidebarProvider>
-      <AppSidebar user={session.user} />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4">
-          <SidebarTrigger className="-ml-1 text-slate-500 hover:text-slate-900" />
-          <Separator orientation="vertical" className="h-4 bg-slate-200" />
-          <span className="text-xs text-slate-500 font-medium">TimeSlotControl</span>
-        </header>
-        <main className="flex-1 p-6">{children}</main>
-      </SidebarInset>
-      <Toaster richColors />
-    </SidebarProvider>
-  );
-}
-```
-
-`src/app/[locale]/(dashboard)/calendar/page.tsx`:
-```tsx
-import { auth } from "@/auth";
-import { getWarehouses } from "@/lib/actions/calendar";
-import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
-import { redirect } from "next/navigation";
-
-export default async function CalendarPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
-  const warehouses = await getWarehouses();
-
-  if (warehouses.length === 0) {
-    return (
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">Kalendář</h1>
-        <p className="text-muted-foreground">Nejsou k dispozici žádné sklady.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Kalendář rezervací</h1>
-      <CalendarPageClient
-        warehouses={warehouses.map((w) => ({ id: w.id, name: w.name }))}
-        defaultWarehouseId={warehouses[0].id}
-      />
-    </div>
-  );
-}
-```
+`(dashboard)` a `(auth)` jsou **route groups** — nepřidávají segment do URL.
+- `src/app/[locale]/(dashboard)/calendar/page.tsx` → URL: `/{locale}/calendar`
+- Sidebar linky: `/calendar`, `/reservations`, `/warehouses` atd. (BEZ `/dashboard` prefixu)
 
 ---
 
-## Hotovo (session 2025-03)
+## Email notifikace
+
+- `src/lib/email.ts` — Resend API via fetch (bez package)
+- Branded HTML šablona: Mailstep logo, `#db2b19` red accent, navy header/footer
+- Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL`
+- Notifikace: created → workers, approved/rejected → supplier+client, status change → supplier+client
+
+---
+
+## Hotovo
 
 - ✅ `ReservationFormDialog` — gate/čas/vozidlo/přepravní jednotky, `createReservation` action
 - ✅ `approveReservation`, `rejectReservation`, `updateReservationStatus`, `getReservationList`
 - ✅ `ReservationsListClient` — taby Ke schválení / Všechny, inline approve/reject
 - ✅ `CalendarView` — `dateClick` otvírá dialog, tlačítko "Nová rezervace"
 - ✅ Design system — Inter font, slate/indigo CSS vars, custom scrollbar, sidebar restyle
+- ✅ FIX 404 — příčina: `/dashboard` prefix v URL (route group nepřidává segment)
+- ✅ Detail rezervace — `/reservations/[id]` + stavová tlačítka + version diff
+- ✅ Admin CRUD — warehouses, gates + opening hours, users, clients, suppliers
+- ✅ Email notifikace — Resend API, Mailstep branded HTML
+- ✅ i18n — hardcoded CS stringy nahrazeny `useTranslations`, EN + IT kompletní
 
 ## TODO (zbývá)
 
-1. **FIX 404** — dořešit `(dashboard)` route group; obnovit stripped soubory
-2. **Detail rezervace** — `/dashboard/reservations/[id]` + stavová tlačítka
-3. **Admin CRUD** — warehouses, gates + opening hours, users, clients, suppliers
-4. **Email notifikace** — Resend API via fetch (bez package)
-5. **i18n** — EN + IT překlady (zatím jen CS klíče)
+1. **Seed data review** — ověřit seed na produkci
+2. **Role-based visibility** — otestovat všechny 4 role v UI
+3. **Deployment** — Docker/Vercel setup, env variables

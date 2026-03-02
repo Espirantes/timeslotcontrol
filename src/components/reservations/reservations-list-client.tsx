@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import { useTranslations } from "next-intl";
 import { Check, X, ChevronRight, Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,15 +14,6 @@ import type { ReservationListItem } from "@/lib/actions/reservations";
 import type { UserRole } from "@/generated/prisma/client";
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
-
-const STATUS_LABEL: Record<string, string> = {
-  REQUESTED: "Zažádána",
-  CONFIRMED: "Potvrzena",
-  CANCELLED: "Zrušena",
-  UNLOADING_STARTED: "Vykládka zahájena",
-  UNLOADING_COMPLETED: "Vykládka dokončena",
-  CLOSED: "Uzavřeno",
-};
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   REQUESTED: "secondary",
@@ -51,16 +43,18 @@ function ReservationRow({
   onApproved: () => void;
 }) {
   const router = useRouter();
+  const t = useTranslations("reservation");
+  const tCommon = useTranslations("common");
   const [isPending, startTransition] = useTransition();
 
   function handleApprove() {
     startTransition(async () => {
       try {
         await approveReservation(r.id);
-        toast.success("Rezervace schválena");
+        toast.success(t("approval.approveNew"));
         onApproved();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Chyba při schvalování");
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
       }
     });
   }
@@ -69,10 +63,10 @@ function ReservationRow({
     startTransition(async () => {
       try {
         await rejectReservation(r.id);
-        toast.success("Rezervace zamítnuta");
+        toast.success(t("approval.rejectNew"));
         onApproved();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Chyba při zamítání");
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
       }
     });
   }
@@ -86,12 +80,12 @@ function ReservationRow({
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANT[r.status] ?? "outline"}>
-            {STATUS_LABEL[r.status] ?? r.status}
+            {t(`status.${r.status}`)}
           </Badge>
           {r.hasPendingVersion && r.status !== "REQUESTED" && (
             <Badge variant="secondary" className="gap-1 text-amber-700 bg-amber-100 border-amber-300">
               <AlertCircle className="size-3" />
-              Čeká na změnu
+              {t("approval.pendingChange")}
             </Badge>
           )}
         </div>
@@ -118,10 +112,10 @@ function ReservationRow({
           {canApprove && r.hasPendingVersion && (
             <>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-green-700 border-green-300 hover:bg-green-50" onClick={handleApprove} disabled={isPending}>
-                <Check className="size-3.5" /> Schválit
+                <Check className="size-3.5" /> {tCommon("confirm")}
               </Button>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={handleReject} disabled={isPending}>
-                <X className="size-3.5" /> Zamítnout
+                <X className="size-3.5" /> {tCommon("reject")}
               </Button>
             </>
           )}
@@ -139,12 +133,12 @@ function ReservationRow({
 export function ReservationsListClient({ reservations: initial, role }: Props) {
   const [reservations, setReservations] = useState(initial);
   const [tab, setTab] = useState<"pending" | "all">("pending");
+  const t = useTranslations("reservation");
 
   const canApprove = role === "ADMIN" || role === "WAREHOUSE_WORKER";
   const pending = reservations.filter((r) => r.hasPendingVersion);
   const displayed = tab === "pending" ? pending : reservations;
 
-  // Optimistic refresh: re-fetch via router refresh
   const router = useRouter();
   function handleActionDone() {
     router.refresh();
@@ -152,14 +146,13 @@ export function ReservationsListClient({ reservations: initial, role }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Tabs */}
       {canApprove && (
         <div className="flex gap-1 border-b">
           <button
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "pending" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             onClick={() => setTab("pending")}
           >
-            Ke schválení
+            {t("list.tabPending")}
             {pending.length > 0 && (
               <span className="ml-2 rounded-full bg-primary text-primary-foreground text-xs px-1.5 py-0.5">{pending.length}</span>
             )}
@@ -168,25 +161,24 @@ export function ReservationsListClient({ reservations: initial, role }: Props) {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "all" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             onClick={() => setTab("all")}
           >
-            Všechny ({reservations.length})
+            {t("list.tabAll")} ({reservations.length})
           </button>
         </div>
       )}
 
-      {/* Table */}
       {displayed.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
-          {tab === "pending" ? "Žádné rezervace nečekají na schválení" : "Žádné rezervace"}
+          {tab === "pending" ? t("list.noPending") : t("list.noReservations")}
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-2.5 font-medium">Stav</th>
-                <th className="text-left px-4 py-2.5 font-medium">Rampa / Klient</th>
-                <th className="text-left px-4 py-2.5 font-medium">Čas</th>
-                <th className="text-left px-4 py-2.5 font-medium">Dopravce</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("list.colStatus")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("list.colGateClient")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("list.colTime")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("list.colSupplier")}</th>
                 <th className="w-40"></th>
               </tr>
             </thead>

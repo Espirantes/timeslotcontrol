@@ -1,19 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import type { CalendarEvent } from "@/lib/actions/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X, ExternalLink } from "lucide-react";
-
-const STATUS_LABELS: Record<string, string> = {
-  REQUESTED: "Zažádána",
-  CONFIRMED: "Potvrzena",
-  CANCELLED: "Zrušena",
-  UNLOADING_STARTED: "Zahájena vykládka",
-  UNLOADING_COMPLETED: "Dokončena vykládka",
-  CLOSED: "Uzavřeno",
-};
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   REQUESTED: "secondary",
@@ -33,6 +25,8 @@ type Props = {
 
 export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const t = useTranslations("reservation");
+  const tCommon = useTranslations("common");
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -63,26 +57,26 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Pro
       </div>
 
       <Badge variant={STATUS_VARIANT[event.status] ?? "secondary"} className="mb-3">
-        {STATUS_LABELS[event.status] ?? event.status}
+        {t(`status.${event.status}`)}
       </Badge>
 
       {event.isOwn && (
         <div className="space-y-1 text-sm mb-3">
           {event.vehicleType && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Vozidlo</span>
+              <span className="text-muted-foreground">{t("fields.vehicleType")}</span>
               <span className="font-medium">{event.vehicleType}</span>
             </div>
           )}
           {event.licensePlate && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">SPZ</span>
+              <span className="text-muted-foreground">{t("fields.licensePlate")}</span>
               <span className="font-mono font-medium">{event.licensePlate}</span>
             </div>
           )}
           {event.driverName && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Řidič</span>
+              <span className="text-muted-foreground">{t("fields.driverName")}</span>
               <span className="font-medium">{event.driverName}</span>
             </div>
           )}
@@ -92,7 +86,7 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Pro
       {event.isOwn && (
         <Button size="sm" variant="outline" className="w-full gap-1" onClick={onOpenDetail}>
           <ExternalLink className="size-3" />
-          Detail rezervace
+          {tCommon("detail")}
         </Button>
       )}
     </div>

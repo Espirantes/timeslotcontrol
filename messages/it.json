@@ -100,6 +100,16 @@
       "approveNew": "Approva prenotazione",
       "rejectNew": "Rifiuta prenotazione"
     },
+    "list": {
+      "tabPending": "In attesa",
+      "tabAll": "Tutte",
+      "noPending": "Nessuna prenotazione in attesa di approvazione",
+      "noReservations": "Nessuna prenotazione",
+      "colStatus": "Stato",
+      "colGateClient": "Banchina / Cliente",
+      "colTime": "Orario",
+      "colSupplier": "Vettore"
+    },
     "calendar": {
       "booked": "Occupato",
       "pending": "In attesa di approvazione"
