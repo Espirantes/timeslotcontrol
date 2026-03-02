@@ -53,7 +53,7 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
   }
 
   function handleEventClick(reservationId: string) {
-    router.push(`/dashboard/reservations/${reservationId}`);
+    router.push(`/reservations/${reservationId}`);
   }
 
   function handleSlotClick(gateId: string, date: Date, startTime: string) {

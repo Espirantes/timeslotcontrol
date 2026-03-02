@@ -171,8 +171,8 @@ export async function createReservation(input: CreateReservationInput) {
     userId: user.id,
   });
 
-  revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/reservations");
+  revalidatePath("/calendar");
+  revalidatePath("/reservations");
   return { success: true, reservationId: reservation.id };
 }
 
@@ -216,8 +216,8 @@ export async function approveReservation(reservationId: string) {
     userId: user.id,
   });
 
-  revalidatePath("/dashboard/calendar");
-  revalidatePath(`/dashboard/reservations/${reservationId}`);
+  revalidatePath("/calendar");
+  revalidatePath(`/reservations/${reservationId}`);
   return { success: true };
 }
 
@@ -251,8 +251,8 @@ export async function rejectReservation(reservationId: string) {
     userId: user.id,
   });
 
-  revalidatePath("/dashboard/calendar");
-  revalidatePath(`/dashboard/reservations/${reservationId}`);
+  revalidatePath("/calendar");
+  revalidatePath(`/reservations/${reservationId}`);
   return { success: true };
 }
 
@@ -293,8 +293,8 @@ export async function updateReservationStatus(
     userId: user.id,
   });
 
-  revalidatePath("/dashboard/calendar");
-  revalidatePath(`/dashboard/reservations/${reservationId}`);
+  revalidatePath("/calendar");
+  revalidatePath(`/reservations/${reservationId}`);
   return { success: true };
 }
 

@@ -125,7 +125,7 @@ function ReservationRow({
               </Button>
             </>
           )}
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => router.push(`/dashboard/reservations/${r.id}`)}>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => router.push(`/reservations/${r.id}`)}>
             <ChevronRight className="size-4" />
           </Button>
         </div>

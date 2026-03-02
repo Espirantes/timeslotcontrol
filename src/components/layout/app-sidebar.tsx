@@ -67,16 +67,16 @@ export function AppSidebar({ user }: Props) {
   const isWorker = user.role === "WAREHOUSE_WORKER";
 
   const mainItems = [
-    { href: "/dashboard/calendar", label: t("calendar"), icon: CalendarDays },
-    { href: "/dashboard/reservations", label: t("reservations"), icon: ClipboardList },
+    { href: "/calendar", label: t("calendar"), icon: CalendarDays },
+    { href: "/reservations", label: t("reservations"), icon: ClipboardList },
   ];
 
   const adminItems = [
-    { href: "/dashboard/warehouses", label: t("warehouses"), icon: Building2 },
-    { href: "/dashboard/gates", label: t("gates"), icon: DoorOpen },
-    { href: "/dashboard/clients", label: t("clients"), icon: Users },
-    { href: "/dashboard/suppliers", label: t("suppliers"), icon: Truck },
-    { href: "/dashboard/users", label: t("users"), icon: UserCircle },
+    { href: "/warehouses", label: t("warehouses"), icon: Building2 },
+    { href: "/gates", label: t("gates"), icon: DoorOpen },
+    { href: "/clients", label: t("clients"), icon: Users },
+    { href: "/suppliers", label: t("suppliers"), icon: Truck },
+    { href: "/users", label: t("users"), icon: UserCircle },
   ];
 
   return (
@@ -150,8 +150,8 @@ export function AppSidebar({ user }: Props) {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/dashboard/settings")}>
-                  <Link href="/dashboard/settings" className="flex items-center gap-3">
+                <SidebarMenuButton asChild isActive={pathname.includes("/settings")}>
+                  <Link href="/settings" className="flex items-center gap-3">
                     <Settings className="size-[18px] shrink-0 text-slate-400" />
                     <span>Nastavení</span>
                   </Link>

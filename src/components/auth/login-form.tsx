@@ -34,7 +34,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/dashboard/calendar");
+    router.push("/calendar");
     router.refresh();
   }
 
