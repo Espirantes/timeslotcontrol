@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  WAREHOUSE_WORKER
+  CLIENT
+  SUPPLIER
+
+  @@map("user_role")
+}
+
+enum ReservationStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  UNLOADING_STARTED
+  UNLOADING_COMPLETED
+  CLOSED
+
+  @@map("reservation_status")
+}
+
+enum VehicleType {
+  TRUCK
+  VAN
+  TRUCK_DOUBLE_TRAILER
+  TRUCK_CURTAINSIDER
+  REFRIGERATED_TRUCK
+  OTHER
+
+  @@map("vehicle_type")
+}
+
+enum TransportUnitType {
+  PALLET_EUR
+  PALLET_ONE_WAY
+  PALLET_OTHER
+  CARTON
+  OTHER
+
+  @@map("transport_unit_type")
+}
+
+// ─────────────────────────────────────────
+// Warehouse & Gate
+// ─────────────────────────────────────────
+
+model Warehouse {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  timezone  String   @default("Europe/Prague")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gates Gates[]
+  users User[]
+
+  @@map("warehouse")
+}
+
+model Gates {
+  id          String   @id @default(cuid())
+  warehouseId String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  warehouse    Warehouse          @relation(fields: [warehouseId], references: [id])
+  openingHours GateOpeningHours[]
+  reservations Reservation[]
+
+  @@map("gate")
+}
+
+model GateOpeningHours {
+  id        String  @id @default(cuid())
+  gateId    String
+  dayOfWeek Int // 0 = Sunday … 6 = Saturday
+  openTime  String // "HH:MM"
+  closeTime String // "HH:MM"
+  isOpen    Boolean @default(true)
+
+  gate Gates @relation(fields: [gateId], references: [id], onDelete: Cascade)
+
+  @@unique([gateId, dayOfWeek])
+  @@map("gate_opening_hours")
+}
+
+// ─────────────────────────────────────────
+// Client & Supplier (M:N)
+// ─────────────────────────────────────────
+
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  suppliers    ClientSupplier[]
+  reservations Reservation[]
+  users        User[]
+
+  @@map("client")
+}
+
+model Supplier {
+  id           String   @id @default(cuid())
+  name         String
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clients      ClientSupplier[]
+  reservations Reservation[]
+  users        User[]
+
+  @@map("supplier")
+}
+
+model ClientSupplier {
+  clientId   String
+  supplierId String
+
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, supplierId])
+  @@map("client_supplier")
+}
+
+// ─────────────────────────────────────────
+// Reservation (with versioning)
+// ─────────────────────────────────────────
+
+model Reservation {
+  id                 String            @id @default(cuid())
+  gateId             String
+  clientId           String
+  supplierId         String
+  status             ReservationStatus @default(REQUESTED)
+  confirmedVersionId String?           @unique
+  pendingVersionId   String?           @unique
+  createdById        String
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  gate             Gates               @relation(fields: [gateId], references: [id])
+  client           Client              @relation(fields: [clientId], references: [id])
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy        User                @relation("ReservationCreatedBy", fields: [createdById], references: [id])
+  confirmedVersion ReservationVersion? @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id])
+  pendingVersion   ReservationVersion? @relation("PendingVersion", fields: [pendingVersionId], references: [id])
+  versions         ReservationVersion[] @relation("AllVersions")
+
+  @@index([gateId])
+  @@index([clientId])
+  @@index([supplierId])
+  @@index([status])
+  @@map("reservation")
+}
+
+model ReservationVersion {
+  id              String      @id @default(cuid())
+  reservationId   String
+  startTime       DateTime
+  durationMinutes Int // multiples of 15
+  vehicleType     VehicleType
+  licensePlate    String?
+  sealNumbers     String?
+  driverName      String?
+  driverContact   String?
+  notes           String?
+  createdById     String
+  createdAt       DateTime    @default(now())
+
+  reservation           Reservation  @relation("AllVersions", fields: [reservationId], references: [id], onDelete: Cascade)
+  confirmedByReservation Reservation? @relation("ConfirmedVersion")
+  pendingByReservation   Reservation? @relation("PendingVersion")
+  createdBy             User         @relation("VersionCreatedBy", fields: [createdById], references: [id])
+  items                 ReservationItem[]
+
+  @@index([reservationId])
+  @@index([startTime])
+  @@map("reservation_version")
+}
+
+model ReservationItem {
+  id                   String            @id @default(cuid())
+  reservationVersionId String
+  unitType             TransportUnitType
+  quantity             Int
+  weightKg             Decimal?          @db.Decimal(10, 2)
+  description          String?
+
+  reservationVersion ReservationVersion @relation(fields: [reservationVersionId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_item")
+}
+
+// ─────────────────────────────────────────
+// Audit Log
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String // "reservation" | "gate" | "user" | ...
+  entityId   String
+  action     String // "created" | "status_changed" | "version_approved" | ...
+  oldData    Json?
+  newData    Json?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ─────────────────────────────────────────
+// Users & Auth
+// ─────────────────────────────────────────
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String
+  password    String
+  role        UserRole
+  warehouseId String? // only for WAREHOUSE_WORKER
+  clientId    String? // only for CLIENT
+  supplierId  String? // only for SUPPLIER
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  client    Client?    @relation(fields: [clientId], references: [id])
+  supplier  Supplier?  @relation(fields: [supplierId], references: [id])
+
+  reservationsCreated Reservation[]        @relation("ReservationCreatedBy")
+  versionsCreated     ReservationVersion[] @relation("VersionCreatedBy")
+  auditLogs           AuditLog[]
+
+  @@map("user")
+}

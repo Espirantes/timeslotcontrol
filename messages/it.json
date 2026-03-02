@@ -1,0 +1,174 @@
+{
+  "common": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "create": "Crea",
+    "close": "Chiudi",
+    "confirm": "Conferma",
+    "reject": "Rifiuta",
+    "loading": "Caricamento...",
+    "error": "Si è verificato un errore",
+    "success": "Successo",
+    "noData": "Nessun dato",
+    "search": "Cerca",
+    "filter": "Filtra",
+    "all": "Tutto",
+    "active": "Attivo",
+    "inactive": "Inattivo",
+    "yes": "Sì",
+    "no": "No",
+    "back": "Indietro",
+    "detail": "Dettaglio",
+    "actions": "Azioni"
+  },
+  "auth": {
+    "login": "Accedi",
+    "logout": "Esci",
+    "email": "Email",
+    "password": "Password",
+    "loginTitle": "Benvenuto in TimeSlotControl",
+    "loginSubtitle": "Accedi al tuo account",
+    "loginError": "Email o password non validi",
+    "loginButton": "Accedi"
+  },
+  "nav": {
+    "calendar": "Calendario",
+    "reservations": "Prenotazioni",
+    "warehouses": "Magazzini",
+    "gates": "Banchine",
+    "clients": "Clienti",
+    "suppliers": "Fornitori",
+    "users": "Utenti",
+    "settings": "Impostazioni"
+  },
+  "reservation": {
+    "title": "Prenotazioni",
+    "new": "Nuova prenotazione",
+    "status": {
+      "REQUESTED": "Richiesta",
+      "CONFIRMED": "Confermata",
+      "CANCELLED": "Annullata",
+      "UNLOADING_STARTED": "Scarico iniziato",
+      "UNLOADING_COMPLETED": "Scarico completato",
+      "CLOSED": "Chiusa"
+    },
+    "vehicleType": {
+      "TRUCK": "Camion",
+      "VAN": "Furgone",
+      "TRUCK_DOUBLE_TRAILER": "Camion con doppio rimorchio",
+      "TRUCK_CURTAINSIDER": "Camion centinato",
+      "REFRIGERATED_TRUCK": "Camion frigorifero",
+      "OTHER": "Altro"
+    },
+    "unitType": {
+      "PALLET_EUR": "Pallet EUR",
+      "PALLET_ONE_WAY": "Pallet monouso",
+      "PALLET_OTHER": "Pallet altro",
+      "CARTON": "Cartone",
+      "OTHER": "Altro"
+    },
+    "fields": {
+      "gate": "Banchina",
+      "client": "Cliente",
+      "supplier": "Fornitore",
+      "startTime": "Inizio",
+      "duration": "Durata (min)",
+      "vehicleType": "Tipo veicolo",
+      "licensePlate": "Targa",
+      "sealNumbers": "Numeri sigilli",
+      "driverName": "Nome autista",
+      "driverContact": "Contatto autista",
+      "notes": "Note",
+      "status": "Stato",
+      "createdAt": "Creato",
+      "updatedAt": "Aggiornato"
+    },
+    "items": {
+      "title": "Unità di trasporto",
+      "add": "Aggiungi riga",
+      "unitType": "Tipo",
+      "quantity": "Quantità",
+      "weightKg": "Peso (kg)",
+      "description": "Descrizione"
+    },
+    "approval": {
+      "pendingChange": "Modifica in attesa di approvazione",
+      "approveChange": "Approva modifica",
+      "rejectChange": "Rifiuta modifica",
+      "approveNew": "Approva prenotazione",
+      "rejectNew": "Rifiuta prenotazione"
+    },
+    "calendar": {
+      "booked": "Occupato",
+      "pending": "In attesa di approvazione"
+    }
+  },
+  "warehouse": {
+    "title": "Magazzini",
+    "new": "Nuovo magazzino",
+    "fields": {
+      "name": "Nome",
+      "address": "Indirizzo",
+      "timezone": "Fuso orario"
+    }
+  },
+  "gate": {
+    "title": "Banchine",
+    "new": "Nuova banchina",
+    "openingHours": "Orari di apertura",
+    "days": {
+      "0": "Domenica",
+      "1": "Lunedì",
+      "2": "Martedì",
+      "3": "Mercoledì",
+      "4": "Giovedì",
+      "5": "Venerdì",
+      "6": "Sabato"
+    },
+    "fields": {
+      "name": "Nome",
+      "description": "Descrizione",
+      "openTime": "Apertura",
+      "closeTime": "Chiusura"
+    }
+  },
+  "client": {
+    "title": "Clienti",
+    "new": "Nuovo cliente",
+    "fields": {
+      "name": "Nome",
+      "contactEmail": "Email di contatto"
+    }
+  },
+  "supplier": {
+    "title": "Fornitori / Vettori",
+    "new": "Nuovo fornitore",
+    "fields": {
+      "name": "Nome",
+      "contactEmail": "Email di contatto"
+    }
+  },
+  "user": {
+    "title": "Utenti",
+    "new": "Nuovo utente",
+    "role": {
+      "ADMIN": "Amministratore",
+      "WAREHOUSE_WORKER": "Operatore magazzino",
+      "CLIENT": "Cliente",
+      "SUPPLIER": "Fornitore / Vettore"
+    },
+    "fields": {
+      "name": "Nome",
+      "email": "Email",
+      "role": "Ruolo",
+      "warehouse": "Magazzino",
+      "client": "Cliente",
+      "supplier": "Fornitore",
+      "isActive": "Attivo",
+      "password": "Password",
+      "passwordPlaceholder": "Inserisci password (min. 8 caratteri)"
+    }
+  }
+}

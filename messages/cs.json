@@ -1,0 +1,174 @@
+{
+  "common": {
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "delete": "Smazat",
+    "edit": "Upravit",
+    "create": "Vytvořit",
+    "close": "Zavřít",
+    "confirm": "Potvrdit",
+    "reject": "Zamítnout",
+    "loading": "Načítání...",
+    "error": "Nastala chyba",
+    "success": "Úspěch",
+    "noData": "Žádná data",
+    "search": "Hledat",
+    "filter": "Filtrovat",
+    "all": "Vše",
+    "active": "Aktivní",
+    "inactive": "Neaktivní",
+    "yes": "Ano",
+    "no": "Ne",
+    "back": "Zpět",
+    "detail": "Detail",
+    "actions": "Akce"
+  },
+  "auth": {
+    "login": "Přihlásit se",
+    "logout": "Odhlásit se",
+    "email": "E-mail",
+    "password": "Heslo",
+    "loginTitle": "Vítejte v TimeSlotControl",
+    "loginSubtitle": "Přihlaste se ke svému účtu",
+    "loginError": "Neplatný e-mail nebo heslo",
+    "loginButton": "Přihlásit se"
+  },
+  "nav": {
+    "calendar": "Kalendář",
+    "reservations": "Rezervace",
+    "warehouses": "Sklady",
+    "gates": "Rampy",
+    "clients": "Klienti",
+    "suppliers": "Dodavatelé",
+    "users": "Uživatelé",
+    "settings": "Nastavení"
+  },
+  "reservation": {
+    "title": "Rezervace",
+    "new": "Nová rezervace",
+    "status": {
+      "REQUESTED": "Zažádána",
+      "CONFIRMED": "Potvrzena",
+      "CANCELLED": "Zrušena",
+      "UNLOADING_STARTED": "Zahájena vykládka",
+      "UNLOADING_COMPLETED": "Dokončena vykládka",
+      "CLOSED": "Uzavřeno"
+    },
+    "vehicleType": {
+      "TRUCK": "Kamion",
+      "VAN": "Avie / dodávka",
+      "TRUCK_DOUBLE_TRAILER": "Kamion s dvěma návěsy",
+      "TRUCK_CURTAINSIDER": "Kamion plachta",
+      "REFRIGERATED_TRUCK": "Chladírenský kamion",
+      "OTHER": "Ostatní"
+    },
+    "unitType": {
+      "PALLET_EUR": "Paleta EUR",
+      "PALLET_ONE_WAY": "Paleta jednocestná",
+      "PALLET_OTHER": "Paleta ostatní",
+      "CARTON": "Karton",
+      "OTHER": "Ostatní"
+    },
+    "fields": {
+      "gate": "Rampa",
+      "client": "Klient",
+      "supplier": "Dodavatel",
+      "startTime": "Začátek",
+      "duration": "Délka (min)",
+      "vehicleType": "Typ vozidla",
+      "licensePlate": "SPZ",
+      "sealNumbers": "Plomby",
+      "driverName": "Jméno řidiče",
+      "driverContact": "Kontakt na řidiče",
+      "notes": "Poznámky",
+      "status": "Stav",
+      "createdAt": "Vytvořeno",
+      "updatedAt": "Aktualizováno"
+    },
+    "items": {
+      "title": "Přepravní jednotky",
+      "add": "Přidat řádek",
+      "unitType": "Typ",
+      "quantity": "Počet",
+      "weightKg": "Hmotnost (kg)",
+      "description": "Popis"
+    },
+    "approval": {
+      "pendingChange": "Čeká na schválení změny",
+      "approveChange": "Schválit změnu",
+      "rejectChange": "Zamítnout změnu",
+      "approveNew": "Schválit rezervaci",
+      "rejectNew": "Zamítnout rezervaci"
+    },
+    "calendar": {
+      "booked": "Obsazeno",
+      "pending": "Čeká na schválení"
+    }
+  },
+  "warehouse": {
+    "title": "Sklady",
+    "new": "Nový sklad",
+    "fields": {
+      "name": "Název",
+      "address": "Adresa",
+      "timezone": "Časová zóna"
+    }
+  },
+  "gate": {
+    "title": "Rampy",
+    "new": "Nová rampa",
+    "openingHours": "Otevírací hodiny",
+    "days": {
+      "0": "Neděle",
+      "1": "Pondělí",
+      "2": "Úterý",
+      "3": "Středa",
+      "4": "Čtvrtek",
+      "5": "Pátek",
+      "6": "Sobota"
+    },
+    "fields": {
+      "name": "Název",
+      "description": "Popis",
+      "openTime": "Otevření",
+      "closeTime": "Zavření"
+    }
+  },
+  "client": {
+    "title": "Klienti",
+    "new": "Nový klient",
+    "fields": {
+      "name": "Název",
+      "contactEmail": "Kontaktní e-mail"
+    }
+  },
+  "supplier": {
+    "title": "Dodavatelé / Dopravci",
+    "new": "Nový dodavatel",
+    "fields": {
+      "name": "Název",
+      "contactEmail": "Kontaktní e-mail"
+    }
+  },
+  "user": {
+    "title": "Uživatelé",
+    "new": "Nový uživatel",
+    "role": {
+      "ADMIN": "Administrátor",
+      "WAREHOUSE_WORKER": "Pracovník skladu",
+      "CLIENT": "Klient",
+      "SUPPLIER": "Dodavatel / Dopravce"
+    },
+    "fields": {
+      "name": "Jméno",
+      "email": "E-mail",
+      "role": "Role",
+      "warehouse": "Sklad",
+      "client": "Klient",
+      "supplier": "Dodavatel",
+      "isActive": "Aktivní",
+      "password": "Heslo",
+      "passwordPlaceholder": "Zadejte heslo (min. 8 znaků)"
+    }
+  }
+}
