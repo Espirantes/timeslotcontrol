@@ -140,3 +140,47 @@ Vždy volej `auditLog()` z `src/lib/audit.ts` při každé změně entity.
 - ❌ Nepoužívej `--no-verify`, `--force-push` ani jiné bypassy
 - ❌ Necommituj `.env` soubory ani secrets
 - ❌ Nezapomeň přidat překlady do všech tří jazyků
+
+---
+
+## Design systém (aktuální)
+
+- Font: **Inter** (300/400/500/600) via `next/font/google`, var `--font-inter`
+- Barvy: `slate-50` bg, `white` karty, `slate-900` primary button, `indigo-600` accent + focus ring
+- Sidebar: `slate-50` bg, aktivní item = `bg-white shadow-sm border`, ikony `indigo-600` aktivní
+- Scrollbar: 6px, `slate-200` thumb
+
+---
+
+## ⚠️ KNOWN BUG — PRIORITA #1 (neřešeno)
+
+**Všechny `/dashboard/*` routy vrací 404.**
+
+- `(dashboard)/layout.tsx` je teď stripped na prázdný passthrough
+- `calendar/page.tsx` je stripped na `<h1>Kalendář TEST</h1>`
+- `next.config.ts` — `turbopack: { root: __dirname }` odstraněn
+- Login stránka `/cs/login` funguje (200) — problém specifický pro `(dashboard)` route group
+- Vyzkoušeno: smazání `.next` cache, stripped layout i page → pořád 404
+- Pravděpodobně Turbopack bug s route groups vnořenými pod `[locale]`
+
+**Po fixu je nutné obnovit:**
+1. `src/app/[locale]/(dashboard)/layout.tsx` — plný layout se sidebar, auth guard, header
+2. `src/app/[locale]/(dashboard)/calendar/page.tsx` — původní calendar page
+
+---
+
+## Hotovo (session 2025-03)
+
+- ✅ `ReservationFormDialog` — gate/čas/vozidlo/přepravní jednotky, `createReservation` action
+- ✅ `approveReservation`, `rejectReservation`, `updateReservationStatus`, `getReservationList`
+- ✅ `ReservationsListClient` — taby Ke schválení / Všechny, inline approve/reject
+- ✅ `CalendarView` — `dateClick` otvírá dialog, tlačítko "Nová rezervace"
+- ✅ Design system — Inter font, slate/indigo CSS vars, custom scrollbar, sidebar restyle
+
+## TODO (zbývá)
+
+1. **FIX 404** — dořešit `(dashboard)` route group; obnovit stripped soubory
+2. **Detail rezervace** — `/dashboard/reservations/[id]` + stavová tlačítka
+3. **Admin CRUD** — warehouses, gates + opening hours, users, clients, suppliers
+4. **Email notifikace** — Resend API via fetch (bez package)
+5. **i18n** — EN + IT překlady (zatím jen CS klíče)
