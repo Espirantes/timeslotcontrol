@@ -5,6 +5,12 @@ import { auth } from "@/auth";
 import { auditLog } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import type { VehicleType, TransportUnitType } from "@/generated/prisma/client";
+import {
+  notifyReservationCreated,
+  notifyReservationApproved,
+  notifyReservationRejected,
+  notifyStatusChanged,
+} from "@/lib/email";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -173,6 +179,22 @@ export async function createReservation(input: CreateReservationInput) {
 
   revalidatePath("/calendar");
   revalidatePath("/reservations");
+
+  // Email notification to warehouse workers
+  const gate = await prisma.gates.findUnique({ where: { id: input.gateId }, include: { warehouse: true } });
+  const supplier = await prisma.supplier.findUnique({ where: { id: resolvedSupplierId } });
+  const workers = await prisma.user.findMany({
+    where: { role: "WAREHOUSE_WORKER", warehouseId: gate?.warehouseId, isActive: true },
+    select: { email: true },
+  });
+  notifyReservationCreated({
+    reservationId: reservation.id,
+    gateName: gate?.name ?? "",
+    supplierName: supplier?.name ?? "",
+    startTime: input.startTime,
+    workerEmails: workers.map((w) => w.email),
+  }).catch(() => {});
+
   return { success: true, reservationId: reservation.id };
 }
 
@@ -218,6 +240,22 @@ export async function approveReservation(reservationId: string) {
 
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
+
+  // Email notification
+  const full = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { gate: true, supplier: true, client: true, confirmedVersion: true },
+  });
+  if (full?.confirmedVersion) {
+    notifyReservationApproved({
+      reservationId,
+      gateName: full.gate.name,
+      startTime: full.confirmedVersion.startTime.toISOString(),
+      supplierEmail: full.supplier.contactEmail,
+      clientEmail: full.client.contactEmail,
+    }).catch(() => {});
+  }
+
   return { success: true };
 }
 
@@ -253,6 +291,20 @@ export async function rejectReservation(reservationId: string) {
 
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
+
+  // Email notification
+  const full = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { gate: true, supplier: true },
+  });
+  if (full) {
+    notifyReservationRejected({
+      reservationId,
+      gateName: full.gate.name,
+      supplierEmail: full.supplier.contactEmail,
+    }).catch(() => {});
+  }
+
   return { success: true };
 }
 
@@ -295,6 +347,22 @@ export async function updateReservationStatus(
 
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
+
+  // Email notification
+  const full = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { gate: true, supplier: true, client: true },
+  });
+  if (full) {
+    notifyStatusChanged({
+      reservationId,
+      gateName: full.gate.name,
+      newStatus,
+      supplierEmail: full.supplier.contactEmail,
+      clientEmail: full.client.contactEmail,
+    }).catch(() => {});
+  }
+
   return { success: true };
 }
 
