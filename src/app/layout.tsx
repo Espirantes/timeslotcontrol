@@ -12,7 +12,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const locale = await getLocale();
+  let locale = "cs";
+  try {
+    locale = await getLocale();
+  } catch {
+    // fallback to default when middleware hasn't set locale yet
+  }
 
   return (
     <html lang={locale}>
