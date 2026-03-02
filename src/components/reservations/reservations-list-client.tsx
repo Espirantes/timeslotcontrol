@@ -1,0 +1,208 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { cs } from "date-fns/locale";
+import { Check, X, ChevronRight, Clock, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { approveReservation, rejectReservation } from "@/lib/actions/reservations";
+import type { ReservationListItem } from "@/lib/actions/reservations";
+import type { UserRole } from "@/generated/prisma/client";
+
+// ─── Status badge ──────────────────────────────────────────────────────────────
+
+const STATUS_LABEL: Record<string, string> = {
+  REQUESTED: "Zažádána",
+  CONFIRMED: "Potvrzena",
+  CANCELLED: "Zrušena",
+  UNLOADING_STARTED: "Vykládka zahájena",
+  UNLOADING_COMPLETED: "Vykládka dokončena",
+  CLOSED: "Uzavřeno",
+};
+
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  REQUESTED: "secondary",
+  CONFIRMED: "default",
+  CANCELLED: "destructive",
+  UNLOADING_STARTED: "default",
+  UNLOADING_COMPLETED: "default",
+  CLOSED: "outline",
+};
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+type Props = {
+  reservations: ReservationListItem[];
+  role: UserRole;
+};
+
+// ─── Row ───────────────────────────────────────────────────────────────────────
+
+function ReservationRow({
+  r,
+  canApprove,
+  onApproved,
+}: {
+  r: ReservationListItem;
+  canApprove: boolean;
+  onApproved: () => void;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function handleApprove() {
+    startTransition(async () => {
+      try {
+        await approveReservation(r.id);
+        toast.success("Rezervace schválena");
+        onApproved();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Chyba při schvalování");
+      }
+    });
+  }
+
+  function handleReject() {
+    startTransition(async () => {
+      try {
+        await rejectReservation(r.id);
+        toast.success("Rezervace zamítnuta");
+        onApproved();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Chyba při zamítání");
+      }
+    });
+  }
+
+  const displayTime = r.startTime
+    ? format(new Date(r.startTime), "d. M. yyyy HH:mm", { locale: cs })
+    : "—";
+
+  return (
+    <tr className={`border-t hover:bg-muted/30 transition-colors ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Badge variant={STATUS_VARIANT[r.status] ?? "outline"}>
+            {STATUS_LABEL[r.status] ?? r.status}
+          </Badge>
+          {r.hasPendingVersion && r.status !== "REQUESTED" && (
+            <Badge variant="secondary" className="gap-1 text-amber-700 bg-amber-100 border-amber-300">
+              <AlertCircle className="size-3" />
+              Čeká na změnu
+            </Badge>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-3 text-sm">
+        <div className="font-medium">{r.gateName}</div>
+        <div className="text-muted-foreground text-xs">{r.clientName}</div>
+      </td>
+      <td className="px-4 py-3 text-sm">
+        <div className="flex items-center gap-1">
+          <Clock className="size-3.5 text-muted-foreground" />
+          {displayTime}
+        </div>
+        <div className="text-muted-foreground text-xs">{r.durationMinutes} min</div>
+      </td>
+      <td className="px-4 py-3 text-sm">
+        <div>{r.supplierName}</div>
+        {r.licensePlate && (
+          <div className="text-muted-foreground text-xs">{r.licensePlate}</div>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center justify-end gap-2">
+          {canApprove && r.hasPendingVersion && (
+            <>
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-green-700 border-green-300 hover:bg-green-50" onClick={handleApprove} disabled={isPending}>
+                <Check className="size-3.5" /> Schválit
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={handleReject} disabled={isPending}>
+                <X className="size-3.5" /> Zamítnout
+              </Button>
+            </>
+          )}
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => router.push(`/dashboard/reservations/${r.id}`)}>
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+
+export function ReservationsListClient({ reservations: initial, role }: Props) {
+  const [reservations, setReservations] = useState(initial);
+  const [tab, setTab] = useState<"pending" | "all">("pending");
+
+  const canApprove = role === "ADMIN" || role === "WAREHOUSE_WORKER";
+  const pending = reservations.filter((r) => r.hasPendingVersion);
+  const displayed = tab === "pending" ? pending : reservations;
+
+  // Optimistic refresh: re-fetch via router refresh
+  const router = useRouter();
+  function handleActionDone() {
+    router.refresh();
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Tabs */}
+      {canApprove && (
+        <div className="flex gap-1 border-b">
+          <button
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "pending" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setTab("pending")}
+          >
+            Ke schválení
+            {pending.length > 0 && (
+              <span className="ml-2 rounded-full bg-primary text-primary-foreground text-xs px-1.5 py-0.5">{pending.length}</span>
+            )}
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "all" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setTab("all")}
+          >
+            Všechny ({reservations.length})
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
+      {displayed.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground text-sm">
+          {tab === "pending" ? "Žádné rezervace nečekají na schválení" : "Žádné rezervace"}
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-2.5 font-medium">Stav</th>
+                <th className="text-left px-4 py-2.5 font-medium">Rampa / Klient</th>
+                <th className="text-left px-4 py-2.5 font-medium">Čas</th>
+                <th className="text-left px-4 py-2.5 font-medium">Dopravce</th>
+                <th className="w-40"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((r) => (
+                <ReservationRow
+                  key={r.id}
+                  r={r}
+                  canApprove={canApprove}
+                  onApproved={handleActionDone}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

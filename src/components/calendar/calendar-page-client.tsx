@@ -3,10 +3,13 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarView } from "./calendar-view";
+import { ReservationFormDialog } from "@/components/reservations/reservation-form-dialog";
 import { getCalendarData } from "@/lib/actions/calendar";
 import type { CalendarEvent, CalendarGate } from "@/lib/actions/calendar";
 import { startOfDay, endOfDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 type Warehouse = { id: string; name: string };
 
@@ -22,6 +25,12 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [gates, setGates] = useState<CalendarGate[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [preselectedGateId, setPreselectedGateId] = useState<string | undefined>();
+  const [preselectedDate, setPreselectedDate] = useState<Date | undefined>();
+  const [preselectedStartTime, setPreselectedStartTime] = useState<string | undefined>();
 
   async function loadData(wId: string, date: Date) {
     startTransition(async () => {
@@ -47,25 +56,50 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
     router.push(`/dashboard/reservations/${reservationId}`);
   }
 
+  function handleSlotClick(gateId: string, date: Date, startTime: string) {
+    setPreselectedGateId(gateId);
+    setPreselectedDate(date);
+    setPreselectedStartTime(startTime);
+    setDialogOpen(true);
+  }
+
+  function handleNewReservation() {
+    setPreselectedGateId(undefined);
+    setPreselectedDate(currentDate);
+    setPreselectedStartTime(undefined);
+    setDialogOpen(true);
+  }
+
+  function handleCreated() {
+    loadData(warehouseId, currentDate);
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {warehouses.length > 1 && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Sklad:</span>
-          <Select value={warehouseId} onValueChange={handleWarehouseChange}>
-            <SelectTrigger className="w-60">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {warehouses.map((w) => (
-                <SelectItem key={w.id} value={w.id}>
-                  {w.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-2">
+        {warehouses.length > 1 ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Sklad:</span>
+            <Select value={warehouseId} onValueChange={handleWarehouseChange}>
+              <SelectTrigger className="w-60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {warehouses.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div />
+        )}
+        <Button size="sm" onClick={handleNewReservation}>
+          <Plus className="size-4 mr-1" /> Nová rezervace
+        </Button>
+      </div>
 
       <CalendarView
         gates={gates}
@@ -73,7 +107,18 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
         currentDate={currentDate}
         onDateChange={handleDateChange}
         onEventClick={handleEventClick}
+        onSlotClick={handleSlotClick}
         loading={isPending}
+      />
+
+      <ReservationFormDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        warehouseId={warehouseId}
+        preselectedGateId={preselectedGateId}
+        preselectedDate={preselectedDate}
+        preselectedStartTime={preselectedStartTime}
+        onCreated={handleCreated}
       />
     </div>
   );

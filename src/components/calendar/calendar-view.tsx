@@ -5,6 +5,7 @@ import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import scrollGridPlugin from "@fullcalendar/scrollgrid";
 import type { EventContentArg, EventClickArg } from "@fullcalendar/core";
+import type { DateClickArg } from "@fullcalendar/interaction";
 import type { CalendarEvent, CalendarGate } from "@/lib/actions/calendar";
 import type { ReservationStatus } from "@/generated/prisma/client";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -30,10 +31,11 @@ type Props = {
   currentDate: Date;
   onDateChange: (date: Date) => void;
   onEventClick: (reservationId: string) => void;
+  onSlotClick?: (gateId: string, date: Date, startTime: string) => void;
   loading?: boolean;
 };
 
-export function CalendarView({ gates, events, currentDate, onDateChange, onEventClick, loading }: Props) {
+export function CalendarView({ gates, events, currentDate, onDateChange, onEventClick, onSlotClick, loading }: Props) {
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null);
@@ -71,6 +73,18 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
       setPopoverAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
     },
     []
+  );
+
+  const handleDateClick = useCallback(
+    (info: DateClickArg) => {
+      if (!onSlotClick) return;
+      const gateId = info.resource?.id;
+      if (!gateId) return;
+      const h = String(info.date.getHours()).padStart(2, "0");
+      const m = String(info.date.getMinutes()).padStart(2, "0");
+      onSlotClick(gateId, info.date, `${h}:${m}`);
+    },
+    [onSlotClick]
   );
 
   const renderEventContent = useCallback((arg: EventContentArg) => {
@@ -119,6 +133,7 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
           headerToolbar={false}
           height="auto"
           eventClick={handleEventClick}
+          dateClick={handleDateClick}
           eventContent={renderEventContent}
           resourceAreaWidth="120px"
           locale="cs"

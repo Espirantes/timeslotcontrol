@@ -7,8 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,38 +47,53 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --radius: 0.5rem;
+
+  /* ── Base ─────────────────────────────── */
+  /* slate-50 background, white cards */
+  --background:          oklch(0.984 0.003 247.858); /* slate-50  */
+  --foreground:          oklch(0.129 0.042 264.695); /* slate-900 */
+  --card:                oklch(1 0 0);               /* white     */
+  --card-foreground:     oklch(0.129 0.042 264.695);
+  --popover:             oklch(1 0 0);
+  --popover-foreground:  oklch(0.129 0.042 264.695);
+
+  /* ── Primary = slate-900 dark button ─── */
+  --primary:             oklch(0.129 0.042 264.695); /* slate-900 */
+  --primary-foreground:  oklch(1 0 0);
+
+  /* ── Secondary / muted = slate-100 ────── */
+  --secondary:           oklch(0.968 0.007 264.532); /* slate-100 */
+  --secondary-foreground: oklch(0.129 0.042 264.695);
+  --muted:               oklch(0.968 0.007 264.532);
+  --muted-foreground:    oklch(0.554 0.046 257.417); /* slate-500 */
+  --accent:              oklch(0.968 0.007 264.532);
+  --accent-foreground:   oklch(0.129 0.042 264.695);
+
+  /* ── Destructive ──────────────────────── */
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+
+  /* ── Border / Input / Ring ────────────── */
+  --border: oklch(0.929 0.013 255.508); /* slate-200 */
+  --input:  oklch(0.929 0.013 255.508);
+  --ring:   oklch(0.511 0.262 265.532); /* indigo-600 focus ring */
+
+  /* ── Charts ───────────────────────────── */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* ── Sidebar = slate-50 (same as body) ── */
+  --sidebar:                    oklch(0.984 0.003 247.858); /* slate-50  */
+  --sidebar-foreground:         oklch(0.129 0.042 264.695);
+  --sidebar-primary:            oklch(0.511 0.262 265.532); /* indigo-600 */
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:             oklch(1 0 0);               /* white active bg */
+  --sidebar-accent-foreground:  oklch(0.129 0.042 264.695);
+  --sidebar-border:             oklch(0.929 0.013 255.508); /* slate-200 */
+  --sidebar-ring:               oklch(0.511 0.262 265.532);
 }
 
 .dark {
@@ -122,5 +136,21 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  ::selection {
+    background-color: oklch(0.921 0.059 257.372 / 0.5); /* indigo-100 */
+    color: oklch(0.359 0.216 264.052);                   /* indigo-900 */
+  }
+}
+
+/* ── Custom scrollbar (subtle, like the design) ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: oklch(0.929 0.013 255.508); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(0.869 0.022 252.894); }
+
+/* ── Sidebar active item: white bg + shadow + border ────────────────────────── */
+[data-sidebar="menu-button"][data-active="true"] {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px oklch(0.929 0.013 255.508 / 0.6);
 }

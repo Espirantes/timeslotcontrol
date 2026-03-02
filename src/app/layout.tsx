@@ -1,10 +1,11 @@
-import { Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export default async function RootLayout({
@@ -21,7 +22,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${geistSans.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         {children}
       </body>
     </html>
