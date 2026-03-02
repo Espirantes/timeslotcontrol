@@ -43,13 +43,6 @@ type Props = {
   };
 };
 
-const ROLE_LABEL: Record<UserRole, string> = {
-  ADMIN: "Administrator",
-  WAREHOUSE_WORKER: "Warehouse Worker",
-  CLIENT: "Client",
-  SUPPLIER: "Carrier",
-};
-
 function getInitials(name: string) {
   return name
     .split(" ")
@@ -61,6 +54,8 @@ function getInitials(name: string) {
 
 export function AppSidebar({ user }: Props) {
   const t = useTranslations("nav");
+  const tRole = useTranslations("user.role");
+  const tAuth = useTranslations("auth");
   const pathname = usePathname();
 
   const isAdmin = user.role === "ADMIN";
@@ -93,7 +88,7 @@ export function AppSidebar({ user }: Props) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">
-            Warehouse
+            {t("groupWarehouse")}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -119,7 +114,7 @@ export function AppSidebar({ user }: Props) {
         {(isAdmin || isWorker) && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">
-              Správa
+              {t("groupAdmin")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -145,7 +140,7 @@ export function AppSidebar({ user }: Props) {
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">
-            System
+            {t("groupSystem")}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -153,7 +148,7 @@ export function AppSidebar({ user }: Props) {
                 <SidebarMenuButton asChild isActive={pathname.includes("/settings")}>
                   <Link href="/settings" className="flex items-center gap-3">
                     <Settings className="size-[18px] shrink-0 text-slate-400" />
-                    <span>Nastavení</span>
+                    <span>{t("settings")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -173,14 +168,14 @@ export function AppSidebar({ user }: Props) {
                   </div>
                   <div className="flex flex-col text-left leading-tight min-w-0">
                     <span className="text-xs font-medium text-slate-900 truncate">{user.name}</span>
-                    <span className="text-[10px] text-slate-500 truncate">{ROLE_LABEL[user.role]}</span>
+                    <span className="text-[10px] text-slate-500 truncate">{tRole(user.role)}</span>
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-52">
                 <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
                   <LogOut className="size-4" />
-                  Odhlásit se
+                  {t("logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

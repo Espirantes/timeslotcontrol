@@ -41,7 +41,11 @@
     "clients": "Klienti",
     "suppliers": "Dodavatelé",
     "users": "Uživatelé",
-    "settings": "Nastavení"
+    "settings": "Nastavení",
+    "groupWarehouse": "Sklad",
+    "groupAdmin": "Správa",
+    "groupSystem": "Systém",
+    "logout": "Odhlásit se"
   },
   "reservation": {
     "title": "Rezervace",
@@ -179,6 +183,17 @@
       "isActive": "Aktivní",
       "password": "Heslo",
       "passwordPlaceholder": "Zadejte heslo (min. 8 znaků)"
+    }
+  },
+  "settings": {
+    "title": "Nastavení",
+    "profile": "Profil",
+    "language": "Jazyk",
+    "languageDescription": "Zvolte jazyk rozhraní",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "it": "Italiano"
     }
   }
 }

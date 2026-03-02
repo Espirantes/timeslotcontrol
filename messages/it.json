@@ -41,7 +41,11 @@
     "clients": "Clienti",
     "suppliers": "Fornitori",
     "users": "Utenti",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "groupWarehouse": "Magazzino",
+    "groupAdmin": "Amministrazione",
+    "groupSystem": "Sistema",
+    "logout": "Esci"
   },
   "reservation": {
     "title": "Prenotazioni",
@@ -179,6 +183,17 @@
       "isActive": "Attivo",
       "password": "Password",
       "passwordPlaceholder": "Inserisci password (min. 8 caratteri)"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "profile": "Profilo",
+    "language": "Lingua",
+    "languageDescription": "Scegli la lingua dell'interfaccia",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "it": "Italiano"
     }
   }
 }

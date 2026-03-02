@@ -41,7 +41,11 @@
     "clients": "Clients",
     "suppliers": "Suppliers",
     "users": "Users",
-    "settings": "Settings"
+    "settings": "Settings",
+    "groupWarehouse": "Warehouse",
+    "groupAdmin": "Administration",
+    "groupSystem": "System",
+    "logout": "Sign out"
   },
   "reservation": {
     "title": "Reservations",
@@ -179,6 +183,17 @@
       "isActive": "Active",
       "password": "Password",
       "passwordPlaceholder": "Enter password (min. 8 chars)"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "language": "Language",
+    "languageDescription": "Choose the interface language",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "it": "Italiano"
     }
   }
 }
