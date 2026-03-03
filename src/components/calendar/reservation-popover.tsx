@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { format } from "date-fns";
 import type { CalendarEvent } from "@/lib/actions/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, ExternalLink } from "lucide-react";
+import { X, ExternalLink, Check, XCircle } from "lucide-react";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   REQUESTED: "secondary",
@@ -21,9 +22,12 @@ type Props = {
   anchor: { x: number; y: number };
   onClose: () => void;
   onOpenDetail: () => void;
+  userRole?: string;
+  onApprove?: (reservationId: string) => void;
+  onReject?: (reservationId: string) => void;
 };
 
-export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Props) {
+export function ReservationPopover({ event, anchor, onClose, onOpenDetail, userRole, onApprove, onReject }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useTranslations("reservation");
   const tCommon = useTranslations("common");
@@ -38,13 +42,21 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Pro
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
+  const canApprove = (userRole === "ADMIN" || userRole === "WAREHOUSE_WORKER")
+    && event.status === "REQUESTED"
+    && event.isOwn;
+
+  const realId = event.id.replace("pending-", "");
+  const startTime = format(new Date(event.start), "H:mm");
+  const endTime = format(new Date(event.end), "H:mm");
+
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-popover border rounded-lg shadow-lg p-4 w-72"
-      style={{ left: Math.min(anchor.x, window.innerWidth - 300), top: anchor.y + 8 }}
+      className="fixed z-50 bg-popover border rounded-lg shadow-lg p-4 w-80"
+      style={{ left: Math.min(anchor.x, window.innerWidth - 340), top: anchor.y + 8 }}
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate">{event.supplierName ?? event.title}</p>
           {event.clientName && (
@@ -56,16 +68,22 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Pro
         </button>
       </div>
 
-      <Badge variant={STATUS_VARIANT[event.status] ?? "secondary"} className="mb-3">
-        {t(`status.${event.status}`)}
-      </Badge>
+      <div className="flex items-center gap-2 mb-3">
+        <Badge variant={STATUS_VARIANT[event.status] ?? "secondary"}>
+          {t(`status.${event.status}`)}
+        </Badge>
+        <span className="text-sm text-muted-foreground">
+          {startTime} – {endTime}
+          {event.durationMinutes != null && ` (${event.durationMinutes} min)`}
+        </span>
+      </div>
 
       {event.isOwn && (
         <div className="space-y-1 text-sm mb-3">
           {event.vehicleType && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("fields.vehicleType")}</span>
-              <span className="font-medium">{event.vehicleType}</span>
+              <span className="font-medium">{t(`vehicleType.${event.vehicleType}`)}</span>
             </div>
           )}
           {event.licensePlate && (
@@ -80,15 +98,44 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail }: Pro
               <span className="font-medium">{event.driverName}</span>
             </div>
           )}
+          {event.notes && (
+            <div className="flex justify-between gap-2">
+              <span className="text-muted-foreground shrink-0">{t("fields.notes")}</span>
+              <span className="font-medium text-right truncate">{event.notes}</span>
+            </div>
+          )}
         </div>
       )}
 
-      {event.isOwn && (
-        <Button size="sm" variant="outline" className="w-full gap-1" onClick={onOpenDetail}>
-          <ExternalLink className="size-3" />
-          {tCommon("detail")}
-        </Button>
-      )}
+      <div className="flex flex-col gap-2">
+        {canApprove && onApprove && onReject && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1 gap-1"
+              onClick={() => onApprove(realId)}
+            >
+              <Check className="size-3" />
+              {t("approval.approveNew")}
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="flex-1 gap-1"
+              onClick={() => onReject(realId)}
+            >
+              <XCircle className="size-3" />
+              {tCommon("reject")}
+            </Button>
+          </div>
+        )}
+        {event.isOwn && (
+          <Button size="sm" variant="outline" className="w-full gap-1" onClick={onOpenDetail}>
+            <ExternalLink className="size-3" />
+            {tCommon("detail")}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

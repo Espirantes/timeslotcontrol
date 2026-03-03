@@ -14,10 +14,10 @@ async function main() {
   // Admin user
   const adminPassword = await bcrypt.hash("admin123", 12);
   const admin = await prisma.user.upsert({
-    where: { email: "admin@timeslotcontrol.com" },
+    where: { email: "admin@dockscheduling.com" },
     update: {},
     create: {
-      email: "admin@timeslotcontrol.com",
+      email: "admin@dockscheduling.com",
       name: "Administrator",
       password: adminPassword,
       role: "ADMIN",
@@ -41,10 +41,10 @@ async function main() {
   // Warehouse worker
   const workerPassword = await bcrypt.hash("worker123", 12);
   const worker = await prisma.user.upsert({
-    where: { email: "worker@timeslotcontrol.com" },
+    where: { email: "worker@dockscheduling.com" },
     update: {},
     create: {
-      email: "worker@timeslotcontrol.com",
+      email: "worker@dockscheduling.com",
       name: "Pracovník Skladu",
       password: workerPassword,
       role: "WAREHOUSE_WORKER",
@@ -100,6 +100,23 @@ async function main() {
   }
   console.log("✓ Opening hours set for both gates");
 
+  // Transport units
+  const transportUnits = [
+    { id: "tu-eur",       name: "EUR paleta",           weightKg: 20,  processingMinutes: 4, sortOrder: 1 },
+    { id: "tu-oneway",    name: "Jednorázová paleta",   weightKg: 15,  processingMinutes: 4, sortOrder: 2 },
+    { id: "tu-other-pal", name: "Jiná paleta",          weightKg: 15,  processingMinutes: 4, sortOrder: 3 },
+    { id: "tu-carton",    name: "Karton",               weightKg: 1,   processingMinutes: 1, sortOrder: 4 },
+    { id: "tu-other",     name: "Jiné",                 weightKg: 0,   processingMinutes: 2, sortOrder: 5 },
+  ];
+  for (const tu of transportUnits) {
+    await prisma.transportUnit.upsert({
+      where: { id: tu.id },
+      update: {},
+      create: tu,
+    });
+  }
+  console.log("✓ Transport units seeded");
+
   // Client: Allegro
   const clientAllegro = await prisma.client.upsert({
     where: { id: "client-allegro" },
@@ -115,10 +132,10 @@ async function main() {
   // Client user
   const clientPassword = await bcrypt.hash("client123", 12);
   await prisma.user.upsert({
-    where: { email: "allegro@timeslotcontrol.com" },
+    where: { email: "allegro@dockscheduling.com" },
     update: {},
     create: {
-      email: "allegro@timeslotcontrol.com",
+      email: "allegro@dockscheduling.com",
       name: "Allegro Manager",
       password: clientPassword,
       role: "CLIENT",
@@ -146,10 +163,10 @@ async function main() {
   // Supplier user
   const supplierPassword = await bcrypt.hash("supplier123", 12);
   await prisma.user.upsert({
-    where: { email: "pg@timeslotcontrol.com" },
+    where: { email: "pg@dockscheduling.com" },
     update: {},
     create: {
-      email: "pg@timeslotcontrol.com",
+      email: "pg@dockscheduling.com",
       name: "P&G Logistics",
       password: supplierPassword,
       role: "SUPPLIER",
@@ -160,10 +177,10 @@ async function main() {
 
   console.log("\n✅ Seed complete!\n");
   console.log("Login credentials:");
-  console.log("  Admin:    admin@timeslotcontrol.com  / admin123");
-  console.log("  Worker:   worker@timeslotcontrol.com / worker123");
-  console.log("  Client:   allegro@timeslotcontrol.com / client123");
-  console.log("  Supplier: pg@timeslotcontrol.com     / supplier123");
+  console.log("  Admin:    admin@dockscheduling.com  / admin123");
+  console.log("  Worker:   worker@dockscheduling.com / worker123");
+  console.log("  Client:   allegro@dockscheduling.com / client123");
+  console.log("  Supplier: pg@dockscheduling.com     / supplier123");
 }
 
 main()

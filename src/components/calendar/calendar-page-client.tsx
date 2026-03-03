@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { CalendarView } from "./calendar-view";
 import { ReservationFormDialog } from "@/components/reservations/reservation-form-dialog";
 import { getCalendarData } from "@/lib/actions/calendar";
+import { approveReservation, rejectReservation } from "@/lib/actions/reservations";
 import type { CalendarEvent, CalendarGate } from "@/lib/actions/calendar";
 import { startOfDay, endOfDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,10 +19,13 @@ type Warehouse = { id: string; name: string };
 type Props = {
   warehouses: Warehouse[];
   defaultWarehouseId: string;
+  userRole: string;
 };
 
-export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
+export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }: Props) {
   const router = useRouter();
+  const t = useTranslations("reservation");
+  const tCommon = useTranslations("common");
   const [isPending, startTransition] = useTransition();
   const [warehouseId, setWarehouseId] = useState(defaultWarehouseId);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -74,6 +80,30 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
     loadData(warehouseId, currentDate);
   }
 
+  async function handleApprove(reservationId: string) {
+    startTransition(async () => {
+      try {
+        await approveReservation(reservationId);
+        toast.success(tCommon("success"));
+        loadData(warehouseId, currentDate);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
+      }
+    });
+  }
+
+  async function handleReject(reservationId: string) {
+    startTransition(async () => {
+      try {
+        await rejectReservation(reservationId);
+        toast.success(tCommon("success"));
+        loadData(warehouseId, currentDate);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
+      }
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
@@ -97,7 +127,7 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
           <div />
         )}
         <Button size="sm" onClick={handleNewReservation}>
-          <Plus className="size-4 mr-1" /> Nová rezervace
+          <Plus className="size-4 mr-1" /> {t("form.createTitle")}
         </Button>
       </div>
 
@@ -109,6 +139,9 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId }: Props) {
         onEventClick={handleEventClick}
         onSlotClick={handleSlotClick}
         loading={isPending}
+        userRole={userRole}
+        onApprove={handleApprove}
+        onReject={handleReject}
       />
 
       <ReservationFormDialog

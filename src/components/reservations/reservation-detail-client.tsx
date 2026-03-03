@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
   StickyNote,
   Package,
   AlertCircle,
+  Pencil,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
 } from "@/lib/actions/reservations";
 import type { ReservationDetail, ReservationVersionDetail } from "@/lib/actions/reservations";
 import type { UserRole } from "@/generated/prisma/client";
+import { ReservationEditDialog } from "./reservation-edit-dialog";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   REQUESTED: "secondary",
@@ -56,6 +58,13 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
 
   const isWorker = role === "ADMIN" || role === "WAREHOUSE_WORKER";
   const displayVersion = r.confirmedVersion ?? r.pendingVersion;
+  const [editOpen, setEditOpen] = useState(false);
+
+  // REQUESTED: supplier can edit their pending request
+  // CONFIRMED: anyone can edit if no pending change exists
+  const canEdit =
+    (r.status === "REQUESTED" && !!r.pendingVersion) ||
+    (r.status === "CONFIRMED" && !!r.confirmedVersion && !r.pendingVersion);
 
   function handleAction(action: () => Promise<{ success: boolean }>, successMsg: string) {
     startTransition(async () => {
@@ -86,9 +95,17 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
             {r.warehouseName} · {r.gateName}
           </p>
         </div>
-        <Badge variant={STATUS_VARIANT[r.status] ?? "outline"} className="text-sm px-3 py-1">
-          {t(`status.${r.status}`)}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {canEdit && (
+            <Button variant="outline" className="gap-2" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-4" />
+              {tCommon("edit")}
+            </Button>
+          )}
+          <Badge variant={STATUS_VARIANT[r.status] ?? "outline"} className="text-sm px-3 py-1">
+            {t(`status.${r.status}`)}
+          </Badge>
+        </div>
       </div>
 
       {/* Pending change alert */}
@@ -169,6 +186,20 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
           tCommon={tCommon}
         />
       )}
+
+      {/* Edit dialog */}
+      {canEdit && (
+        <ReservationEditDialog
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          reservation={r}
+          warehouseId={r.warehouseId}
+          onEdited={() => {
+            setEditOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -192,7 +223,7 @@ function VersionCard({
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-amber-700 flex items-center gap-2">
             <AlertCircle className="size-4" />
-            Navrhovaná změna
+            {t("approval.pendingChange")}
           </CardTitle>
         </CardHeader>
       )}
@@ -280,19 +311,41 @@ function VersionCard({
                   <tr>
                     <th className="text-left px-3 py-2 font-medium">{t("items.unitType")}</th>
                     <th className="text-right px-3 py-2 font-medium">{t("items.quantity")}</th>
-                    <th className="text-right px-3 py-2 font-medium">{t("items.weightKg")}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t("items.goodsWeightKg")}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t("items.packagingWeightKg")}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t("items.totalWeightKg")}</th>
                     <th className="text-left px-3 py-2 font-medium">{t("items.description")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {v.items.map((item) => (
-                    <tr key={item.id} className="border-t">
-                      <td className="px-3 py-2">{t(`unitType.${item.unitType}`)}</td>
-                      <td className="px-3 py-2 text-right">{item.quantity}</td>
-                      <td className="px-3 py-2 text-right">{item.weightKg ?? "—"}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{item.description ?? "—"}</td>
-                    </tr>
-                  ))}
+                  {v.items.map((item) => {
+                    const packagingKg = item.quantity * item.transportUnitWeightKg;
+                    const totalKg = (item.goodsWeightKg ?? 0) + packagingKg;
+                    return (
+                      <tr key={item.id} className="border-t">
+                        <td className="px-3 py-2">{item.transportUnitName}</td>
+                        <td className="px-3 py-2 text-right">{item.quantity}</td>
+                        <td className="px-3 py-2 text-right">{item.goodsWeightKg != null ? `${item.goodsWeightKg} kg` : "—"}</td>
+                        <td className="px-3 py-2 text-right text-muted-foreground">{packagingKg > 0 ? `${packagingKg} kg` : "—"}</td>
+                        <td className="px-3 py-2 text-right font-medium">{item.goodsWeightKg != null || packagingKg > 0 ? `${totalKg} kg` : "—"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{item.description ?? "—"}</td>
+                      </tr>
+                    );
+                  })}
+                  {v.items.length > 1 && (() => {
+                    const totalGoods = v.items.reduce((s, i) => s + (i.goodsWeightKg ?? 0), 0);
+                    const totalPackaging = v.items.reduce((s, i) => s + i.quantity * i.transportUnitWeightKg, 0);
+                    const totalAll = totalGoods + totalPackaging;
+                    return (
+                      <tr className="border-t bg-muted/30 font-medium">
+                        <td className="px-3 py-2" colSpan={2}>{t("items.total")}</td>
+                        <td className="px-3 py-2 text-right">{totalGoods > 0 ? `${totalGoods} kg` : "—"}</td>
+                        <td className="px-3 py-2 text-right">{totalPackaging > 0 ? `${totalPackaging} kg` : "—"}</td>
+                        <td className="px-3 py-2 text-right">{totalAll > 0 ? `${totalAll} kg` : "—"}</td>
+                        <td />
+                      </tr>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>

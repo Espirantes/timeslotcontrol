@@ -39,9 +39,14 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm overflow-hidden shadow-xl border-0">
+      <div className="bg-[#0c1925] px-6 py-8 flex flex-col items-center gap-3">
+        <img src="/logo-mailstep.svg" alt="Mailstep" className="h-9" />
+        <span className="text-[11px] font-medium tracking-widest uppercase text-[#5a7a8f]">Dock Scheduling System</span>
+      </div>
+      <div className="h-1 bg-[#db2b19]" />
       <CardHeader>
-        <CardTitle>{t("loginTitle")}</CardTitle>
+        <CardTitle className="text-[#0c1925]">{t("loginTitle")}</CardTitle>
         <CardDescription>{t("loginSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>

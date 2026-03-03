@@ -28,7 +28,7 @@
     "logout": "Sign out",
     "email": "Email",
     "password": "Password",
-    "loginTitle": "Welcome to TimeSlotControl",
+    "loginTitle": "Welcome to Dock Scheduling System",
     "loginSubtitle": "Sign in to your account",
     "loginError": "Invalid email or password",
     "loginButton": "Sign in"
@@ -45,7 +45,10 @@
     "groupWarehouse": "Warehouse",
     "groupAdmin": "Administration",
     "groupSystem": "System",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "transportUnits": "Transport Units",
+    "auditLog": "Audit log",
+    "guide": "Guide"
   },
   "reservation": {
     "title": "Reservations",
@@ -95,6 +98,10 @@
       "unitType": "Type",
       "quantity": "Quantity",
       "weightKg": "Weight (kg)",
+      "goodsWeightKg": "Goods weight (kg)",
+      "packagingWeightKg": "Packaging (kg)",
+      "totalWeightKg": "Total (kg)",
+      "total": "Total",
       "description": "Description"
     },
     "approval": {
@@ -113,6 +120,30 @@
       "colGateClient": "Gate / Client",
       "colTime": "Time",
       "colSupplier": "Carrier"
+    },
+    "form": {
+      "requiredFields": "Please fill in all required fields",
+      "submitted": "Reservation submitted — awaiting approval",
+      "gateClosed": "Gate closed",
+      "outsideHours": "Outside opening hours",
+      "selectGate": "Select gate",
+      "selectClient": "Select client",
+      "selectTime": "Select time",
+      "date": "Date",
+      "saving": "Saving…",
+      "submit": "Request reservation",
+      "create": "Create reservation",
+      "createTitle": "New reservation",
+      "created": "Reservation created",
+      "totalWeight": "Total weight",
+      "goods": "goods",
+      "packaging": "packaging"
+    },
+    "edit": {
+      "title": "Edit reservation",
+      "save": "Save changes",
+      "saved": "Changes saved",
+      "submittedForApproval": "Change submitted for approval"
     },
     "calendar": {
       "booked": "Booked",
@@ -185,6 +216,17 @@
       "passwordPlaceholder": "Enter password (min. 8 chars)"
     }
   },
+  "transportUnit": {
+    "title": "Transport Units",
+    "new": "New transport unit",
+    "empty": "No transport units",
+    "fields": {
+      "name": "Name",
+      "weightKg": "Packaging weight (kg)",
+      "processingMinutes": "Processing time (min)",
+      "sortOrder": "Sort order"
+    }
+  },
   "settings": {
     "title": "Settings",
     "profile": "Profile",
@@ -194,6 +236,156 @@
       "cs": "Čeština",
       "en": "English",
       "it": "Italiano"
+    },
+    "organization": "Organization",
+    "memberSince": "Member since",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordChanged": "Password changed",
+    "passwordMismatch": "Passwords don't match",
+    "passwordTooShort": "Min. 8 characters",
+    "wrongPassword": "Wrong current password",
+    "nameUpdated": "Name updated",
+    "notifications": "Notifications",
+    "notifyEmail": "Email notifications",
+    "notifyInApp": "In-app notifications",
+    "notifyBrowser": "Browser notifications",
+    "browserPermission": "Allow notifications in browser settings",
+    "notificationsSaved": "Notification settings saved"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
+    "loading": "Loading…",
+    "newNotification": "You have a new notification",
+    "RESERVATION_CREATED": "New reservation",
+    "RESERVATION_APPROVED": "Reservation approved",
+    "RESERVATION_REJECTED": "Reservation rejected",
+    "STATUS_CHANGED": "Status changed",
+    "CHANGE_REQUESTED": "Change requested"
+  },
+  "auditLog": {
+    "title": "Audit log",
+    "records": "records",
+    "empty": "No records",
+    "page": "Page",
+    "show": "Show",
+    "hide": "Hide",
+    "oldData": "Previous",
+    "newData": "New",
+    "colTime": "Time",
+    "colUser": "User",
+    "colEntity": "Entity",
+    "colAction": "Action",
+    "colDetails": "Details",
+    "entity": {
+      "all": "All",
+      "reservation": "Reservation",
+      "gate": "Gate",
+      "user": "User",
+      "warehouse": "Warehouse",
+      "client": "Client",
+      "supplier": "Supplier",
+      "transportUnit": "Transport unit"
+    },
+    "action": {
+      "created": "Created",
+      "updated": "Updated",
+      "deleted": "Deleted",
+      "status_changed": "Status changed",
+      "version_approved": "Approved",
+      "version_rejected": "Rejected",
+      "version_proposed": "Change proposed",
+      "profile_updated": "Profile updated",
+      "password_changed": "Password changed"
+    }
+  },
+  "guide": {
+    "title": "Guide",
+    "subtitle": "A brief overview of all Dock Scheduling System features.",
+    "roles": {
+      "all": "All roles",
+      "admin": "Administrator"
+    },
+    "intro": {
+      "title": "About the app",
+      "desc": "Dock Scheduling System is used to plan and manage unloading operations at warehouses. Suppliers book time slots at gates, and warehouse workers approve reservations and manage the unloading process.",
+      "roleAdmin": "Administrator",
+      "roleAdminDesc": "Manages the entire system — warehouses, gates, users, clients and suppliers.",
+      "roleWorker": "Warehouse worker",
+      "roleWorkerDesc": "Approves and rejects reservations, manages the unloading process at gates.",
+      "roleClient": "Client",
+      "roleClientDesc": "Views reservations directed to their organization, can request changes.",
+      "roleSupplier": "Supplier / Carrier",
+      "roleSupplierDesc": "Creates reservations, enters vehicle, driver and goods details."
+    },
+    "calendar": {
+      "title": "Calendar",
+      "desc": "The calendar displays all reservations on a timeline organized by gates. Each gate is a column, and reservations are colored blocks.",
+      "point1": "Select a warehouse from the dropdown at the top to filter gates.",
+      "point2": "Click a reservation to view its details.",
+      "point3": "Color coding: confirmed reservations vs. pending approval.",
+      "tip": "Example: Want to check if Gate A is free on Thursday afternoon? Open the calendar, select the warehouse and look at the Gate A column."
+    },
+    "reservations": {
+      "title": "Reservations",
+      "desc": "A reservation is a request for a time slot at a specific gate for unloading goods. It includes vehicle, driver and transport unit information.",
+      "createTitle": "How to create a reservation:",
+      "step1": "Click \"New reservation\" (available for suppliers and admins).",
+      "step2": "Select a gate, client, date and time.",
+      "step3": "Fill in vehicle details (type, license plate, driver) and add transport units.",
+      "step4": "Submit — the reservation awaits approval by a warehouse worker.",
+      "statusTitle": "Reservation lifecycle:",
+      "statusRequested": "Requested",
+      "statusConfirmed": "Confirmed",
+      "statusUnloading": "Unloading",
+      "statusCompleted": "Completed",
+      "statusClosed": "Closed",
+      "tip": "Example: Supplier PG Logistics wants to deliver 10 pallets to Praha-Západ warehouse at Gate B, Thursday 8:00 AM. They create a reservation, enter the license plate and driver name. The warehouse worker approves it, and when the truck arrives, changes the status to \"Unloading started\"."
+    },
+    "settings": {
+      "title": "Settings",
+      "desc": "On the Settings page you can manage your profile and preferences.",
+      "point1": "Change your display name.",
+      "point2": "Change your password (enter current and new password).",
+      "point3": "Enable/disable in-app and browser notifications.",
+      "tip": "Enable browser notifications so you don't miss when your reservation is approved or rejected."
+    },
+    "admin": {
+      "heading": "System administration (Administrator only)",
+      "warehouses": {
+        "title": "Warehouses",
+        "desc": "Manage warehouse facilities. Each warehouse has a name, address and timezone. A warehouse can be deactivated if temporarily unused.",
+        "tip": "Example: Create a warehouse \"Praha-Západ\" with address and Europe/Prague timezone."
+      },
+      "gates": {
+        "title": "Gates",
+        "desc": "Gates are loading/unloading docks within a warehouse. Set opening hours for each day of the week — reservations cannot be created outside these hours.",
+        "tip": "Example: Gate A is open Mon–Fri 6:00–18:00, Sat 6:00–12:00, Sun closed."
+      },
+      "clientsSuppliers": {
+        "title": "Clients & Suppliers",
+        "desc": "Clients are organizations receiving goods, suppliers (carriers) deliver them. The client-supplier link determines which suppliers can create reservations for which client.",
+        "tip": "Example: Client \"Allegro CZ\" has linked suppliers \"PG Logistika\" and \"DHL Express\"."
+      },
+      "users": {
+        "title": "Users",
+        "desc": "Manage user accounts. Assign each user a role (Admin, Worker, Client, Supplier) and the corresponding organization.",
+        "tip": "Example: New worker Jan Novák → role \"Warehouse worker\", assigned to \"Praha-Západ\" warehouse."
+      },
+      "transportUnits": {
+        "title": "Transport Units",
+        "desc": "Define types of transported goods (pallets, cartons, etc.). Each unit has a default packaging weight and processing time in minutes.",
+        "tip": "Example: \"EUR Pallet\" — packaging weight 25 kg, processing 5 minutes."
+      },
+      "auditLog": {
+        "title": "Audit log",
+        "desc": "A complete record of all system changes — who changed what and when. Used for compliance and traceability.",
+        "tip": "Example: Want to find out who rejected reservation #42? Open the audit log and filter by entity \"Reservation\"."
+      }
     }
   }
 }

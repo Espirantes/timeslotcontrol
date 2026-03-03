@@ -42,15 +42,17 @@ enum VehicleType {
   @@map("vehicle_type")
 }
 
-enum TransportUnitType {
-  PALLET_EUR
-  PALLET_ONE_WAY
-  PALLET_OTHER
-  CARTON
-  OTHER
+enum NotificationType {
+  RESERVATION_CREATED
+  RESERVATION_APPROVED
+  RESERVATION_REJECTED
+  STATUS_CHANGED
+  CHANGE_REQUESTED
 
-  @@map("transport_unit_type")
+  @@map("notification_type")
 }
+
+// TransportUnitType enum removed — replaced by TransportUnit model
 
 // ─────────────────────────────────────────
 // Warehouse & Gate
@@ -99,6 +101,25 @@ model GateOpeningHours {
 
   @@unique([gateId, dayOfWeek])
   @@map("gate_opening_hours")
+}
+
+// ─────────────────────────────────────────
+// Transport Units
+// ─────────────────────────────────────────
+
+model TransportUnit {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  weightKg          Decimal  @default(0) @db.Decimal(10, 2)
+  processingMinutes Int      @default(0)
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  reservationItems ReservationItem[]
+
+  @@map("transport_unit")
 }
 
 // ─────────────────────────────────────────
@@ -167,6 +188,7 @@ model Reservation {
   confirmedVersion ReservationVersion? @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id])
   pendingVersion   ReservationVersion? @relation("PendingVersion", fields: [pendingVersionId], references: [id])
   versions         ReservationVersion[] @relation("AllVersions")
+  notifications    Notification[]
 
   @@index([gateId])
   @@index([clientId])
@@ -201,13 +223,14 @@ model ReservationVersion {
 }
 
 model ReservationItem {
-  id                   String            @id @default(cuid())
+  id                   String  @id @default(cuid())
   reservationVersionId String
-  unitType             TransportUnitType
+  transportUnitId      String
   quantity             Int
-  weightKg             Decimal?          @db.Decimal(10, 2)
+  goodsWeightKg        Decimal? @db.Decimal(10, 2)
   description          String?
 
+  transportUnit      TransportUnit      @relation(fields: [transportUnitId], references: [id])
   reservationVersion ReservationVersion @relation(fields: [reservationVersionId], references: [id], onDelete: Cascade)
 
   @@map("reservation_item")
@@ -235,6 +258,28 @@ model AuditLog {
 }
 
 // ─────────────────────────────────────────
+// Notifications
+// ─────────────────────────────────────────
+
+model Notification {
+  id            String           @id @default(cuid())
+  userId        String
+  type          NotificationType
+  reservationId String?
+  title         String
+  message       String
+  isRead        Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+// ─────────────────────────────────────────
 // Users & Auth
 // ─────────────────────────────────────────
 
@@ -247,9 +292,12 @@ model User {
   warehouseId String? // only for WAREHOUSE_WORKER
   clientId    String? // only for CLIENT
   supplierId  String? // only for SUPPLIER
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive      Boolean   @default(true)
+  notifyInApp   Boolean   @default(true)
+  notifyBrowser Boolean   @default(false)
+  notifyEmail   Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
   client    Client?    @relation(fields: [clientId], references: [id])
@@ -258,6 +306,7 @@ model User {
   reservationsCreated Reservation[]        @relation("ReservationCreatedBy")
   versionsCreated     ReservationVersion[] @relation("VersionCreatedBy")
   auditLogs           AuditLog[]
+  notifications       Notification[]
 
   @@map("user")
 }

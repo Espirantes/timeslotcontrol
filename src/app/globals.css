@@ -49,34 +49,33 @@
 :root {
   --radius: 0.5rem;
 
-  /* ── Base ─────────────────────────────── */
-  /* slate-50 background, white cards */
-  --background:          oklch(0.984 0.003 247.858); /* slate-50  */
-  --foreground:          oklch(0.129 0.042 264.695); /* slate-900 */
-  --card:                oklch(1 0 0);               /* white     */
-  --card-foreground:     oklch(0.129 0.042 264.695);
+  /* ── Base — Mailstep palette ─────────── */
+  --background:          oklch(0.97 0.003 240);      /* #f4f7f9 warm grey  */
+  --foreground:          oklch(0.30 0.03 240);       /* #2d3e50 navy-grey  */
+  --card:                oklch(1 0 0);               /* white              */
+  --card-foreground:     oklch(0.30 0.03 240);       /* #2d3e50            */
   --popover:             oklch(1 0 0);
-  --popover-foreground:  oklch(0.129 0.042 264.695);
+  --popover-foreground:  oklch(0.30 0.03 240);
 
-  /* ── Primary = slate-900 dark button ─── */
-  --primary:             oklch(0.129 0.042 264.695); /* slate-900 */
+  /* ── Primary = Mailstep navy ──────────── */
+  --primary:             oklch(0.18 0.04 240);       /* #0c1925 navy */
   --primary-foreground:  oklch(1 0 0);
 
-  /* ── Secondary / muted = slate-100 ────── */
-  --secondary:           oklch(0.968 0.007 264.532); /* slate-100 */
-  --secondary-foreground: oklch(0.129 0.042 264.695);
-  --muted:               oklch(0.968 0.007 264.532);
-  --muted-foreground:    oklch(0.554 0.046 257.417); /* slate-500 */
-  --accent:              oklch(0.968 0.007 264.532);
-  --accent-foreground:   oklch(0.129 0.042 264.695);
+  /* ── Secondary / muted ─────────────────── */
+  --secondary:           oklch(0.95 0.008 240);      /* #eef5f9 light blue */
+  --secondary-foreground: oklch(0.30 0.03 240);
+  --muted:               oklch(0.95 0.008 240);      /* #eef5f9            */
+  --muted-foreground:    oklch(0.50 0.015 240);      /* #5a6567            */
+  --accent:              oklch(0.95 0.008 240);
+  --accent-foreground:   oklch(0.30 0.03 240);
 
   /* ── Destructive ──────────────────────── */
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.50 0.205 27);               /* #db2b19 red        */
 
   /* ── Border / Input / Ring ────────────── */
-  --border: oklch(0.929 0.013 255.508); /* slate-200 */
-  --input:  oklch(0.929 0.013 255.508);
-  --ring:   oklch(0.511 0.262 265.532); /* indigo-600 focus ring */
+  --border: oklch(0.90 0.008 240);                   /* #dae1e5            */
+  --input:  oklch(0.90 0.008 240);
+  --ring:   oklch(0.50 0.205 27);                    /* #db2b19 red        */
 
   /* ── Charts ───────────────────────────── */
   --chart-1: oklch(0.646 0.222 41.116);
@@ -85,15 +84,15 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
-  /* ── Sidebar = slate-50 (same as body) ── */
-  --sidebar:                    oklch(0.984 0.003 247.858); /* slate-50  */
-  --sidebar-foreground:         oklch(0.129 0.042 264.695);
-  --sidebar-primary:            oklch(0.511 0.262 265.532); /* indigo-600 */
+  /* ── Sidebar = Mailstep dark navy ──────── */
+  --sidebar:                    oklch(0.18 0.04 240);       /* #0c1925 navy       */
+  --sidebar-foreground:         oklch(0.75 0.02 240);       /* #8ba4b5 muted text */
+  --sidebar-primary:            oklch(0.50 0.205 27);       /* #db2b19 red        */
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent:             oklch(1 0 0);               /* white active bg */
-  --sidebar-accent-foreground:  oklch(0.129 0.042 264.695);
-  --sidebar-border:             oklch(0.929 0.013 255.508); /* slate-200 */
-  --sidebar-ring:               oklch(0.511 0.262 265.532);
+  --sidebar-accent:             oklch(0.24 0.04 240);       /* #1f3947 lighter navy */
+  --sidebar-accent-foreground:  oklch(1 0 0);               /* white active text  */
+  --sidebar-border:             oklch(0.30 0.04 240);       /* subtle border      */
+  --sidebar-ring:               oklch(0.50 0.205 27);
 }
 
 .dark {
@@ -139,18 +138,18 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   ::selection {
-    background-color: oklch(0.921 0.059 257.372 / 0.5); /* indigo-100 */
-    color: oklch(0.359 0.216 264.052);                   /* indigo-900 */
+    background-color: oklch(0.90 0.06 27 / 0.4);        /* red-100 */
+    color: oklch(0.30 0.15 27);                          /* red-900 */
   }
 }
 
 /* ── Custom scrollbar (subtle, like the design) ─────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.929 0.013 255.508); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.869 0.022 252.894); }
+::-webkit-scrollbar-thumb { background: oklch(0.85 0.01 240); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: oklch(0.75 0.015 240); }
 
-/* ── Sidebar active item: white bg + shadow + border ────────────────────────── */
+/* ── Sidebar active item: lighter navy bg ────────────────────────────────────── */
 [data-sidebar="menu-button"][data-active="true"] {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px oklch(0.929 0.013 255.508 / 0.6);
+  box-shadow: none;
 }

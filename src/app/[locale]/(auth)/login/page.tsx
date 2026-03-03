@@ -7,7 +7,7 @@ export default async function LoginPage() {
   if (session) redirect("/calendar");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-[#eef2f5] p-4">
       <LoginForm />
     </main>
   );

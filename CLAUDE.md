@@ -1,4 +1,4 @@
-# TimeSlotControl — Claude Code Context
+# Dock Scheduling System — Claude Code Context
 
 ## Původní zadání
 
@@ -46,7 +46,7 @@ CONFIRMED → CANCELLED
 
 ## Projekt
 
-GitHub: https://github.com/Espirantes/timeslotcontrol
+GitHub: https://github.com/Espirantes/dock-scheduling-system
 
 ---
 
@@ -57,7 +57,7 @@ GitHub: https://github.com/Espirantes/timeslotcontrol
 - **Prisma 7** — ORM, klient generován do `src/generated/prisma`
   - Import: `import { PrismaClient } from "@/generated/prisma/client"`
   - Singleton: `import { prisma } from "@/lib/prisma"`
-- **PostgreSQL** lokálně (Postgres.app, port 5432, DB: `timeslotcontrol`)
+- **PostgreSQL** lokálně (port 5432, DB: `timeslotcontrol`)
 - **Auth.js v5** (`next-auth@beta`) — credentials + JWT sessions
 - **Tailwind CSS v4** + shadcn/ui komponenty v `src/components/ui/`
 - **next-intl v4** — cs, en, it (messages v `messages/`)
@@ -68,12 +68,57 @@ GitHub: https://github.com/Espirantes/timeslotcontrol
 
 ## Databáze
 
+### Prvotní setup na novém PC
+```bash
+# 1. Nainstaluj PostgreSQL (uživatel postgres, heslo postgres)
+# 2. Nainstaluj závislosti
+pnpm install
+# 3. Zkopíruj .env.local
+cp .env.local.example .env.local
+# 4. Uprav DATABASE_URL v .env.local pokud se liší credentials/port
+# 5. Spusť setup — vytvoří DB, migrace, seed data
+pnpm db:setup
+# 6. Spusť dev server
+pnpm dev
+```
+
+### Dostupné skripty
+| Skript | Popis |
+|--------|-------|
+| `pnpm db:setup` | Vytvoří DB + migrace + seed (bezpečné, přeskočí existující data) |
+| `pnpm db:reset` | Smaže DB, znovu vytvoří, migrace + seed (destruktivní) |
+| `pnpm db:migrate` | `prisma migrate dev` |
+| `pnpm db:generate` | `prisma generate` |
+
+### Seed data
+- Umístění: `prisma/seed-data/seed.sql`
+- Obsahuje: sklady, rampy, klienty, dodavatele, uživatele, rezervace
+- Všechna testovací hesla: `password123`
+
+### Testovací účty
+| Email | Role | Organizace |
+|-------|------|------------|
+| admin@timeslotcontrol.com | ADMIN | — |
+| worker@timeslotcontrol.com | WAREHOUSE_WORKER | Sklad Praha |
+| allegro@timeslotcontrol.com | CLIENT | Allegro |
+| pg@timeslotcontrol.com | SUPPLIER | Procter & Gamble |
+| jarda@jicin.cz | SUPPLIER | Jarda z Jicina |
+| alex@nejkafe.cz | CLIENT | Online Empire s.r.o. |
+
+### Re-export dat z lokální DB
+Po přidání nových dat v UI, exportuj aktuální stav:
+```bash
+PGPASSWORD=postgres pg_dump -U postgres -d timeslotcontrol \
+  --data-only --inserts --column-inserts --no-owner --no-privileges \
+  --disable-triggers --exclude-table=_prisma_migrations \
+  -f prisma/seed-data/dump.sql
+```
+Pak vyčisti do `seed.sql` (odebrat `\restrict`, SET příkazy, audit_log a notification záznamy).
+
+### Prisma
 - Migrace: `pnpm prisma migrate dev --name <nazev>`
 - Generování klienta: `pnpm prisma generate`
-- Prisma config: `prisma.config.ts` — načítá `.env.local`
-
-### Psql binary
-`/Applications/Postgres.app/Contents/Versions/18/bin/psql`
+- Config: `prisma.config.ts` — načítá `.env.local`
 
 ---
 
@@ -221,11 +266,14 @@ Vždy volej `auditLog()` z `src/lib/audit.ts` při každé změně entity.
 - ✅ FIX 404 — příčina: `/dashboard` prefix v URL (route group nepřidává segment)
 - ✅ Detail rezervace — `/reservations/[id]` + stavová tlačítka + version diff
 - ✅ Admin CRUD — warehouses, gates + opening hours, users, clients, suppliers
-- ✅ Email notifikace — Resend API, Mailstep branded HTML
+- ✅ Email notifikace — Resend API, Mailstep branded HTML, preference per uživatel
 - ✅ i18n — hardcoded CS stringy nahrazeny `useTranslations`, EN + IT kompletní
+- ✅ In-app notifikace — zvoneček, popover, polling 30s, browser push
+- ✅ Audit log — admin-only stránka s filtrováním a paginací
+- ✅ Notifikační preference — email/in-app/browser přepínače v nastavení
+- ✅ DB seed — `prisma/seed-data/seed.sql` + `pnpm db:setup` / `pnpm db:reset`
 
 ## TODO (zbývá)
 
-1. **Seed data review** — ověřit seed na produkci
-2. **Role-based visibility** — otestovat všechny 4 role v UI
-3. **Deployment** — Docker/Vercel setup, env variables
+1. **Role-based visibility** — otestovat všechny 4 role v UI
+2. **Deployment** — Docker/Vercel setup, env variables

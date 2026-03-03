@@ -24,6 +24,9 @@ export type CalendarEvent = {
   vehicleType?: string;
   driverName?: string | null;
   licensePlate?: string | null;
+  durationMinutes?: number;
+  notes?: string | null;
+  hasPendingChange?: boolean;
 };
 
 export async function getCalendarData(
@@ -92,7 +95,9 @@ export async function getCalendarData(
         vehicleType: canSeeDetail ? v.vehicleType : undefined,
         driverName: canSeeDetail ? v.driverName : undefined,
         licensePlate: canSeeDetail ? v.licensePlate : undefined,
-        ...(hasPendingChange ? { hasPendingChange: true } : {}),
+        durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
+        notes: canSeeDetail ? v.notes : undefined,
+        hasPendingChange,
       };
     });
 
@@ -136,6 +141,8 @@ export async function getCalendarData(
         title: canSeeDetail ? `${r.supplier.name} (čeká)` : "Čeká na schválení",
         supplierName: canSeeDetail ? r.supplier.name : undefined,
         clientName: canSeeDetail ? r.client.name : undefined,
+        durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
+        notes: canSeeDetail ? v.notes : undefined,
       });
     });
 

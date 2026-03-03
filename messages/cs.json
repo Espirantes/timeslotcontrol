@@ -28,7 +28,7 @@
     "logout": "Odhlásit se",
     "email": "E-mail",
     "password": "Heslo",
-    "loginTitle": "Vítejte v TimeSlotControl",
+    "loginTitle": "Vítejte v Dock Scheduling System",
     "loginSubtitle": "Přihlaste se ke svému účtu",
     "loginError": "Neplatný e-mail nebo heslo",
     "loginButton": "Přihlásit se"
@@ -45,7 +45,10 @@
     "groupWarehouse": "Sklad",
     "groupAdmin": "Správa",
     "groupSystem": "Systém",
-    "logout": "Odhlásit se"
+    "logout": "Odhlásit se",
+    "transportUnits": "Přepravní jednotky",
+    "auditLog": "Audit log",
+    "guide": "Příručka"
   },
   "reservation": {
     "title": "Rezervace",
@@ -95,6 +98,10 @@
       "unitType": "Typ",
       "quantity": "Počet",
       "weightKg": "Hmotnost (kg)",
+      "goodsWeightKg": "Váha zboží (kg)",
+      "packagingWeightKg": "Váha obalů (kg)",
+      "totalWeightKg": "Celkem (kg)",
+      "total": "Celkem",
       "description": "Popis"
     },
     "approval": {
@@ -113,6 +120,30 @@
       "colGateClient": "Rampa / Klient",
       "colTime": "Čas",
       "colSupplier": "Dopravce"
+    },
+    "form": {
+      "requiredFields": "Vyplňte všechna povinná pole",
+      "submitted": "Rezervace zažádána — čeká na schválení",
+      "gateClosed": "Rampa zavřena",
+      "outsideHours": "Mimo otevírací dobu",
+      "selectGate": "Vyberte rampu",
+      "selectClient": "Vyberte klienta",
+      "selectTime": "Vyberte čas",
+      "date": "Datum",
+      "saving": "Ukládám…",
+      "submit": "Zažádat o rezervaci",
+      "create": "Vytvořit rezervaci",
+      "createTitle": "Nová rezervace",
+      "created": "Rezervace vytvořena",
+      "totalWeight": "Celková váha",
+      "goods": "zboží",
+      "packaging": "obalů"
+    },
+    "edit": {
+      "title": "Upravit rezervaci",
+      "save": "Uložit změny",
+      "saved": "Změny uloženy",
+      "submittedForApproval": "Změna odeslána ke schválení"
     },
     "calendar": {
       "booked": "Obsazeno",
@@ -185,6 +216,17 @@
       "passwordPlaceholder": "Zadejte heslo (min. 8 znaků)"
     }
   },
+  "transportUnit": {
+    "title": "Přepravní jednotky",
+    "new": "Nová přepravní jednotka",
+    "empty": "Žádné přepravní jednotky",
+    "fields": {
+      "name": "Název",
+      "weightKg": "Váha obalu (kg)",
+      "processingMinutes": "Doba zpracování (min)",
+      "sortOrder": "Pořadí"
+    }
+  },
   "settings": {
     "title": "Nastavení",
     "profile": "Profil",
@@ -194,6 +236,156 @@
       "cs": "Čeština",
       "en": "English",
       "it": "Italiano"
+    },
+    "organization": "Organizace",
+    "memberSince": "Členem od",
+    "changePassword": "Změna hesla",
+    "currentPassword": "Aktuální heslo",
+    "newPassword": "Nové heslo",
+    "confirmPassword": "Potvrzení hesla",
+    "passwordChanged": "Heslo změněno",
+    "passwordMismatch": "Hesla se neshodují",
+    "passwordTooShort": "Min. 8 znaků",
+    "wrongPassword": "Špatné aktuální heslo",
+    "nameUpdated": "Jméno aktualizováno",
+    "notifications": "Oznámení",
+    "notifyEmail": "E-mailov\u00e9 notifikace",
+    "notifyInApp": "Notifikace v aplikaci",
+    "notifyBrowser": "Notifikace prohlížeče",
+    "browserPermission": "Povolte notifikace v nastavení prohlížeče",
+    "notificationsSaved": "Nastavení oznámení uloženo"
+  },
+  "notifications": {
+    "title": "Oznámení",
+    "markAllRead": "Označit vše jako přečtené",
+    "empty": "Žádná oznámení",
+    "loading": "Načítání…",
+    "newNotification": "Máte nové oznámení",
+    "RESERVATION_CREATED": "Nová rezervace",
+    "RESERVATION_APPROVED": "Rezervace schválena",
+    "RESERVATION_REJECTED": "Rezervace zamítnuta",
+    "STATUS_CHANGED": "Změna stavu",
+    "CHANGE_REQUESTED": "Žádost o změnu"
+  },
+  "auditLog": {
+    "title": "Audit log",
+    "records": "záznamů",
+    "empty": "Žádné záznamy",
+    "page": "Strana",
+    "show": "Zobrazit",
+    "hide": "Skrýt",
+    "oldData": "Původní",
+    "newData": "Nové",
+    "colTime": "Čas",
+    "colUser": "Uživatel",
+    "colEntity": "Entita",
+    "colAction": "Akce",
+    "colDetails": "Detail",
+    "entity": {
+      "all": "Vše",
+      "reservation": "Rezervace",
+      "gate": "Rampa",
+      "user": "Uživatel",
+      "warehouse": "Sklad",
+      "client": "Klient",
+      "supplier": "Dodavatel",
+      "transportUnit": "Přepravní jednotka"
+    },
+    "action": {
+      "created": "Vytvořeno",
+      "updated": "Aktualizováno",
+      "deleted": "Smazáno",
+      "status_changed": "Změna stavu",
+      "version_approved": "Schváleno",
+      "version_rejected": "Zamítnuto",
+      "version_proposed": "Navržena změna",
+      "profile_updated": "Profil upraven",
+      "password_changed": "Heslo změněno"
+    }
+  },
+  "guide": {
+    "title": "Příručka",
+    "subtitle": "Stručný přehled všech funkcí aplikace Dock Scheduling System.",
+    "roles": {
+      "all": "Všechny role",
+      "admin": "Administrátor"
+    },
+    "intro": {
+      "title": "O aplikaci",
+      "desc": "TimeSlotControl slouží k plánování a řízení vykládek ve skladech. Dodavatelé si rezervují časová okna na rampách, pracovníci skladu rezervace schvalují a řídí průběh vykládky.",
+      "roleAdmin": "Administrátor",
+      "roleAdminDesc": "Spravuje celý systém — sklady, rampy, uživatele, klienty a dodavatele.",
+      "roleWorker": "Pracovník skladu",
+      "roleWorkerDesc": "Schvaluje a zamítá rezervace, řídí průběh vykládky na rampách.",
+      "roleClient": "Klient",
+      "roleClientDesc": "Vidí rezervace směřující k jeho organizaci, může žádat o změny.",
+      "roleSupplier": "Dodavatel / Dopravce",
+      "roleSupplierDesc": "Vytváří rezervace, zadává údaje o vozidle, řidiči a přepravovaném zboží."
+    },
+    "calendar": {
+      "title": "Kalendář",
+      "desc": "Kalendář zobrazuje všechny rezervace na časové ose podle ramp. Každá rampa je sloupec, rezervace jsou barevné bloky.",
+      "point1": "Vyberte sklad v rozbalovacím menu nahoře pro filtrování ramp.",
+      "point2": "Klikněte na rezervaci pro zobrazení detailu.",
+      "point3": "Barevné odlišení: potvrzené rezervace vs. čekající na schválení.",
+      "tip": "Příklad: Chcete zjistit, zda je rampa A volná ve čtvrtek odpoledne? Otevřete kalendář, vyberte sklad a podívejte se na sloupec rampy A."
+    },
+    "reservations": {
+      "title": "Rezervace",
+      "desc": "Rezervace je žádost o časové okno na konkrétní rampě pro vykládku zboží. Obsahuje informace o vozidle, řidiči a přepravovaných jednotkách.",
+      "createTitle": "Jak vytvořit rezervaci:",
+      "step1": "Klikněte na 'Nová rezervace' (dostupné pro dodavatele a adminy).",
+      "step2": "Vyberte rampu, klienta, datum a čas.",
+      "step3": "Vyplňte údaje o vozidle (typ, SPZ, řidič) a přidejte přepravní jednotky.",
+      "step4": "Odešlete — rezervace čeká na schválení pracovníkem skladu.",
+      "statusTitle": "Životní cyklus rezervace:",
+      "statusRequested": "Zažádána",
+      "statusConfirmed": "Potvrzena",
+      "statusUnloading": "Vykládka",
+      "statusCompleted": "Dokončeno",
+      "statusClosed": "Uzavřeno",
+      "tip": "Příklad: Dodavatel PG Logistika chce dodat 10 palet do skladu Praha-Západ na rampu B, čtvrtek 8:00. Vytvoří rezervaci, vyplní SPZ a jméno řidiče. Pracovník skladu rezervaci schválí a ráno při příjezdu kamiónu změní stav na Vykládka zahájena."
+    },
+    "settings": {
+      "title": "Nastavení",
+      "desc": "Na stránce Nastavení můžete spravovat svůj profil a předvolby.",
+      "point1": "Změna zobrazovaného jména.",
+      "point2": "Změna hesla (zadejte aktuální a nové heslo).",
+      "point3": "Zapnutí/vypnutí notifikací v aplikaci a v prohlížeči.",
+      "tip": "Zapněte si notifikace v prohlížeči, abyste nepropásli schválení nebo zamítnutí vaší rezervace."
+    },
+    "admin": {
+      "heading": "Správa systému (pouze Administrátor)",
+      "warehouses": {
+        "title": "Sklady",
+        "desc": "Správa skladových objektů. Každý sklad má název, adresu a časovou zónu. Sklad lze deaktivovat, pokud se dočasně nepoužívá.",
+        "tip": "Příklad: Vytvořte sklad 'Praha-Západ' s adresou a zónou Europe/Prague."
+      },
+      "gates": {
+        "title": "Rampy",
+        "desc": "Rampy jsou nakládací/vykládací místa uvnitř skladu. Každé rampě nastavíte otevírací hodiny pro každý den v týdnu — mimo tyto hodiny nelze vytvořit rezervaci.",
+        "tip": "Příklad: Rampa A je otevřená Po–Pá 6:00–18:00, So 6:00–12:00, Ne zavřeno."
+      },
+      "clientsSuppliers": {
+        "title": "Klienti a Dodavatelé",
+        "desc": "Klienti jsou organizace přijímající zboží, dodavatelé (dopravci) je dovážejí. Propojení klient–dodavatel určuje, kteří dodavatelé mohou vytvářet rezervace pro kterého klienta.",
+        "tip": "Příklad: Klient 'Allegro CZ' má propojené dodavatele 'PG Logistika' a 'DHL Express'."
+      },
+      "users": {
+        "title": "Uživatelé",
+        "desc": "Správa uživatelských účtů. Každému uživateli přiřadíte roli (Admin, Pracovník, Klient, Dodavatel) a příslušnou organizaci.",
+        "tip": "Příklad: Nový pracovník Jan Novák → role 'Pracovník skladu', přiřazen ke skladu 'Praha-Západ'."
+      },
+      "transportUnits": {
+        "title": "Přepravní jednotky",
+        "desc": "Definice typů přepravovaného zboží (palety, kartony apod.). Každá jednotka má výchozí váhu obalu a dobu zpracování v minutách.",
+        "tip": "Příklad: 'Paleta EUR' — váha obalu 25 kg, zpracování 5 minut."
+      },
+      "auditLog": {
+        "title": "Audit log",
+        "desc": "Kompletní záznam všech změn v systému — kdo, kdy a co změnil. Slouží pro kontrolu a dohledatelnost.",
+        "tip": "Příklad: Chcete zjistit, kdo zamítl rezervaci #42? Otevřete audit log a filtrujte podle entity 'Rezervace'."
+      }
     }
   }
 }

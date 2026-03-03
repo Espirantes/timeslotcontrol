@@ -1,45 +1,39 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createReservation, getFormData } from "@/lib/actions/reservations";
-import type { VehicleType, TransportUnitType } from "@/generated/prisma/client";
+import type { VehicleType, UserRole } from "@/generated/prisma/client";
 import { format } from "date-fns";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const VEHICLE_TYPES: { value: VehicleType; label: string }[] = [
-  { value: "TRUCK", label: "Kamion" },
-  { value: "VAN", label: "Avie / dodávka" },
-  { value: "TRUCK_DOUBLE_TRAILER", label: "Kamion s dvěma návěsy" },
-  { value: "TRUCK_CURTAINSIDER", label: "Kamion plachta" },
-  { value: "REFRIGERATED_TRUCK", label: "Chladírenský kamion" },
-  { value: "OTHER", label: "Ostatní" },
+const VEHICLE_TYPE_VALUES: VehicleType[] = [
+  "TRUCK", "VAN", "TRUCK_DOUBLE_TRAILER", "TRUCK_CURTAINSIDER", "REFRIGERATED_TRUCK", "OTHER",
 ];
 
-const UNIT_TYPES: { value: TransportUnitType; label: string }[] = [
-  { value: "PALLET_EUR", label: "Paleta EUR" },
-  { value: "PALLET_ONE_WAY", label: "Paleta jednocestná" },
-  { value: "PALLET_OTHER", label: "Paleta ostatní" },
-  { value: "CARTON", label: "Karton" },
-  { value: "OTHER", label: "Ostatní" },
-];
-
-const DURATIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180];
+const DURATIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180, 210, 240, 300, 360];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ItemRow = {
-  unitType: TransportUnitType;
+  transportUnitId: string;
   quantity: number;
-  weightKg: string;
+  goodsWeightKg: string;
   description: string;
+};
+
+type TransportUnitOption = {
+  id: string;
+  name: string;
+  weightKg: number;
+  processingMinutes: number;
 };
 
 type GateHours = {
@@ -77,16 +71,28 @@ function generateTimeSlots(openTime: string, closeTime: string): string[] {
   return slots;
 }
 
-function getAvailableSlots(gate: Gate | undefined, date: Date): string[] {
+function getAvailableSlots(gate: Gate | undefined, date: Date, isAdmin: boolean): string[] {
   if (!gate) return [];
   const dayOfWeek = date.getDay();
   const hours = gate.openingHours.find((h) => h.dayOfWeek === dayOfWeek);
-  if (!hours || !hours.isOpen) return [];
-  return generateTimeSlots(hours.openTime, hours.closeTime);
+  if (!hours || !hours.isOpen) {
+    return isAdmin ? generateTimeSlots("06:00", "22:00") : [];
+  }
+  return isAdmin
+    ? generateTimeSlots("06:00", "22:00")
+    : generateTimeSlots(hours.openTime, hours.closeTime);
 }
 
-function defaultItem(): ItemRow {
-  return { unitType: "PALLET_EUR", quantity: 1, weightKg: "", description: "" };
+function isOutsideOpeningHours(gate: Gate | undefined, date: Date, time: string): boolean {
+  if (!gate || !time) return false;
+  const dayOfWeek = date.getDay();
+  const hours = gate.openingHours.find((h) => h.dayOfWeek === dayOfWeek);
+  if (!hours || !hours.isOpen) return true;
+  const [th, tm] = time.split(":").map(Number);
+  const [oh, om] = hours.openTime.split(":").map(Number);
+  const [ch, cm] = hours.closeTime.split(":").map(Number);
+  const timeMin = th * 60 + tm;
+  return timeMin < oh * 60 + om || timeMin >= ch * 60 + cm;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -95,10 +101,14 @@ export function ReservationFormDialog({
   open, onClose, warehouseId, preselectedGateId, preselectedDate, preselectedStartTime, onCreated,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("reservation");
+  const tCommon = useTranslations("common");
 
   // Form data from server
   const [gates, setGates] = useState<Gate[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [userRole, setUserRole] = useState<UserRole>("SUPPLIER");
+  const [transportUnits, setTransportUnits] = useState<TransportUnitOption[]>([]);
 
   // Form state
   const [gateId, setGateId] = useState(preselectedGateId ?? "");
@@ -112,7 +122,11 @@ export function ReservationFormDialog({
   const [driverName, setDriverName] = useState("");
   const [driverContact, setDriverContact] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<ItemRow[]>([defaultItem()]);
+  const [items, setItems] = useState<ItemRow[]>([]);
+
+  function defaultItem(): ItemRow {
+    return { transportUnitId: transportUnits[0]?.id ?? "", quantity: 1, goodsWeightKg: "", description: "" };
+  }
 
   // Load form data when dialog opens
   useEffect(() => {
@@ -120,8 +134,13 @@ export function ReservationFormDialog({
     getFormData(warehouseId).then((data) => {
       setGates(data.gates);
       setClients(data.clients);
+      setUserRole(data.userRole as UserRole);
+      setTransportUnits(data.transportUnits);
       if (!gateId && data.gates.length > 0) setGateId(data.gates[0].id);
       if (!clientId && data.clients.length > 0) setClientId(data.clients[0].id);
+      if (items.length === 0 && data.transportUnits.length > 0) {
+        setItems([{ transportUnitId: data.transportUnits[0].id, quantity: 1, goodsWeightKg: "", description: "" }]);
+      }
     });
   }, [open, warehouseId]);
 
@@ -132,8 +151,31 @@ export function ReservationFormDialog({
     if (preselectedStartTime) setStartTime(preselectedStartTime);
   }, [preselectedGateId, preselectedDate, preselectedStartTime]);
 
+  // Auto-calculate duration from items
+  useEffect(() => {
+    if (transportUnits.length === 0) return;
+    const rawMinutes = items.reduce((sum, item) => {
+      const unit = transportUnits.find((u) => u.id === item.transportUnitId);
+      return sum + (item.quantity * (unit?.processingMinutes ?? 0));
+    }, 0);
+    if (rawMinutes > 0) {
+      setDuration(Math.max(15, Math.ceil(rawMinutes / 15) * 15));
+    }
+  }, [items, transportUnits]);
+
+  const isAdmin = userRole === "ADMIN";
   const selectedGate = gates.find((g) => g.id === gateId);
-  const timeSlots = getAvailableSlots(selectedGate, new Date(date + "T12:00:00"));
+  const parsedDate = new Date(date + "T12:00:00");
+  const timeSlots = getAvailableSlots(selectedGate, parsedDate, isAdmin);
+  const outsideHours = isAdmin && isOutsideOpeningHours(selectedGate, parsedDate, startTime);
+
+  // Weight calculations
+  const totalGoodsWeight = items.reduce((sum, item) => sum + (item.goodsWeightKg ? Number(item.goodsWeightKg) : 0), 0);
+  const totalPackagingWeight = items.reduce((sum, item) => {
+    const unit = transportUnits.find((u) => u.id === item.transportUnitId);
+    return sum + (item.quantity * (unit?.weightKg ?? 0));
+  }, 0);
+  const totalWeight = totalGoodsWeight + totalPackagingWeight;
 
   function addItem() { setItems((prev) => [...prev, defaultItem()]); }
   function removeItem(i: number) { setItems((prev) => prev.filter((_, idx) => idx !== i)); }
@@ -144,7 +186,7 @@ export function ReservationFormDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!gateId || !clientId || !startTime) {
-      toast.error("Vyplňte všechna povinná pole");
+      toast.error(t("form.requiredFields"));
       return;
     }
 
@@ -164,18 +206,18 @@ export function ReservationFormDialog({
           driverContact: driverContact || undefined,
           notes: notes || undefined,
           items: items.map((item) => ({
-            unitType: item.unitType,
+            transportUnitId: item.transportUnitId,
             quantity: Number(item.quantity),
-            weightKg: item.weightKg ? Number(item.weightKg) : null,
+            goodsWeightKg: item.goodsWeightKg ? Number(item.goodsWeightKg) : null,
             description: item.description || null,
           })),
         });
 
-        toast.success("Rezervace zažádána — čeká na schválení");
+        toast.success(isAdmin ? t("form.created") : t("form.submitted"));
         onCreated?.(result.reservationId);
         onClose();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Chyba při vytváření rezervace");
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
       }
     });
   }
@@ -184,25 +226,25 @@ export function ReservationFormDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nová rezervace</DialogTitle>
+          <DialogTitle>{isAdmin ? t("form.createTitle") : t("new")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Row 1: Gate + Client */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Rampa *</label>
+              <label className="text-sm font-medium">{t("fields.gate")} *</label>
               <Select value={gateId} onValueChange={setGateId}>
-                <SelectTrigger><SelectValue placeholder="Vyberte rampu" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("form.selectGate")} /></SelectTrigger>
                 <SelectContent>
                   {gates.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Klient *</label>
+              <label className="text-sm font-medium">{t("fields.client")} *</label>
               <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger><SelectValue placeholder="Vyberte klienta" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("form.selectClient")} /></SelectTrigger>
                 <SelectContent>
                   {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
@@ -210,93 +252,22 @@ export function ReservationFormDialog({
             </div>
           </div>
 
-          {/* Row 2: Date + Time + Duration */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Datum *</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Čas začátku *</label>
-              <Select value={startTime} onValueChange={setStartTime}>
-                <SelectTrigger><SelectValue placeholder="Vyberte čas" /></SelectTrigger>
-                <SelectContent>
-                  {timeSlots.length === 0
-                    ? <SelectItem value="" disabled>Rampa zavřena</SelectItem>
-                    : timeSlots.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Délka</label>
-              <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DURATIONS.map((d) => <SelectItem key={d} value={String(d)}>{d} min</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Row 3: Vehicle */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium">Typ vozidla *</label>
-            <Select value={vehicleType} onValueChange={(v) => setVehicleType(v as VehicleType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {VEHICLE_TYPES.map((vt) => <SelectItem key={vt.value} value={vt.value}>{vt.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Row 4: Driver info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">SPZ</label>
-              <Input placeholder="ABC 1234" value={licensePlate} onChange={(e) => setLicensePlate(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Plomby</label>
-              <Input placeholder="č. plomby" value={sealNumbers} onChange={(e) => setSealNumbers(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Jméno řidiče</label>
-              <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Kontakt na řidiče</label>
-              <Input placeholder="+420 …" value={driverContact} onChange={(e) => setDriverContact(e.target.value)} />
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium">Poznámky</label>
-            <textarea
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none min-h-16 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          {/* Transport items */}
+          {/* Transport items — moved before date/time so duration auto-calculates first */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Přepravní jednotky</label>
+              <label className="text-sm font-medium">{t("items.title")}</label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="size-3 mr-1" /> Přidat řádek
+                <Plus className="size-3 mr-1" /> {t("items.add")}
               </Button>
             </div>
             <div className="border rounded-md overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left px-2 py-1.5 font-medium">Typ</th>
-                    <th className="text-left px-2 py-1.5 font-medium w-20">Počet</th>
-                    <th className="text-left px-2 py-1.5 font-medium w-24">Hmot. (kg)</th>
-                    <th className="text-left px-2 py-1.5 font-medium">Popis</th>
+                    <th className="text-left px-2 py-1.5 font-medium">{t("items.unitType")}</th>
+                    <th className="text-left px-2 py-1.5 font-medium w-20">{t("items.quantity")}</th>
+                    <th className="text-left px-2 py-1.5 font-medium w-28">{t("items.goodsWeightKg")}</th>
+                    <th className="text-left px-2 py-1.5 font-medium">{t("items.description")}</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
@@ -304,10 +275,10 @@ export function ReservationFormDialog({
                   {items.map((item, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-2 py-1">
-                        <Select value={item.unitType} onValueChange={(v) => updateItem(i, "unitType", v)}>
+                        <Select value={item.transportUnitId} onValueChange={(v) => updateItem(i, "transportUnitId", v)}>
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {UNIT_TYPES.map((ut) => <SelectItem key={ut.value} value={ut.value}>{ut.label}</SelectItem>)}
+                            {transportUnits.map((tu) => <SelectItem key={tu.id} value={tu.id}>{tu.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </td>
@@ -321,8 +292,9 @@ export function ReservationFormDialog({
                       <td className="px-2 py-1">
                         <Input
                           type="number" min={0} step="0.1" className="h-7 text-xs"
-                          value={item.weightKg}
-                          onChange={(e) => updateItem(i, "weightKg", e.target.value)}
+                          placeholder="kg"
+                          value={item.goodsWeightKg}
+                          onChange={(e) => updateItem(i, "goodsWeightKg", e.target.value)}
                         />
                       </td>
                       <td className="px-2 py-1">
@@ -344,12 +316,92 @@ export function ReservationFormDialog({
                 </tbody>
               </table>
             </div>
+            {(totalGoodsWeight > 0 || totalPackagingWeight > 0) && (
+              <p className="text-xs text-muted-foreground">
+                {t("form.totalWeight")}: <span className="font-medium text-foreground">{totalWeight.toFixed(1)} kg</span>
+                {" "}({totalGoodsWeight.toFixed(1)} kg {t("form.goods")} + {totalPackagingWeight.toFixed(1)} kg {t("form.packaging")})
+              </p>
+            )}
+          </div>
+
+          {/* Row 2: Date + Time + Duration */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("form.date")} *</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.startTime")} *</label>
+              <Select value={startTime} onValueChange={setStartTime}>
+                <SelectTrigger><SelectValue placeholder={t("form.selectTime")} /></SelectTrigger>
+                <SelectContent>
+                  {timeSlots.length === 0
+                    ? <SelectItem value="__closed" disabled>{t("form.gateClosed")}</SelectItem>
+                    : timeSlots.map((ts) => <SelectItem key={ts} value={ts}>{ts}</SelectItem>)
+                  }
+                </SelectContent>
+              </Select>
+              {outsideHours && (
+                <p className="text-xs text-amber-600">{t("form.outsideHours")}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.duration")}</label>
+              <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DURATIONS.map((d) => <SelectItem key={d} value={String(d)}>{d} min</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 3: Vehicle */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">{t("fields.vehicleType")} *</label>
+            <Select value={vehicleType} onValueChange={(v) => setVehicleType(v as VehicleType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {VEHICLE_TYPE_VALUES.map((vt) => <SelectItem key={vt} value={vt}>{t(`vehicleType.${vt}`)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Row 4: Driver info */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.licensePlate")}</label>
+              <Input placeholder="ABC 1234" value={licensePlate} onChange={(e) => setLicensePlate(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.sealNumbers")}</label>
+              <Input value={sealNumbers} onChange={(e) => setSealNumbers(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.driverName")}</label>
+              <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.driverContact")}</label>
+              <Input placeholder="+420 …" value={driverContact} onChange={(e) => setDriverContact(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">{t("fields.notes")}</label>
+            <textarea
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none min-h-16 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+            />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Zrušit</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>{tCommon("cancel")}</Button>
             <Button type="submit" disabled={isPending || !startTime || !gateId || !clientId}>
-              {isPending ? "Ukládám…" : "Zažádat o rezervaci"}
+              {isPending ? t("form.saving") : isAdmin ? t("form.create") : t("form.submit")}
             </Button>
           </DialogFooter>
         </form>

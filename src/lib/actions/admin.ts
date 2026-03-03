@@ -267,3 +267,104 @@ export async function deleteUser(id: string) {
   await auditLog({ entityType: "user", entityId: id, action: "updated", newData: { isActive: false }, userId: admin.id });
   revalidatePath("/users");
 }
+
+// ─── Transport Units ─────────────────────────────────────────────────────────
+
+export async function getTransportUnits() {
+  await requireAdmin();
+  return prisma.transportUnit.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
+export async function createTransportUnit(data: {
+  name: string;
+  weightKg: number;
+  processingMinutes: number;
+  sortOrder?: number;
+}) {
+  const user = await requireAdmin();
+  const tu = await prisma.transportUnit.create({
+    data: {
+      name: data.name,
+      weightKg: data.weightKg,
+      processingMinutes: data.processingMinutes,
+      sortOrder: data.sortOrder ?? 0,
+    },
+  });
+  await auditLog({ entityType: "transportUnit", entityId: tu.id, action: "created", newData: data, userId: user.id });
+  revalidatePath("/transport-units");
+  return tu;
+}
+
+export async function updateTransportUnit(
+  id: string,
+  data: { name: string; weightKg: number; processingMinutes: number; isActive?: boolean; sortOrder?: number }
+) {
+  const user = await requireAdmin();
+  const old = await prisma.transportUnit.findUniqueOrThrow({ where: { id } });
+  const tu = await prisma.transportUnit.update({ where: { id }, data });
+  await auditLog({ entityType: "transportUnit", entityId: id, action: "updated", oldData: { name: old.name }, newData: data, userId: user.id });
+  revalidatePath("/transport-units");
+  return tu;
+}
+
+export async function deleteTransportUnit(id: string) {
+  const user = await requireAdmin();
+  // Soft delete to preserve history
+  await prisma.transportUnit.update({ where: { id }, data: { isActive: false } });
+  await auditLog({ entityType: "transportUnit", entityId: id, action: "updated", newData: { isActive: false }, userId: user.id });
+  revalidatePath("/transport-units");
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+export type AuditLogItem = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  oldData: unknown;
+  newData: unknown;
+  userName: string | null;
+  userEmail: string | null;
+  createdAt: string;
+};
+
+export async function getAuditLogs(params?: {
+  entityType?: string;
+  take?: number;
+  skip?: number;
+}): Promise<{ items: AuditLogItem[]; total: number }> {
+  await requireAdmin();
+
+  const where = params?.entityType ? { entityType: params.entityType } : {};
+  const take = params?.take ?? 50;
+  const skip = params?.skip ?? 0;
+
+  const [items, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take,
+      skip,
+      include: { user: { select: { name: true, email: true } } },
+    }),
+    prisma.auditLog.count({ where }),
+  ]);
+
+  return {
+    items: items.map((i) => ({
+      id: i.id,
+      entityType: i.entityType,
+      entityId: i.entityId,
+      action: i.action,
+      oldData: i.oldData,
+      newData: i.newData,
+      userName: i.user?.name ?? null,
+      userEmail: i.user?.email ?? null,
+      createdAt: i.createdAt.toISOString(),
+    })),
+    total,
+  };
+}

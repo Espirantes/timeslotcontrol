@@ -24,6 +24,7 @@ export default async function CalendarPage() {
       <CalendarPageClient
         warehouses={warehouses.map((w) => ({ id: w.id, name: w.name }))}
         defaultWarehouseId={warehouses[0].id}
+        userRole={session.user.role}
       />
     </div>
   );

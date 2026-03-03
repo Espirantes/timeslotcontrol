@@ -130,8 +130,7 @@ function ReservationRow({
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function ReservationsListClient({ reservations: initial, role }: Props) {
-  const [reservations, setReservations] = useState(initial);
+export function ReservationsListClient({ reservations, role }: Props) {
   const [tab, setTab] = useState<"pending" | "all">("pending");
   const t = useTranslations("reservation");
 

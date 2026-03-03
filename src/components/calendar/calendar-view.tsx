@@ -33,9 +33,12 @@ type Props = {
   onEventClick: (reservationId: string) => void;
   onSlotClick?: (gateId: string, date: Date, startTime: string) => void;
   loading?: boolean;
+  userRole?: string;
+  onApprove?: (reservationId: string) => void;
+  onReject?: (reservationId: string) => void;
 };
 
-export function CalendarView({ gates, events, currentDate, onDateChange, onEventClick, onSlotClick, loading }: Props) {
+export function CalendarView({ gates, events, currentDate, onDateChange, onEventClick, onSlotClick, loading, userRole, onApprove, onReject }: Props) {
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null);
@@ -153,6 +156,9 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
             setSelectedEvent(null);
             onEventClick(selectedEvent.id.replace("pending-", ""));
           }}
+          userRole={userRole}
+          onApprove={onApprove ? (id) => { onApprove(id); setSelectedEvent(null); } : undefined}
+          onReject={onReject ? (id) => { onReject(id); setSelectedEvent(null); } : undefined}
         />
       )}
     </div>

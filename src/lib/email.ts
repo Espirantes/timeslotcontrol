@@ -1,5 +1,5 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@timeslotcontrol.com";
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@dockscheduling.com";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const LOGO_URL = "https://www.mailstep.cz/frontend/build/img/logo.svg";
 
@@ -66,7 +66,7 @@ function emailLayout(title: string, body: string, ctaUrl?: string, ctaLabel?: st
         </td></tr>
         <!-- Footer -->
         <tr><td style="background-color:#1f3947;padding:16px 32px;border-radius:0 0 12px 12px;">
-          <p style="margin:0;font-size:12px;color:#8ba4b5;">TimeSlotControl — Mailstep Group</p>
+          <p style="margin:0;font-size:12px;color:#8ba4b5;">Dock Scheduling System — Mailstep Group</p>
         </td></tr>
       </table>
     </td></tr>
@@ -135,14 +135,16 @@ export async function notifyReservationRejected(params: {
   reservationId: string;
   gateName: string;
   supplierEmail: string | null;
+  clientEmail: string | null;
 }) {
-  const { reservationId, gateName, supplierEmail } = params;
-  if (!supplierEmail) return;
+  const { reservationId, gateName, supplierEmail, clientEmail } = params;
+  const recipients = [supplierEmail, clientEmail].filter(Boolean) as string[];
+  if (recipients.length === 0) return;
 
   const detailUrl = `${APP_URL}/cs/reservations/${reservationId}`;
 
   await sendEmail({
-    to: supplierEmail,
+    to: recipients,
     subject: `Rezervace zamítnuta — ${gateName}`,
     html: emailLayout(
       "Vaše rezervace byla zamítnuta",

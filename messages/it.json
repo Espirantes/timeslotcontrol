@@ -28,7 +28,7 @@
     "logout": "Esci",
     "email": "Email",
     "password": "Password",
-    "loginTitle": "Benvenuto in TimeSlotControl",
+    "loginTitle": "Benvenuto in Dock Scheduling System",
     "loginSubtitle": "Accedi al tuo account",
     "loginError": "Email o password non validi",
     "loginButton": "Accedi"
@@ -45,7 +45,10 @@
     "groupWarehouse": "Magazzino",
     "groupAdmin": "Amministrazione",
     "groupSystem": "Sistema",
-    "logout": "Esci"
+    "logout": "Esci",
+    "transportUnits": "Unità di trasporto",
+    "auditLog": "Audit log",
+    "guide": "Guida"
   },
   "reservation": {
     "title": "Prenotazioni",
@@ -95,6 +98,10 @@
       "unitType": "Tipo",
       "quantity": "Quantità",
       "weightKg": "Peso (kg)",
+      "goodsWeightKg": "Peso merce (kg)",
+      "packagingWeightKg": "Peso imballo (kg)",
+      "totalWeightKg": "Totale (kg)",
+      "total": "Totale",
       "description": "Descrizione"
     },
     "approval": {
@@ -113,6 +120,30 @@
       "colGateClient": "Banchina / Cliente",
       "colTime": "Orario",
       "colSupplier": "Vettore"
+    },
+    "form": {
+      "requiredFields": "Compila tutti i campi obbligatori",
+      "submitted": "Prenotazione inviata — in attesa di approvazione",
+      "gateClosed": "Banchina chiusa",
+      "outsideHours": "Fuori orario di apertura",
+      "selectGate": "Seleziona banchina",
+      "selectClient": "Seleziona cliente",
+      "selectTime": "Seleziona orario",
+      "date": "Data",
+      "saving": "Salvataggio…",
+      "submit": "Richiedi prenotazione",
+      "create": "Crea prenotazione",
+      "createTitle": "Nuova prenotazione",
+      "created": "Prenotazione creata",
+      "totalWeight": "Peso totale",
+      "goods": "merce",
+      "packaging": "imballo"
+    },
+    "edit": {
+      "title": "Modifica prenotazione",
+      "save": "Salva modifiche",
+      "saved": "Modifiche salvate",
+      "submittedForApproval": "Modifica inviata per approvazione"
     },
     "calendar": {
       "booked": "Occupato",
@@ -185,6 +216,17 @@
       "passwordPlaceholder": "Inserisci password (min. 8 caratteri)"
     }
   },
+  "transportUnit": {
+    "title": "Unità di trasporto",
+    "new": "Nuova unità di trasporto",
+    "empty": "Nessuna unità di trasporto",
+    "fields": {
+      "name": "Nome",
+      "weightKg": "Peso imballo (kg)",
+      "processingMinutes": "Tempo di lavorazione (min)",
+      "sortOrder": "Ordinamento"
+    }
+  },
   "settings": {
     "title": "Impostazioni",
     "profile": "Profilo",
@@ -194,6 +236,156 @@
       "cs": "Čeština",
       "en": "English",
       "it": "Italiano"
+    },
+    "organization": "Organizzazione",
+    "memberSince": "Membro dal",
+    "changePassword": "Cambio password",
+    "currentPassword": "Password attuale",
+    "newPassword": "Nuova password",
+    "confirmPassword": "Conferma password",
+    "passwordChanged": "Password cambiata",
+    "passwordMismatch": "Le password non coincidono",
+    "passwordTooShort": "Min. 8 caratteri",
+    "wrongPassword": "Password attuale errata",
+    "nameUpdated": "Nome aggiornato",
+    "notifications": "Notifiche",
+    "notifyEmail": "Notifiche e-mail",
+    "notifyInApp": "Notifiche in-app",
+    "notifyBrowser": "Notifiche del browser",
+    "browserPermission": "Consenti le notifiche nelle impostazioni del browser",
+    "notificationsSaved": "Impostazioni notifiche salvate"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "markAllRead": "Segna tutto come letto",
+    "empty": "Nessuna notifica",
+    "loading": "Caricamento…",
+    "newNotification": "Hai una nuova notifica",
+    "RESERVATION_CREATED": "Nuova prenotazione",
+    "RESERVATION_APPROVED": "Prenotazione approvata",
+    "RESERVATION_REJECTED": "Prenotazione rifiutata",
+    "STATUS_CHANGED": "Stato modificato",
+    "CHANGE_REQUESTED": "Modifica richiesta"
+  },
+  "auditLog": {
+    "title": "Audit log",
+    "records": "record",
+    "empty": "Nessun record",
+    "page": "Pagina",
+    "show": "Mostra",
+    "hide": "Nascondi",
+    "oldData": "Precedente",
+    "newData": "Nuovo",
+    "colTime": "Ora",
+    "colUser": "Utente",
+    "colEntity": "Entità",
+    "colAction": "Azione",
+    "colDetails": "Dettagli",
+    "entity": {
+      "all": "Tutto",
+      "reservation": "Prenotazione",
+      "gate": "Banchina",
+      "user": "Utente",
+      "warehouse": "Magazzino",
+      "client": "Cliente",
+      "supplier": "Fornitore",
+      "transportUnit": "Unità di trasporto"
+    },
+    "action": {
+      "created": "Creato",
+      "updated": "Aggiornato",
+      "deleted": "Eliminato",
+      "status_changed": "Stato modificato",
+      "version_approved": "Approvato",
+      "version_rejected": "Rifiutato",
+      "version_proposed": "Modifica proposta",
+      "profile_updated": "Profilo aggiornato",
+      "password_changed": "Password cambiata"
+    }
+  },
+  "guide": {
+    "title": "Guida",
+    "subtitle": "Una panoramica di tutte le funzionalità di Dock Scheduling System.",
+    "roles": {
+      "all": "Tutti i ruoli",
+      "admin": "Amministratore"
+    },
+    "intro": {
+      "title": "Informazioni sull'app",
+      "desc": "Dock Scheduling System serve per pianificare e gestire le operazioni di scarico nei magazzini. I fornitori prenotano fasce orarie alle banchine e gli operatori approvano le prenotazioni e gestiscono lo scarico.",
+      "roleAdmin": "Amministratore",
+      "roleAdminDesc": "Gestisce l'intero sistema — magazzini, banchine, utenti, clienti e fornitori.",
+      "roleWorker": "Operatore magazzino",
+      "roleWorkerDesc": "Approva e rifiuta le prenotazioni, gestisce il processo di scarico alle banchine.",
+      "roleClient": "Cliente",
+      "roleClientDesc": "Visualizza le prenotazioni dirette alla propria organizzazione, può richiedere modifiche.",
+      "roleSupplier": "Fornitore / Vettore",
+      "roleSupplierDesc": "Crea prenotazioni, inserisce i dati del veicolo, dell'autista e della merce."
+    },
+    "calendar": {
+      "title": "Calendario",
+      "desc": "Il calendario mostra tutte le prenotazioni su una linea temporale organizzata per banchine. Ogni banchina è una colonna, le prenotazioni sono blocchi colorati.",
+      "point1": "Seleziona un magazzino dal menu a tendina in alto per filtrare le banchine.",
+      "point2": "Clicca su una prenotazione per visualizzarne i dettagli.",
+      "point3": "Codice colore: prenotazioni confermate vs. in attesa di approvazione.",
+      "tip": "Esempio: Vuoi verificare se la Banchina A è libera giovedì pomeriggio? Apri il calendario, seleziona il magazzino e guarda la colonna della Banchina A."
+    },
+    "reservations": {
+      "title": "Prenotazioni",
+      "desc": "Una prenotazione è una richiesta di fascia oraria in una banchina specifica per lo scarico merci. Include informazioni su veicolo, autista e unità di trasporto.",
+      "createTitle": "Come creare una prenotazione:",
+      "step1": "Clicca \"Nuova prenotazione\" (disponibile per fornitori e amministratori).",
+      "step2": "Seleziona banchina, cliente, data e ora.",
+      "step3": "Compila i dati del veicolo (tipo, targa, autista) e aggiungi le unità di trasporto.",
+      "step4": "Invia — la prenotazione attende l'approvazione dell'operatore di magazzino.",
+      "statusTitle": "Ciclo di vita della prenotazione:",
+      "statusRequested": "Richiesta",
+      "statusConfirmed": "Confermata",
+      "statusUnloading": "Scarico",
+      "statusCompleted": "Completata",
+      "statusClosed": "Chiusa",
+      "tip": "Esempio: Il fornitore PG Logistika vuole consegnare 10 pallet al magazzino Praha-Západ alla Banchina B, giovedì alle 8:00. Crea una prenotazione, inserisce targa e nome autista. L'operatore approva e, all'arrivo del camion, cambia lo stato in \"Scarico iniziato\"."
+    },
+    "settings": {
+      "title": "Impostazioni",
+      "desc": "Nella pagina Impostazioni puoi gestire il tuo profilo e le preferenze.",
+      "point1": "Cambia il tuo nome visualizzato.",
+      "point2": "Cambia la password (inserisci la password attuale e quella nuova).",
+      "point3": "Attiva/disattiva le notifiche in-app e del browser.",
+      "tip": "Attiva le notifiche del browser per non perdere l'approvazione o il rifiuto della tua prenotazione."
+    },
+    "admin": {
+      "heading": "Amministrazione del sistema (solo Amministratore)",
+      "warehouses": {
+        "title": "Magazzini",
+        "desc": "Gestione delle strutture di magazzino. Ogni magazzino ha nome, indirizzo e fuso orario. Un magazzino può essere disattivato se temporaneamente inutilizzato.",
+        "tip": "Esempio: Crea un magazzino \"Praha-Západ\" con indirizzo e fuso orario Europe/Prague."
+      },
+      "gates": {
+        "title": "Banchine",
+        "desc": "Le banchine sono punti di carico/scarico all'interno di un magazzino. Imposta gli orari di apertura per ogni giorno della settimana — non è possibile creare prenotazioni al di fuori di questi orari.",
+        "tip": "Esempio: Banchina A aperta Lun–Ven 6:00–18:00, Sab 6:00–12:00, Dom chiusa."
+      },
+      "clientsSuppliers": {
+        "title": "Clienti e Fornitori",
+        "desc": "I clienti sono organizzazioni che ricevono merci, i fornitori (vettori) le consegnano. Il collegamento cliente-fornitore determina quali fornitori possono creare prenotazioni per quale cliente.",
+        "tip": "Esempio: Il cliente \"Allegro CZ\" ha collegati i fornitori \"PG Logistika\" e \"DHL Express\"."
+      },
+      "users": {
+        "title": "Utenti",
+        "desc": "Gestione degli account utente. Assegna a ogni utente un ruolo (Admin, Operatore, Cliente, Fornitore) e l'organizzazione corrispondente.",
+        "tip": "Esempio: Nuovo operatore Jan Novák → ruolo \"Operatore magazzino\", assegnato al magazzino \"Praha-Západ\"."
+      },
+      "transportUnits": {
+        "title": "Unità di trasporto",
+        "desc": "Definisci i tipi di merci trasportate (pallet, cartoni, ecc.). Ogni unità ha un peso imballo predefinito e un tempo di lavorazione in minuti.",
+        "tip": "Esempio: \"Pallet EUR\" — peso imballo 25 kg, lavorazione 5 minuti."
+      },
+      "auditLog": {
+        "title": "Audit log",
+        "desc": "Un registro completo di tutte le modifiche nel sistema — chi ha cambiato cosa e quando. Utilizzato per conformità e tracciabilità.",
+        "tip": "Esempio: Vuoi scoprire chi ha rifiutato la prenotazione #42? Apri l'audit log e filtra per entità \"Prenotazione\"."
+      }
     }
   }
 }
