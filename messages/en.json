@@ -53,6 +53,7 @@
   "reservation": {
     "title": "Reservations",
     "new": "New reservation",
+    "statusHistory": "Status history",
     "status": {
       "REQUESTED": "Requested",
       "CONFIRMED": "Confirmed",
@@ -147,7 +148,11 @@
     },
     "calendar": {
       "booked": "Booked",
-      "pending": "Pending approval"
+      "pending": "Pending approval",
+      "pageTitle": "Reservation Calendar",
+      "noWarehouses": "No warehouses available.",
+      "today": "Today",
+      "pendingSuffix": "(pending)"
     }
   },
   "warehouse": {
@@ -175,6 +180,7 @@
     "fields": {
       "name": "Name",
       "description": "Description",
+      "warehouse": "Warehouse",
       "openTime": "Opens at",
       "closeTime": "Closes at"
     }
@@ -184,7 +190,9 @@
     "new": "New client",
     "fields": {
       "name": "Name",
-      "contactEmail": "Contact email"
+      "contactEmail": "Contact email",
+      "suppliers": "Suppliers",
+      "reservations": "Reservations"
     }
   },
   "supplier": {
@@ -192,7 +200,8 @@
     "new": "New supplier",
     "fields": {
       "name": "Name",
-      "contactEmail": "Contact email"
+      "contactEmail": "Contact email",
+      "reservations": "Reservations"
     }
   },
   "user": {
@@ -209,11 +218,13 @@
       "email": "Email",
       "role": "Role",
       "warehouse": "Warehouse",
+      "warehouses": "Warehouses",
       "client": "Client",
       "supplier": "Supplier",
       "isActive": "Active",
       "password": "Password",
-      "passwordPlaceholder": "Enter password (min. 8 chars)"
+      "passwordPlaceholder": "Enter password (min. 8 chars)",
+      "passwordHelp": "Leave blank to keep current password"
     }
   },
   "transportUnit": {

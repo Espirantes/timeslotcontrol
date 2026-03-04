@@ -35,6 +35,105 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
   }
 }
 
+// ─── Email translations ─────────────────────────────────────────────────────
+
+type EmailLocale = "cs" | "en" | "it";
+
+const DATE_LOCALE_MAP: Record<EmailLocale, string> = {
+  cs: "cs-CZ",
+  en: "en-US",
+  it: "it-IT",
+};
+
+const EMAIL_T: Record<EmailLocale, {
+  gate: string;
+  supplier: string;
+  time: string;
+  newStatus: string;
+  viewDetail: string;
+  approveReject: string;
+  newReservationTitle: string;
+  newReservationSubject: string;
+  approvedTitle: string;
+  approvedSubject: string;
+  rejectedTitle: string;
+  rejectedSubject: string;
+  statusChangedTitle: string;
+  statusChangedSubject: string;
+  statuses: Record<string, string>;
+}> = {
+  cs: {
+    gate: "Rampa",
+    supplier: "Dodavatel",
+    time: "Čas",
+    newStatus: "Nový stav",
+    viewDetail: "Zobrazit detail",
+    approveReject: "Schválit / Zamítnout",
+    newReservationTitle: "Nová rezervace ke schválení",
+    newReservationSubject: "Nová rezervace",
+    approvedTitle: "Vaše rezervace byla schválena",
+    approvedSubject: "Rezervace schválena",
+    rejectedTitle: "Vaše rezervace byla zamítnuta",
+    rejectedSubject: "Rezervace zamítnuta",
+    statusChangedTitle: "Změna stavu rezervace",
+    statusChangedSubject: "Rezervace",
+    statuses: {
+      UNLOADING_STARTED: "Vykládka zahájena",
+      UNLOADING_COMPLETED: "Vykládka dokončena",
+      CLOSED: "Uzavřeno",
+      CANCELLED: "Zrušeno",
+    },
+  },
+  en: {
+    gate: "Gate",
+    supplier: "Supplier",
+    time: "Time",
+    newStatus: "New status",
+    viewDetail: "View detail",
+    approveReject: "Approve / Reject",
+    newReservationTitle: "New reservation pending approval",
+    newReservationSubject: "New reservation",
+    approvedTitle: "Your reservation has been approved",
+    approvedSubject: "Reservation approved",
+    rejectedTitle: "Your reservation has been rejected",
+    rejectedSubject: "Reservation rejected",
+    statusChangedTitle: "Reservation status changed",
+    statusChangedSubject: "Reservation",
+    statuses: {
+      UNLOADING_STARTED: "Unloading started",
+      UNLOADING_COMPLETED: "Unloading completed",
+      CLOSED: "Closed",
+      CANCELLED: "Cancelled",
+    },
+  },
+  it: {
+    gate: "Banchina",
+    supplier: "Fornitore",
+    time: "Orario",
+    newStatus: "Nuovo stato",
+    viewDetail: "Visualizza dettaglio",
+    approveReject: "Approva / Rifiuta",
+    newReservationTitle: "Nuova prenotazione in attesa di approvazione",
+    newReservationSubject: "Nuova prenotazione",
+    approvedTitle: "La tua prenotazione è stata approvata",
+    approvedSubject: "Prenotazione approvata",
+    rejectedTitle: "La tua prenotazione è stata rifiutata",
+    rejectedSubject: "Prenotazione rifiutata",
+    statusChangedTitle: "Cambio di stato della prenotazione",
+    statusChangedSubject: "Prenotazione",
+    statuses: {
+      UNLOADING_STARTED: "Scarico iniziato",
+      UNLOADING_COMPLETED: "Scarico completato",
+      CLOSED: "Chiusa",
+      CANCELLED: "Annullata",
+    },
+  },
+};
+
+function getEmailT(locale: string) {
+  return EMAIL_T[(locale as EmailLocale)] ?? EMAIL_T.cs;
+}
+
 // ─── Branded email wrapper ───────────────────────────────────────────────────
 
 function emailLayout(title: string, body: string, ctaUrl?: string, ctaLabel?: string) {
@@ -59,7 +158,7 @@ function emailLayout(title: string, body: string, ctaUrl?: string, ctaLabel?: st
           ${ctaUrl ? `
           <table cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
             <tr><td style="background-color:#db2b19;border-radius:6px;padding:12px 24px;">
-              <a href="${ctaUrl}" style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;">${ctaLabel ?? "Zobrazit detail"}</a>
+              <a href="${ctaUrl}" style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;">${ctaLabel ?? ""}</a>
             </td></tr>
           </table>
           ` : ""}
@@ -87,21 +186,24 @@ export async function notifyReservationCreated(params: {
   supplierName: string;
   startTime: string;
   workerEmails: string[];
+  locale?: string;
 }) {
-  const { reservationId, gateName, supplierName, startTime, workerEmails } = params;
+  const { reservationId, gateName, supplierName, startTime, workerEmails, locale = "cs" } = params;
   if (workerEmails.length === 0) return;
 
-  const time = new Date(startTime).toLocaleString("cs-CZ", { timeZone: "Europe/Prague" });
-  const detailUrl = `${APP_URL}/cs/reservations/${reservationId}`;
+  const t = getEmailT(locale);
+  const dateLocale = DATE_LOCALE_MAP[(locale as EmailLocale)] ?? "cs-CZ";
+  const time = new Date(startTime).toLocaleString(dateLocale, { timeZone: "Europe/Prague" });
+  const detailUrl = `${APP_URL}/${locale}/reservations/${reservationId}`;
 
   await sendEmail({
     to: workerEmails,
-    subject: `Nová rezervace — ${gateName} — ${supplierName}`,
+    subject: `${t.newReservationSubject} — ${gateName} — ${supplierName}`,
     html: emailLayout(
-      "Nová rezervace ke schválení",
-      infoRow("Rampa", gateName) + infoRow("Dodavatel", supplierName) + infoRow("Čas", time),
+      t.newReservationTitle,
+      infoRow(t.gate, gateName) + infoRow(t.supplier, supplierName) + infoRow(t.time, time),
       detailUrl,
-      "Schválit / Zamítnout"
+      t.approveReject
     ),
   });
 }
@@ -112,21 +214,25 @@ export async function notifyReservationApproved(params: {
   startTime: string;
   supplierEmail: string | null;
   clientEmail: string | null;
+  locale?: string;
 }) {
-  const { reservationId, gateName, startTime, supplierEmail, clientEmail } = params;
+  const { reservationId, gateName, startTime, supplierEmail, clientEmail, locale = "cs" } = params;
   const recipients = [supplierEmail, clientEmail].filter(Boolean) as string[];
   if (recipients.length === 0) return;
 
-  const time = new Date(startTime).toLocaleString("cs-CZ", { timeZone: "Europe/Prague" });
-  const detailUrl = `${APP_URL}/cs/reservations/${reservationId}`;
+  const t = getEmailT(locale);
+  const dateLocale = DATE_LOCALE_MAP[(locale as EmailLocale)] ?? "cs-CZ";
+  const time = new Date(startTime).toLocaleString(dateLocale, { timeZone: "Europe/Prague" });
+  const detailUrl = `${APP_URL}/${locale}/reservations/${reservationId}`;
 
   await sendEmail({
     to: recipients,
-    subject: `Rezervace schválena — ${gateName}`,
+    subject: `${t.approvedSubject} — ${gateName}`,
     html: emailLayout(
-      "Vaše rezervace byla schválena",
-      infoRow("Rampa", gateName) + infoRow("Čas", time),
-      detailUrl
+      t.approvedTitle,
+      infoRow(t.gate, gateName) + infoRow(t.time, time),
+      detailUrl,
+      t.viewDetail
     ),
   });
 }
@@ -136,20 +242,23 @@ export async function notifyReservationRejected(params: {
   gateName: string;
   supplierEmail: string | null;
   clientEmail: string | null;
+  locale?: string;
 }) {
-  const { reservationId, gateName, supplierEmail, clientEmail } = params;
+  const { reservationId, gateName, supplierEmail, clientEmail, locale = "cs" } = params;
   const recipients = [supplierEmail, clientEmail].filter(Boolean) as string[];
   if (recipients.length === 0) return;
 
-  const detailUrl = `${APP_URL}/cs/reservations/${reservationId}`;
+  const t = getEmailT(locale);
+  const detailUrl = `${APP_URL}/${locale}/reservations/${reservationId}`;
 
   await sendEmail({
     to: recipients,
-    subject: `Rezervace zamítnuta — ${gateName}`,
+    subject: `${t.rejectedSubject} — ${gateName}`,
     html: emailLayout(
-      "Vaše rezervace byla zamítnuta",
-      infoRow("Rampa", gateName),
-      detailUrl
+      t.rejectedTitle,
+      infoRow(t.gate, gateName),
+      detailUrl,
+      t.viewDetail
     ),
   });
 }
@@ -160,27 +269,24 @@ export async function notifyStatusChanged(params: {
   newStatus: string;
   supplierEmail: string | null;
   clientEmail: string | null;
+  locale?: string;
 }) {
-  const { reservationId, gateName, newStatus, supplierEmail, clientEmail } = params;
+  const { reservationId, gateName, newStatus, supplierEmail, clientEmail, locale = "cs" } = params;
   const recipients = [supplierEmail, clientEmail].filter(Boolean) as string[];
   if (recipients.length === 0) return;
 
-  const statusLabels: Record<string, string> = {
-    UNLOADING_STARTED: "Vykládka zahájena",
-    UNLOADING_COMPLETED: "Vykládka dokončena",
-    CLOSED: "Uzavřeno",
-    CANCELLED: "Zrušeno",
-  };
-
-  const detailUrl = `${APP_URL}/cs/reservations/${reservationId}`;
+  const t = getEmailT(locale);
+  const statusLabel = t.statuses[newStatus] ?? newStatus;
+  const detailUrl = `${APP_URL}/${locale}/reservations/${reservationId}`;
 
   await sendEmail({
     to: recipients,
-    subject: `Rezervace — ${statusLabels[newStatus] ?? newStatus} — ${gateName}`,
+    subject: `${t.statusChangedSubject} — ${statusLabel} — ${gateName}`,
     html: emailLayout(
-      "Změna stavu rezervace",
-      infoRow("Rampa", gateName) + infoRow("Nový stav", statusLabels[newStatus] ?? newStatus),
-      detailUrl
+      t.statusChangedTitle,
+      infoRow(t.gate, gateName) + infoRow(t.newStatus, statusLabel),
+      detailUrl,
+      t.viewDetail
     ),
   });
 }

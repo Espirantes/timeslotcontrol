@@ -111,8 +111,8 @@ export function ClientsClient({ items }: Props) {
               <tr>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.name")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.contactEmail")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">Dodavatelé</th>
-                <th className="text-left px-4 py-2.5 font-medium">Rezervace</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("fields.suppliers")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("fields.reservations")}</th>
                 <th className="w-24" />
               </tr>
             </thead>

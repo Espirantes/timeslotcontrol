@@ -62,44 +62,39 @@ export async function getCalendarData(
     },
   });
 
-  const events: CalendarEvent[] = reservations
-    .filter((r) => r.confirmedVersion !== null)
-    .map((r) => {
-      const v = r.confirmedVersion!;
-      const endTime = new Date(
-        v.startTime.getTime() + v.durationMinutes * 60 * 1000
-      );
+  const events: CalendarEvent[] = [];
 
-      // Determine visibility
-      let canSeeDetail = false;
-      if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
-        canSeeDetail = true;
-      } else if (role === "CLIENT" && clientId === r.clientId) {
-        canSeeDetail = true;
-      } else if (role === "SUPPLIER" && supplierId === r.supplierId) {
-        canSeeDetail = true;
-      }
+  for (const r of reservations) {
+    const v = r.confirmedVersion;
+    if (!v) continue;
 
-      const hasPendingChange = r.pendingVersionId !== null && r.pendingVersionId !== r.confirmedVersionId;
+    const endTime = new Date(v.startTime.getTime() + v.durationMinutes * 60 * 1000);
 
-      return {
-        id: r.id,
-        resourceId: r.gateId,
-        start: v.startTime.toISOString(),
-        end: endTime.toISOString(),
-        status: r.status,
-        isOwn: canSeeDetail,
-        title: canSeeDetail ? r.supplier.name : "Obsazeno",
-        supplierName: canSeeDetail ? r.supplier.name : undefined,
-        clientName: canSeeDetail ? r.client.name : undefined,
-        vehicleType: canSeeDetail ? v.vehicleType : undefined,
-        driverName: canSeeDetail ? v.driverName : undefined,
-        licensePlate: canSeeDetail ? v.licensePlate : undefined,
-        durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
-        notes: canSeeDetail ? v.notes : undefined,
-        hasPendingChange,
-      };
+    let canSeeDetail = false;
+    if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
+    else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
+    else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
+
+    const hasPendingChange = r.pendingVersionId !== null && r.pendingVersionId !== r.confirmedVersionId;
+
+    events.push({
+      id: r.id,
+      resourceId: r.gateId,
+      start: v.startTime.toISOString(),
+      end: endTime.toISOString(),
+      status: r.status,
+      isOwn: canSeeDetail,
+      title: canSeeDetail ? r.supplier.name : "",
+      supplierName: canSeeDetail ? r.supplier.name : undefined,
+      clientName: canSeeDetail ? r.client.name : undefined,
+      vehicleType: canSeeDetail ? v.vehicleType : undefined,
+      driverName: canSeeDetail ? v.driverName : undefined,
+      licensePlate: canSeeDetail ? v.licensePlate : undefined,
+      durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
+      notes: canSeeDetail ? v.notes : undefined,
+      hasPendingChange,
     });
+  }
 
   // Also add pending (not-yet-confirmed) reservations as lighter events
   const pendingReservations = await prisma.reservation.findMany({
@@ -118,10 +113,9 @@ export async function getCalendarData(
     },
   });
 
-  pendingReservations
-    .filter((r) => r.pendingVersion !== null)
-    .forEach((r) => {
-      const v = r.pendingVersion!;
+  pendingReservations.forEach((r) => {
+      const v = r.pendingVersion;
+      if (!v) return;
       const endTime = new Date(
         v.startTime.getTime() + v.durationMinutes * 60 * 1000
       );
@@ -138,7 +132,7 @@ export async function getCalendarData(
         end: endTime.toISOString(),
         status: "REQUESTED",
         isOwn: canSeeDetail,
-        title: canSeeDetail ? `${r.supplier.name} (čeká)` : "Čeká na schválení",
+        title: canSeeDetail ? r.supplier.name : "",
         supplierName: canSeeDetail ? r.supplier.name : undefined,
         clientName: canSeeDetail ? r.client.name : undefined,
         durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
@@ -160,11 +154,12 @@ export async function getWarehouses() {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, warehouseId } = session.user;
+  const { role, warehouseIds } = session.user;
 
-  if (role === "WAREHOUSE_WORKER" && warehouseId) {
+  if (role === "WAREHOUSE_WORKER" && warehouseIds.length > 0) {
     return prisma.warehouse.findMany({
-      where: { id: warehouseId, isActive: true },
+      where: { id: { in: warehouseIds }, isActive: true },
+      orderBy: { name: "asc" },
     });
   }
 

@@ -26,6 +26,7 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
   const router = useRouter();
   const t = useTranslations("reservation");
   const tCommon = useTranslations("common");
+  const tNav = useTranslations("nav");
   const [isPending, startTransition] = useTransition();
   const [warehouseId, setWarehouseId] = useState(defaultWarehouseId);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -109,7 +110,7 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
       <div className="flex items-center justify-between gap-2">
         {warehouses.length > 1 ? (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Sklad:</span>
+            <span className="text-sm text-muted-foreground">{tNav("groupWarehouse")}:</span>
             <Select value={warehouseId} onValueChange={handleWarehouseChange}>
               <SelectTrigger className="w-60">
                 <SelectValue />
@@ -133,7 +134,12 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
 
       <CalendarView
         gates={gates}
-        events={events}
+        events={events.map((e) => ({
+          ...e,
+          title: e.isOwn
+            ? e.status === "REQUESTED" ? `${e.supplierName} ${t("calendar.pendingSuffix")}` : e.supplierName ?? e.title
+            : e.status === "REQUESTED" ? t("calendar.pending") : t("calendar.booked"),
+        }))}
         currentDate={currentDate}
         onDateChange={handleDateChange}
         onEventClick={handleEventClick}

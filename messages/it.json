@@ -53,6 +53,7 @@
   "reservation": {
     "title": "Prenotazioni",
     "new": "Nuova prenotazione",
+    "statusHistory": "Cronologia stati",
     "status": {
       "REQUESTED": "Richiesta",
       "CONFIRMED": "Confermata",
@@ -147,7 +148,11 @@
     },
     "calendar": {
       "booked": "Occupato",
-      "pending": "In attesa di approvazione"
+      "pending": "In attesa di approvazione",
+      "pageTitle": "Calendario prenotazioni",
+      "noWarehouses": "Nessun magazzino disponibile.",
+      "today": "Oggi",
+      "pendingSuffix": "(in attesa)"
     }
   },
   "warehouse": {
@@ -175,6 +180,7 @@
     "fields": {
       "name": "Nome",
       "description": "Descrizione",
+      "warehouse": "Magazzino",
       "openTime": "Apertura",
       "closeTime": "Chiusura"
     }
@@ -184,7 +190,9 @@
     "new": "Nuovo cliente",
     "fields": {
       "name": "Nome",
-      "contactEmail": "Email di contatto"
+      "contactEmail": "Email di contatto",
+      "suppliers": "Fornitori",
+      "reservations": "Prenotazioni"
     }
   },
   "supplier": {
@@ -192,7 +200,8 @@
     "new": "Nuovo fornitore",
     "fields": {
       "name": "Nome",
-      "contactEmail": "Email di contatto"
+      "contactEmail": "Email di contatto",
+      "reservations": "Prenotazioni"
     }
   },
   "user": {
@@ -209,11 +218,13 @@
       "email": "Email",
       "role": "Ruolo",
       "warehouse": "Magazzino",
+      "warehouses": "Magazzini",
       "client": "Cliente",
       "supplier": "Fornitore",
       "isActive": "Attivo",
       "password": "Password",
-      "passwordPlaceholder": "Inserisci password (min. 8 caratteri)"
+      "passwordPlaceholder": "Inserisci password (min. 8 caratteri)",
+      "passwordHelp": "Lascia vuoto per mantenere la password attuale"
     }
   },
   "transportUnit": {

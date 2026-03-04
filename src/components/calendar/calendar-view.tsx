@@ -9,8 +9,11 @@ import type { DateClickArg } from "@fullcalendar/interaction";
 import type { CalendarEvent, CalendarGate } from "@/lib/actions/calendar";
 import type { ReservationStatus } from "@/generated/prisma/client";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { format, addDays, subDays } from "date-fns";
+import { format, addDays, subDays, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
+import { it } from "date-fns/locale";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReservationPopover } from "./reservation-popover";
@@ -38,7 +41,11 @@ type Props = {
   onReject?: (reservationId: string) => void;
 };
 
+const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
+
 export function CalendarView({ gates, events, currentDate, onDateChange, onEventClick, onSlotClick, loading, userRole, onApprove, onReject }: Props) {
+  const locale = useLocale();
+  const t = useTranslations("reservation");
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null);
@@ -110,13 +117,13 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
           <ChevronLeft className="size-4" />
         </Button>
         <span className="font-medium min-w-36 text-center">
-          {format(currentDate, "EEEE d. MMMM yyyy", { locale: cs })}
+          {format(currentDate, "EEEE d. MMMM yyyy", { locale: DATE_LOCALES[locale] ?? enUS })}
         </span>
         <Button variant="outline" size="icon" onClick={() => onDateChange(addDays(currentDate, 1))}>
           <ChevronRight className="size-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={() => onDateChange(new Date())}>
-          Dnes
+          {t("calendar.today")}
         </Button>
       </div>
 
@@ -139,7 +146,7 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
           dateClick={handleDateClick}
           eventContent={renderEventContent}
           resourceAreaWidth="120px"
-          locale="cs"
+          locale={locale}
           firstDay={1}
           nowIndicator
           stickyHeaderDates

@@ -53,6 +53,7 @@
   "reservation": {
     "title": "Rezervace",
     "new": "Nová rezervace",
+    "statusHistory": "Historie stavů",
     "status": {
       "REQUESTED": "Zažádána",
       "CONFIRMED": "Potvrzena",
@@ -147,7 +148,11 @@
     },
     "calendar": {
       "booked": "Obsazeno",
-      "pending": "Čeká na schválení"
+      "pending": "Čeká na schválení",
+      "pageTitle": "Kalendář rezervací",
+      "noWarehouses": "Nejsou k dispozici žádné sklady.",
+      "today": "Dnes",
+      "pendingSuffix": "(čeká)"
     }
   },
   "warehouse": {
@@ -175,6 +180,7 @@
     "fields": {
       "name": "Název",
       "description": "Popis",
+      "warehouse": "Sklad",
       "openTime": "Otevření",
       "closeTime": "Zavření"
     }
@@ -184,7 +190,9 @@
     "new": "Nový klient",
     "fields": {
       "name": "Název",
-      "contactEmail": "Kontaktní e-mail"
+      "contactEmail": "Kontaktní e-mail",
+      "suppliers": "Dodavatelé",
+      "reservations": "Rezervace"
     }
   },
   "supplier": {
@@ -192,7 +200,8 @@
     "new": "Nový dodavatel",
     "fields": {
       "name": "Název",
-      "contactEmail": "Kontaktní e-mail"
+      "contactEmail": "Kontaktní e-mail",
+      "reservations": "Rezervace"
     }
   },
   "user": {
@@ -209,11 +218,13 @@
       "email": "E-mail",
       "role": "Role",
       "warehouse": "Sklad",
+      "warehouses": "Sklady",
       "client": "Klient",
       "supplier": "Dodavatel",
       "isActive": "Aktivní",
       "password": "Heslo",
-      "passwordPlaceholder": "Zadejte heslo (min. 8 znaků)"
+      "passwordPlaceholder": "Zadejte heslo (min. 8 znaků)",
+      "passwordHelp": "Ponechte prázdné, pokud nechcete měnit heslo"
     }
   },
   "transportUnit": {

@@ -23,16 +23,27 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { createGate, updateGate, deleteGate, updateGateOpeningHours } from "@/lib/actions/admin";
-import type { Gates, Warehouse, GateOpeningHours } from "@/generated/prisma/client";
+import type { GateOpeningHours } from "@/generated/prisma/client";
 
-type GateWithRelations = Gates & {
-  warehouse: Warehouse;
+type WarehouseItem = {
+  id: string;
+  name: string;
+  isActive: boolean;
+};
+
+type GateWithRelations = {
+  id: string;
+  warehouseId: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  warehouse: { id: string; name: string };
   openingHours: GateOpeningHours[];
 };
 
 type Props = {
   items: GateWithRelations[];
-  warehouses: Warehouse[];
+  warehouses: WarehouseItem[];
 };
 
 type FormData = {
@@ -182,7 +193,7 @@ export function GatesClient({ items, warehouses }: Props) {
                 <th className="w-8" />
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.name")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.description")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">Sklad</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("fields.warehouse")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{tc("active")}</th>
                 <th className="w-24" />
               </tr>
@@ -282,7 +293,7 @@ export function GatesClient({ items, warehouses }: Props) {
             </div>
             {!editingId && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">Sklad</label>
+                <label className="text-sm font-medium">{t("fields.warehouse")}</label>
                 <Select value={form.warehouseId} onValueChange={(v) => setForm({ ...form, warehouseId: v })}>
                   <SelectTrigger className="w-full">
                     <SelectValue />

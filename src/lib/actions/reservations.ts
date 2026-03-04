@@ -12,6 +12,7 @@ import {
   notifyStatusChanged,
 } from "@/lib/email";
 import { createNotificationsForEvent } from "@/lib/actions/notifications";
+import { getLocale, getTranslations } from "next-intl/server";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -146,6 +147,7 @@ export async function createReservation(input: CreateReservationInput) {
 
   // Validations
   if (input.durationMinutes % 15 !== 0) throw new Error("Duration must be a multiple of 15 min");
+  if (role !== "ADMIN" && startTime < new Date()) throw new Error("Cannot create reservation in the past");
   if (role !== "ADMIN" && !await isGateOpen(input.gateId, startTime, endTime)) throw new Error("Gate is closed at requested time");
   if (!await isSlotFree(input.gateId, startTime, endTime)) throw new Error("Slot is already taken");
 
@@ -199,6 +201,14 @@ export async function createReservation(input: CreateReservationInput) {
     userId: user.id,
   });
 
+  await prisma.reservationStatusChange.create({
+    data: {
+      reservationId: reservation.id,
+      status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
+      changedById: user.id,
+    },
+  });
+
   revalidatePath("/calendar");
   revalidatePath("/reservations");
 
@@ -207,31 +217,35 @@ export async function createReservation(input: CreateReservationInput) {
   const supplier = await prisma.supplier.findUnique({ where: { id: resolvedSupplierId } });
   const workers = await prisma.user.findMany({
     where: {
-      role: { in: ["ADMIN", "WAREHOUSE_WORKER"] },
-      warehouseId: gate?.warehouseId,
       isActive: true,
       notifyEmail: true,
+      OR: [
+        { role: "ADMIN" },
+        { role: "WAREHOUSE_WORKER", warehouses: { some: { warehouseId: gate?.warehouseId } } },
+      ],
     },
     select: { email: true },
   });
+  const locale = await getLocale();
   notifyReservationCreated({
     reservationId: reservation.id,
     gateName: gate?.name ?? "",
     supplierName: supplier?.name ?? "",
     startTime: input.startTime,
     workerEmails: workers.map((w) => w.email),
-  }).catch(() => {});
+    locale,
+  }).catch(console.error);
 
   // In-app notification
   createNotificationsForEvent({
     type: "RESERVATION_CREATED",
     reservationId: reservation.id,
     title: `${gate?.name ?? ""}`,
-    message: `${supplier?.name ?? ""} — ${new Date(input.startTime).toLocaleString("cs-CZ", { timeZone: "Europe/Prague" })}`,
+    message: `${supplier?.name ?? ""} — ${new Date(input.startTime).toLocaleString(locale, { timeZone: "Europe/Prague" })}`,
     warehouseId: gate?.warehouseId ?? "",
     clientId: input.clientId,
     supplierId: resolvedSupplierId,
-  }).catch(() => {});
+  }).catch(console.error);
 
   return { success: true, reservationId: reservation.id };
 }
@@ -247,9 +261,9 @@ export async function approveReservation(reservationId: string) {
     include: { pendingVersion: true, confirmedVersion: true },
   });
 
-  if (!reservation.pendingVersionId) throw new Error("No pending version to approve");
+  if (!reservation.pendingVersionId || !reservation.pendingVersion) throw new Error("No pending version to approve");
 
-  const pendingVersion = reservation.pendingVersion!;
+  const pendingVersion = reservation.pendingVersion;
   const endTime = new Date(pendingVersion.startTime.getTime() + pendingVersion.durationMinutes * 60 * 1000);
 
   // Check slot is still free (excluding current reservation)
@@ -276,6 +290,14 @@ export async function approveReservation(reservationId: string) {
     userId: user.id,
   });
 
+  await prisma.reservationStatusChange.create({
+    data: {
+      reservationId,
+      status: "CONFIRMED",
+      changedById: user.id,
+    },
+  });
+
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
 
@@ -285,6 +307,7 @@ export async function approveReservation(reservationId: string) {
     include: { gate: true, supplier: true, client: true, confirmedVersion: true },
   });
   if (full?.confirmedVersion) {
+    const locale = await getLocale();
     const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
     notifyReservationApproved({
       reservationId,
@@ -292,18 +315,19 @@ export async function approveReservation(reservationId: string) {
       startTime: full.confirmedVersion.startTime.toISOString(),
       supplierEmail: emailRecipients.supplierEmail,
       clientEmail: emailRecipients.clientEmail,
-    }).catch(() => {});
+      locale,
+    }).catch(console.error);
 
     // In-app notification
     createNotificationsForEvent({
       type: "RESERVATION_APPROVED",
       reservationId,
       title: full.gate.name,
-      message: new Date(full.confirmedVersion.startTime).toLocaleString("cs-CZ", { timeZone: "Europe/Prague" }),
+      message: new Date(full.confirmedVersion.startTime).toLocaleString(locale, { timeZone: "Europe/Prague" }),
       warehouseId: full.gate.warehouseId,
       clientId: full.clientId,
       supplierId: full.supplierId,
-    }).catch(() => {});
+    }).catch(console.error);
   }
 
   return { success: true };
@@ -339,6 +363,16 @@ export async function rejectReservation(reservationId: string) {
     userId: user.id,
   });
 
+  if (wasNew) {
+    await prisma.reservationStatusChange.create({
+      data: {
+        reservationId,
+        status: "CANCELLED",
+        changedById: user.id,
+      },
+    });
+  }
+
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
 
@@ -348,13 +382,15 @@ export async function rejectReservation(reservationId: string) {
     include: { gate: true, supplier: true, client: true },
   });
   if (full) {
+    const locale = await getLocale();
     const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
     notifyReservationRejected({
       reservationId,
       gateName: full.gate.name,
       supplierEmail: emailRecipients.supplierEmail,
       clientEmail: emailRecipients.clientEmail,
-    }).catch(() => {});
+      locale,
+    }).catch(console.error);
 
     // In-app notification
     createNotificationsForEvent({
@@ -365,7 +401,7 @@ export async function rejectReservation(reservationId: string) {
       warehouseId: full.gate.warehouseId,
       clientId: full.clientId,
       supplierId: full.supplierId,
-    }).catch(() => {});
+    }).catch(console.error);
   }
 
   return { success: true };
@@ -408,6 +444,14 @@ export async function updateReservationStatus(
     userId: user.id,
   });
 
+  await prisma.reservationStatusChange.create({
+    data: {
+      reservationId,
+      status: newStatus,
+      changedById: user.id,
+    },
+  });
+
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
 
@@ -417,6 +461,8 @@ export async function updateReservationStatus(
     include: { gate: true, supplier: true, client: true },
   });
   if (full) {
+    const locale = await getLocale();
+    const tStatus = await getTranslations("reservation.status");
     const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
     notifyStatusChanged({
       reservationId,
@@ -424,25 +470,19 @@ export async function updateReservationStatus(
       newStatus,
       supplierEmail: emailRecipients.supplierEmail,
       clientEmail: emailRecipients.clientEmail,
-    }).catch(() => {});
-
-    const statusLabels: Record<string, string> = {
-      UNLOADING_STARTED: "Vykládka zahájena",
-      UNLOADING_COMPLETED: "Vykládka dokončena",
-      CLOSED: "Uzavřeno",
-      CANCELLED: "Zrušeno",
-    };
+      locale,
+    }).catch(console.error);
 
     // In-app notification
     createNotificationsForEvent({
       type: "STATUS_CHANGED",
       reservationId,
       title: full.gate.name,
-      message: statusLabels[newStatus] ?? newStatus,
+      message: tStatus(newStatus),
       warehouseId: full.gate.warehouseId,
       clientId: full.clientId,
       supplierId: full.supplierId,
-    }).catch(() => {});
+    }).catch(console.error);
   }
 
   return { success: true };
@@ -474,12 +514,12 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, warehouseId, clientId, supplierId } = session.user;
+  const { role, warehouseIds, clientId, supplierId } = session.user;
 
   const reservations = await prisma.reservation.findMany({
     where: {
-      ...(role === "WAREHOUSE_WORKER" && warehouseId
-        ? { gate: { warehouseId } }
+      ...(role === "WAREHOUSE_WORKER" && warehouseIds.length > 0
+        ? { gate: { warehouseId: { in: warehouseIds } } }
         : {}),
       ...(role === "ADMIN" ? {} : {}),
       ...(role === "CLIENT" && clientId ? { clientId } : {}),
@@ -548,6 +588,13 @@ export type ReservationVersionDetail = {
   }[];
 };
 
+export type StatusChangeItem = {
+  id: string;
+  status: string;
+  changedAt: string;
+  changedByName: string;
+};
+
 export type ReservationDetail = {
   id: string;
   status: string;
@@ -563,6 +610,7 @@ export type ReservationDetail = {
   updatedAt: string;
   confirmedVersion: ReservationVersionDetail | null;
   pendingVersion: ReservationVersionDetail | null;
+  statusChanges: StatusChangeItem[];
 };
 
 function mapVersion(
@@ -599,7 +647,7 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
   const session = await auth();
   if (!session) return null;
 
-  const { role, warehouseId, clientId, supplierId } = session.user;
+  const { role, warehouseIds, clientId, supplierId } = session.user;
 
   const r = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -610,13 +658,14 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
       createdBy: true,
       confirmedVersion: { include: { createdBy: true, items: { include: { transportUnit: true } } } },
       pendingVersion: { include: { createdBy: true, items: { include: { transportUnit: true } } } },
+      statusChanges: { include: { changedBy: { select: { name: true } } }, orderBy: { changedAt: "asc" } },
     },
   });
 
   if (!r) return null;
 
   // Visibility check
-  if (role === "WAREHOUSE_WORKER" && warehouseId && r.gate.warehouseId !== warehouseId) return null;
+  if (role === "WAREHOUSE_WORKER" && warehouseIds.length > 0 && !warehouseIds.includes(r.gate.warehouseId)) return null;
   if (role === "CLIENT" && clientId && r.clientId !== clientId) return null;
   if (role === "SUPPLIER" && supplierId && r.supplierId !== supplierId) return null;
 
@@ -635,6 +684,12 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
     updatedAt: r.updatedAt.toISOString(),
     confirmedVersion: r.confirmedVersion ? mapVersion(r.confirmedVersion as Parameters<typeof mapVersion>[0]) : null,
     pendingVersion: r.pendingVersion ? mapVersion(r.pendingVersion as Parameters<typeof mapVersion>[0]) : null,
+    statusChanges: r.statusChanges.map((sc) => ({
+      id: sc.id,
+      status: sc.status,
+      changedAt: sc.changedAt.toISOString(),
+      changedByName: sc.changedBy.name,
+    })),
   };
 }
 
@@ -934,7 +989,7 @@ export async function editReservation(input: EditReservationInput) {
       warehouseId: reservation.gate.warehouseId,
       clientId: reservation.clientId,
       supplierId: reservation.supplierId,
-    }).catch(() => {});
+    }).catch(console.error);
   }
 
   return { success: true, isCritical: isCritical && !isAdmin };

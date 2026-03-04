@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,27 +23,45 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { createUser, updateUser, deleteUser } from "@/lib/actions/admin";
-import type { User, UserRole, Warehouse, Client, Supplier } from "@/generated/prisma/client";
+import type { UserRole } from "@/generated/prisma/client";
 
-type UserWithRelations = User & {
-  warehouse: Warehouse | null;
-  client: Client | null;
-  supplier: Supplier | null;
+type WarehouseItem = {
+  id: string;
+  name: string;
+  isActive: boolean;
 };
 
-type ClientWithRelations = Client & {
+type UserWithRelations = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  clientId: string | null;
+  supplierId: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  warehouses: { userId: string; warehouseId: string; warehouse: { id: string; name: string } }[];
+  client: { id: string; name: string } | null;
+  supplier: { id: string; name: string } | null;
+};
+
+type ClientWithRelations = {
+  id: string;
+  name: string;
   suppliers: unknown[];
   _count: { reservations: number };
 };
 
-type SupplierWithRelations = Supplier & {
+type SupplierWithRelations = {
+  id: string;
+  name: string;
   clients: unknown[];
   _count: { reservations: number };
 };
 
 type Props = {
   items: UserWithRelations[];
-  warehouses: Warehouse[];
+  warehouses: WarehouseItem[];
   clients: ClientWithRelations[];
   suppliers: SupplierWithRelations[];
 };
@@ -53,7 +71,7 @@ type FormData = {
   email: string;
   password: string;
   role: UserRole;
-  warehouseId: string;
+  warehouseIds: string[];
   clientId: string;
   supplierId: string;
   isActive: boolean;
@@ -73,7 +91,7 @@ const emptyForm: FormData = {
   email: "",
   password: "",
   role: "CLIENT",
-  warehouseId: "",
+  warehouseIds: [],
   clientId: "",
   supplierId: "",
   isActive: true,
@@ -102,12 +120,21 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
       email: u.email,
       password: "",
       role: u.role,
-      warehouseId: u.warehouseId ?? "",
+      warehouseIds: u.warehouses.map((w) => w.warehouseId),
       clientId: u.clientId ?? "",
       supplierId: u.supplierId ?? "",
       isActive: u.isActive,
     });
     setDialogOpen(true);
+  }
+
+  function toggleWarehouse(warehouseId: string) {
+    setForm((prev) => ({
+      ...prev,
+      warehouseIds: prev.warehouseIds.includes(warehouseId)
+        ? prev.warehouseIds.filter((id) => id !== warehouseId)
+        : [...prev.warehouseIds, warehouseId],
+    }));
   }
 
   function handleSave() {
@@ -122,7 +149,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
             email: form.email,
             password: form.password || undefined,
             role: form.role,
-            warehouseId: form.role === "WAREHOUSE_WORKER" ? form.warehouseId || undefined : undefined,
+            warehouseIds: form.role !== "ADMIN" ? form.warehouseIds : [],
             clientId: form.role === "CLIENT" ? form.clientId || undefined : undefined,
             supplierId: form.role === "SUPPLIER" ? form.supplierId || undefined : undefined,
             isActive: form.isActive,
@@ -133,7 +160,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
             email: form.email,
             password: form.password,
             role: form.role,
-            warehouseId: form.role === "WAREHOUSE_WORKER" ? form.warehouseId || undefined : undefined,
+            warehouseIds: form.role !== "ADMIN" ? form.warehouseIds : [],
             clientId: form.role === "CLIENT" ? form.clientId || undefined : undefined,
             supplierId: form.role === "SUPPLIER" ? form.supplierId || undefined : undefined,
           });
@@ -179,7 +206,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.name")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.email")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.role")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">{tc("detail")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("fields.warehouses")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{tc("active")}</th>
                 <th className="w-24" />
               </tr>
@@ -193,10 +220,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
                     <Badge variant={ROLE_VARIANT[u.role]}>{t(`role.${u.role}`)}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
-                    {u.warehouse && u.warehouse.name}
-                    {u.client && u.client.name}
-                    {u.supplier && u.supplier.name}
-                    {!u.warehouse && !u.client && !u.supplier && "—"}
+                    {u.warehouses.length > 0 ? u.warehouses.map((w) => w.warehouse.name).join(", ") : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={u.isActive ? "default" : "secondary"}>
@@ -243,12 +267,12 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
                 placeholder={editingId ? t("fields.passwordPlaceholder") : undefined}
               />
               {editingId && (
-                <p className="text-xs text-muted-foreground">Ponechte prázdné, pokud nechcete měnit heslo</p>
+                <p className="text-xs text-muted-foreground">{t("fields.passwordHelp")}</p>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.role")}</label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as UserRole, warehouseId: "", clientId: "", supplierId: "" })}>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as UserRole, warehouseIds: [], clientId: "", supplierId: "" })}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -260,19 +284,31 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
               </Select>
             </div>
 
-            {form.role === "WAREHOUSE_WORKER" && warehouses.length > 0 && (
+            {form.role !== "ADMIN" && warehouses.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">{t("fields.warehouse")}</label>
-                <Select value={form.warehouseId} onValueChange={(v) => setForm({ ...form, warehouseId: v })}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">{t("fields.warehouses")}</label>
+                <div className="flex flex-col gap-1 border rounded-md p-2 max-h-40 overflow-y-auto">
+                  {warehouses.map((w) => {
+                    const selected = form.warehouseIds.includes(w.id);
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => toggleWarehouse(w.id)}
+                        className={`flex items-center gap-2 rounded px-2 py-1.5 text-sm text-left transition-colors ${
+                          selected ? "bg-indigo-50 text-indigo-900" : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className={`flex size-4 shrink-0 items-center justify-center rounded border ${
+                          selected ? "border-indigo-600 bg-indigo-600 text-white" : "border-muted-foreground/30"
+                        }`}>
+                          {selected && <Check className="size-3" />}
+                        </div>
+                        {w.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
