@@ -78,9 +78,24 @@ function getAvailableSlots(gate: Gate | undefined, date: Date, isAdmin: boolean)
   if (!hours || !hours.isOpen) {
     return isAdmin ? generateTimeSlots("06:00", "22:00") : [];
   }
-  return isAdmin
+  const slots = isAdmin
     ? generateTimeSlots("06:00", "22:00")
     : generateTimeSlots(hours.openTime, hours.closeTime);
+
+  // Filter out past time slots for non-admins on today's date
+  if (!isAdmin) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const selected = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    if (selected.getTime() === today.getTime()) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      return slots.filter((slot) => {
+        const [h, m] = slot.split(":").map(Number);
+        return h * 60 + m > currentMinutes;
+      });
+    }
+  }
+  return slots;
 }
 
 function isOutsideOpeningHours(gate: Gate | undefined, date: Date, time: string): boolean {
@@ -183,7 +198,7 @@ export function ReservationFormDialog({
     setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!gateId || !clientId || !startTime) {
       toast.error(t("form.requiredFields"));

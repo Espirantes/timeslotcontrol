@@ -12,10 +12,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await auth();
   if (!session) redirect("/login");
 
-  const dbUser = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    select: { notifyBrowser: true },
-  });
+  const dbUser = session.user.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { notifyBrowser: true },
+      })
+    : null;
 
   return (
     <SidebarProvider>

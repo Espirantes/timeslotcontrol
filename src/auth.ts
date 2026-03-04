@@ -16,6 +16,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
+          include: { warehouses: { select: { warehouseId: true } } },
         });
 
         if (!user || !user.isActive) return null;
@@ -31,7 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-          warehouseId: user.warehouseId,
+          warehouseIds: user.warehouses.map((w) => w.warehouseId),
           clientId: user.clientId,
           supplierId: user.supplierId,
         };
@@ -43,21 +44,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         const u = user as {
           role: UserRole;
-          warehouseId: string | null;
+          warehouseIds: string[];
           clientId: string | null;
           supplierId: string | null;
         };
         token.role = u.role;
-        token.warehouseId = u.warehouseId;
+        token.warehouseIds = u.warehouseIds;
         token.clientId = u.clientId;
         token.supplierId = u.supplierId;
       }
       return token;
     },
     session({ session, token }) {
-      session.user.id = token.sub!;
+      session.user.id = token.sub ?? "";
       session.user.role = token.role as UserRole;
-      session.user.warehouseId = (token.warehouseId as string) ?? null;
+      session.user.warehouseIds = (token.warehouseIds as string[]) ?? [];
       session.user.clientId = (token.clientId as string) ?? null;
       session.user.supplierId = (token.supplierId as string) ?? null;
       return session;

@@ -24,6 +24,7 @@ CONFIRMED → CANCELLED
 
 ### Entity a vztahy
 - Supplier ↔ Client = M:N (supplier patří pod více klientů)
+- User ↔ Warehouse = M:N (uživatel může mít přístup k více skladům)
 - Supplier vždy vytváří rezervaci ve vztahu ke konkrétnímu klientovi
 - Client vidí detail rezervací všech svých supplierů; cizí = "Obsazeno"
 - Supplieři navzájem rezervace nevidí
@@ -32,7 +33,7 @@ CONFIRMED → CANCELLED
 | Role | Přístup |
 |------|---------|
 | ADMIN | Vše na všech skladech, správa entit |
-| WAREHOUSE_WORKER | Vše na svém skladu, schvaluje, mění stavy |
+| WAREHOUSE_WORKER | Vše na přiřazených skladech, schvaluje, mění stavy |
 | CLIENT | Své + child supplier rezervace; cizí = "Obsazeno" |
 | SUPPLIER | Jen své rezervace; cizí = "Obsazeno" |
 
@@ -66,19 +67,34 @@ GitHub: https://github.com/Espirantes/dock-scheduling-system
 
 ---
 
+## Skills (slash commands)
+
+Skills v `.claude/commands/` slouží jako **závazná pravidla**. Při relevantní práci si vždy přečti příslušný skill soubor — jsou to živé dokumenty, které se mohou aktualizovat.
+
+> Skills jsou **external** (z https://gitlab.com/mailstep/ai-tooling/agent-skills) a v `.gitignore`. Neclonují se s repem — nainstaluj ručně do `.claude/commands/`.
+
+| Skill | Soubor | Kdy číst |
+|-------|--------|----------|
+| `/git-commit` | `.claude/commands/git-commit.md` | Před každým commitem |
+| `/prisma-expert` | `.claude/commands/prisma-expert.md` | Při práci s DB, schématem, migracemi, queries |
+| `/typescript-specialist` | `.claude/commands/typescript-specialist.md` | Při TS chybách, refactoringu, tsconfig |
+| `/web-design-reviewer` | `.claude/commands/web-design-reviewer.md` | Při vizuálním review UI |
+| `/vitest` | `.claude/commands/vitest.md` | Při psaní testů |
+| `/javascript-testing-patterns` | `.claude/commands/javascript-testing-patterns.md` | Testing patterns, mocking |
+| `/docker-expert` | `.claude/commands/docker-expert.md` | Dockerfile, docker-compose |
+| `/prd` | `.claude/commands/prd.md` | Generování PRD dokumentů |
+
+**Pozor:** Některé skills (např. `mailstep-nodejs-service`) jsou generické Mailstep šablony — pro tento projekt platí vždy pravidla z CLAUDE.md (např. `pnpm`, ne `npm`).
+
+---
+
 ## Databáze
 
 ### Prvotní setup na novém PC
 ```bash
-# 1. Nainstaluj PostgreSQL (uživatel postgres, heslo postgres)
-# 2. Nainstaluj závislosti
 pnpm install
-# 3. Zkopíruj .env.local
 cp .env.local.example .env.local
-# 4. Uprav DATABASE_URL v .env.local pokud se liší credentials/port
-# 5. Spusť setup — vytvoří DB, migrace, seed data
 pnpm db:setup
-# 6. Spusť dev server
 pnpm dev
 ```
 
@@ -106,7 +122,6 @@ pnpm dev
 | alex@nejkafe.cz | CLIENT | Online Empire s.r.o. |
 
 ### Re-export dat z lokální DB
-Po přidání nových dat v UI, exportuj aktuální stav:
 ```bash
 PGPASSWORD=postgres pg_dump -U postgres -d timeslotcontrol \
   --data-only --inserts --column-inserts --no-owner --no-privileges \
@@ -131,7 +146,9 @@ Pak vyčisti do `seed.sql` (odebrat `\restrict`, SET příkazy, audit_log a noti
 - **Reservation** — obsahuje `confirmedVersionId` + `pendingVersionId`
 - **ReservationVersion** — verzovaná data (čas, vozidlo, řidič, plomby...)
 - **ReservationItem** — řádky přepravních jednotek
+- **ReservationStatusChange** — historie změn stavů s timestampem a autorem
 - **AuditLog** — každá změna logována
+- **UserWarehouse** — M:N join tabulka (uživatel ↔ sklad)
 
 ### Approval flow
 1. Supplier vytvoří → `status: REQUESTED`, `pendingVersionId` = nová verze
@@ -142,7 +159,7 @@ Pak vyčisti do `seed.sql` (odebrat `\restrict`, SET příkazy, audit_log a noti
 ### Viditelnost
 - Supplier: jen své rezervace s detailem; cizí = "Obsazeno"
 - Client: detail svých + všech svých suppliers; ostatní = "Obsazeno"
-- Warehouse Worker: vše na svém skladu
+- Warehouse Worker: vše na přiřazených skladech
 - Admin: vše na všech skladech
 
 ---
@@ -150,11 +167,11 @@ Pak vyčisti do `seed.sql` (odebrat `\restrict`, SET příkazy, audit_log a noti
 ## Uživatelské role
 
 - `ADMIN` — všechny sklady, správa entit
-- `WAREHOUSE_WORKER` — per sklad, schvaluje rezervace, mění stavy
+- `WAREHOUSE_WORKER` — přiřazené sklady (M:N), schvaluje rezervace, mění stavy
 - `CLIENT` — vidí své + child rezervace
 - `SUPPLIER` — vidí jen své rezervace
 
-Uloženo v JWT: `session.user.role`, `warehouseId`, `clientId`, `supplierId`
+Uloženo v JWT: `session.user.role`, `warehouseIds`, `clientId`, `supplierId`
 
 ---
 
@@ -173,29 +190,12 @@ Uloženo v JWT: `session.user.role`, `warehouseId`, `clientId`, `supplierId`
 
 ---
 
-## Stavový automat rezervace
-
-```
-REQUESTED → CONFIRMED (schválení workerem)
-REQUESTED → CANCELLED
-CONFIRMED → UNLOADING_STARTED (worker)
-UNLOADING_STARTED → UNLOADING_COMPLETED (worker)
-UNLOADING_COMPLETED → CLOSED (worker)
-CONFIRMED → CANCELLED
-```
-
----
-
 ## i18n
 
 Při přidávání jakékoli nové UI kopie je nutné přidat klíč do **všech tří** souborů:
 - `messages/cs.json`
 - `messages/en.json`
 - `messages/it.json`
-
----
-
-## Překlady — enum hodnoty
 
 Překlady enums jsou v JSON klíčích:
 - `reservation.status.*` — ReservationStatus
@@ -205,10 +205,12 @@ Překlady enums jsou v JSON klíčích:
 
 ---
 
-## Email (Resend)
+## Email notifikace
 
-- Resend API (fetch, bez package — stejně jako ClearData)
-- Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- `src/lib/email.ts` — Resend API via fetch (bez package)
+- Branded HTML šablona: Mailstep logo, `#db2b19` red accent, navy header/footer
+- Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL`
+- Notifikace: created → workers, approved/rejected → supplier+client, status change → supplier+client
 
 ---
 
@@ -227,6 +229,10 @@ Vždy volej `auditLog()` z `src/lib/audit.ts` při každé změně entity.
 - ❌ Nepoužívej `--no-verify`, `--force-push` ani jiné bypassy
 - ❌ Necommituj `.env` soubory ani secrets
 - ❌ Nezapomeň přidat překlady do všech tří jazyků
+- ❌ Nepoužívej `any` — preferuj `unknown` s type guards
+- ❌ Nepoužívej `@ts-ignore` — preferuj `@ts-expect-error`
+- ❌ Nevytvářej N+1 queries — vždy `include` nebo `select`
+- ❌ Nepoužívej `prisma migrate dev` v produkci
 
 ---
 
@@ -247,15 +253,6 @@ Vždy volej `auditLog()` z `src/lib/audit.ts` při každé změně entity.
 
 ---
 
-## Email notifikace
-
-- `src/lib/email.ts` — Resend API via fetch (bez package)
-- Branded HTML šablona: Mailstep logo, `#db2b19` red accent, navy header/footer
-- Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL`
-- Notifikace: created → workers, approved/rejected → supplier+client, status change → supplier+client
-
----
-
 ## Hotovo
 
 - ✅ `ReservationFormDialog` — gate/čas/vozidlo/přepravní jednotky, `createReservation` action
@@ -268,10 +265,13 @@ Vždy volej `auditLog()` z `src/lib/audit.ts` při každé změně entity.
 - ✅ Admin CRUD — warehouses, gates + opening hours, users, clients, suppliers
 - ✅ Email notifikace — Resend API, Mailstep branded HTML, preference per uživatel
 - ✅ i18n — hardcoded CS stringy nahrazeny `useTranslations`, EN + IT kompletní
-- ✅ In-app notifikace — zvoneček, popover, polling 30s, browser push
+- ✅ In-app notifikace — zvoneček, popover, polling 10s, browser push
 - ✅ Audit log — admin-only stránka s filtrováním a paginací
 - ✅ Notifikační preference — email/in-app/browser přepínače v nastavení
 - ✅ DB seed — `prisma/seed-data/seed.sql` + `pnpm db:setup` / `pnpm db:reset`
+- ✅ Multi-warehouse přístup — M:N vztah User ↔ Warehouse, `warehouseIds` v session
+- ✅ Prevence zpětných rezervací — non-admin nemůže vytvořit rezervaci v minulosti
+- ✅ Historie stavů — `ReservationStatusChange` tabulka, timeline na detailu
 
 ## TODO (zbývá)
 

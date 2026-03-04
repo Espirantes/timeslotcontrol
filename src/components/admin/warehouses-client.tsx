@@ -16,10 +16,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { createWarehouse, updateWarehouse, deleteWarehouse } from "@/lib/actions/admin";
-import type { Warehouse } from "@/generated/prisma/client";
+
+type WarehouseItem = {
+  id: string;
+  name: string;
+  address: string | null;
+  timezone: string;
+  isActive: boolean;
+};
 
 type Props = {
-  items: Warehouse[];
+  items: WarehouseItem[];
 };
 
 type FormData = {
@@ -47,7 +54,7 @@ export function WarehousesClient({ items }: Props) {
     setDialogOpen(true);
   }
 
-  function openEdit(w: Warehouse) {
+  function openEdit(w: WarehouseItem) {
     setEditingId(w.id);
     setForm({ name: w.name, address: w.address ?? "", timezone: w.timezone, isActive: w.isActive });
     setDialogOpen(true);

@@ -16,7 +16,7 @@ import {
   type NotificationItem,
 } from "@/lib/actions/notifications";
 
-const POLL_INTERVAL = 30_000; // 30 seconds
+const POLL_INTERVAL = 10_000; // 10 seconds
 
 const typeIcons: Record<string, typeof Bell> = {
   RESERVATION_CREATED: Plus,

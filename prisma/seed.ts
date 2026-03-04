@@ -48,7 +48,7 @@ async function main() {
       name: "Pracovník Skladu",
       password: workerPassword,
       role: "WAREHOUSE_WORKER",
-      warehouseId: warehouse.id,
+      warehouses: { create: { warehouseId: warehouse.id } },
     },
   });
   console.log("✓ Worker:", worker.email);

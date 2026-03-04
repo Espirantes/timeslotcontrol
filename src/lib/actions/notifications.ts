@@ -15,7 +15,7 @@ async function requireAuth() {
 async function getUserBySession() {
   const sessionUser = await requireAuth();
   return prisma.user.findUniqueOrThrow({
-    where: { email: sessionUser.email! },
+    where: { email: sessionUser.email },
   });
 }
 
@@ -39,10 +39,12 @@ export async function createNotificationsForEvent(params: {
     // Notify ADMIN + WAREHOUSE_WORKER of the warehouse
     recipients = await prisma.user.findMany({
       where: {
-        role: { in: ["ADMIN", "WAREHOUSE_WORKER"] },
-        warehouseId,
         isActive: true,
         notifyInApp: true,
+        OR: [
+          { role: "ADMIN" },
+          { role: "WAREHOUSE_WORKER", warehouses: { some: { warehouseId } } },
+        ],
       },
       select: { id: true },
     });

@@ -46,3 +46,6 @@ next-env.d.ts
 
 # raw db dump (use seed.sql instead)
 prisma/seed-data/dump.sql
+
+# claude agent skills (external, not project-specific)
+.claude/commands/

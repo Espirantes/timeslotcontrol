@@ -20,7 +20,10 @@ async function requireAdmin() {
 
 export async function getWarehouses() {
   await requireAdmin();
-  return prisma.warehouse.findMany({ orderBy: { name: "asc" } });
+  return prisma.warehouse.findMany({
+    select: { id: true, name: true, address: true, timezone: true, isActive: true },
+    orderBy: { name: "asc" },
+  });
 }
 
 export async function createWarehouse(data: { name: string; address?: string; timezone?: string }) {
@@ -54,7 +57,15 @@ export async function deleteWarehouse(id: string) {
 export async function getGates() {
   await requireAdmin();
   return prisma.gates.findMany({
-    include: { warehouse: true, openingHours: { orderBy: { dayOfWeek: "asc" } } },
+    select: {
+      id: true,
+      warehouseId: true,
+      name: true,
+      description: true,
+      isActive: true,
+      warehouse: { select: { id: true, name: true } },
+      openingHours: { orderBy: { dayOfWeek: "asc" } },
+    },
     orderBy: [{ warehouse: { name: "asc" } }, { name: "asc" }],
   });
 }
@@ -83,13 +94,15 @@ export async function updateGateOpeningHours(
   hours: { dayOfWeek: number; openTime: string; closeTime: string; isOpen: boolean }[]
 ) {
   const user = await requireAdmin();
-  for (const h of hours) {
-    await prisma.gateOpeningHours.upsert({
-      where: { gateId_dayOfWeek: { gateId, dayOfWeek: h.dayOfWeek } },
-      update: { openTime: h.openTime, closeTime: h.closeTime, isOpen: h.isOpen },
-      create: { gateId, dayOfWeek: h.dayOfWeek, openTime: h.openTime, closeTime: h.closeTime, isOpen: h.isOpen },
-    });
-  }
+  await prisma.$transaction(
+    hours.map((h) =>
+      prisma.gateOpeningHours.upsert({
+        where: { gateId_dayOfWeek: { gateId, dayOfWeek: h.dayOfWeek } },
+        update: { openTime: h.openTime, closeTime: h.closeTime, isOpen: h.isOpen },
+        create: { gateId, dayOfWeek: h.dayOfWeek, openTime: h.openTime, closeTime: h.closeTime, isOpen: h.isOpen },
+      })
+    )
+  );
   await auditLog({ entityType: "gate", entityId: gateId, action: "updated", newData: { openingHours: hours }, userId: user.id });
   revalidatePath("/gates");
 }
@@ -197,7 +210,19 @@ export async function deleteSupplier(id: string) {
 export async function getUsers() {
   await requireAdmin();
   return prisma.user.findMany({
-    include: { warehouse: true, client: true, supplier: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      isActive: true,
+      clientId: true,
+      supplierId: true,
+      createdAt: true,
+      warehouses: { include: { warehouse: true } },
+      client: { select: { id: true, name: true } },
+      supplier: { select: { id: true, name: true } },
+    },
     orderBy: { name: "asc" },
   });
 }
@@ -207,7 +232,7 @@ export async function createUser(data: {
   name: string;
   password: string;
   role: UserRole;
-  warehouseId?: string;
+  warehouseIds?: string[];
   clientId?: string;
   supplierId?: string;
 }) {
@@ -219,9 +244,11 @@ export async function createUser(data: {
       name: data.name,
       password: hashedPassword,
       role: data.role,
-      warehouseId: data.warehouseId || null,
       clientId: data.clientId || null,
       supplierId: data.supplierId || null,
+      warehouses: data.warehouseIds?.length
+        ? { create: data.warehouseIds.map((warehouseId) => ({ warehouseId })) }
+        : undefined,
     },
   });
   await auditLog({ entityType: "user", entityId: newUser.id, action: "created", newData: { email: data.email, role: data.role }, userId: user.id });
@@ -234,7 +261,7 @@ export async function updateUser(id: string, data: {
   name: string;
   password?: string;
   role: UserRole;
-  warehouseId?: string;
+  warehouseIds?: string[];
   clientId?: string;
   supplierId?: string;
   isActive?: boolean;
@@ -246,7 +273,6 @@ export async function updateUser(id: string, data: {
     email: data.email,
     name: data.name,
     role: data.role,
-    warehouseId: data.warehouseId || null,
     clientId: data.clientId || null,
     supplierId: data.supplierId || null,
     isActive: data.isActive ?? old.isActive,
@@ -257,6 +283,17 @@ export async function updateUser(id: string, data: {
   }
 
   await prisma.user.update({ where: { id }, data: updateData });
+
+  // Sync warehouse assignments
+  if (data.warehouseIds !== undefined) {
+    await prisma.userWarehouse.deleteMany({ where: { userId: id } });
+    if (data.warehouseIds.length > 0) {
+      await prisma.userWarehouse.createMany({
+        data: data.warehouseIds.map((warehouseId) => ({ userId: id, warehouseId })),
+      });
+    }
+  }
+
   await auditLog({ entityType: "user", entityId: id, action: "updated", oldData: { email: old.email, role: old.role }, newData: { email: data.email, role: data.role }, userId: admin.id });
   revalidatePath("/users");
 }
@@ -273,6 +310,7 @@ export async function deleteUser(id: string) {
 export async function getTransportUnits() {
   await requireAdmin();
   return prisma.transportUnit.findMany({
+    select: { id: true, name: true, weightKg: true, processingMinutes: true, isActive: true, sortOrder: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 }

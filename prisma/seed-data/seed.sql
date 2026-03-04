@@ -36,14 +36,22 @@ ALTER TABLE public.warehouse ENABLE TRIGGER ALL;
 
 ALTER TABLE public."user" DISABLE TRIGGER ALL;
 
-INSERT INTO public."user" (id, email, name, password, role, "warehouseId", "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptz080000wwl5kkgefd42', 'admin@timeslotcontrol.com', 'Administrator', '$2b$12$BB3yzV75czYon6kipKdjmu3JH6ePmM6ewsghwIcu9S7eD6Y7IAKji', 'ADMIN', NULL, NULL, NULL, true, '2026-03-02 21:53:25.839', '2026-03-02 21:53:25.839', false, true, true);
-INSERT INTO public."user" (id, email, name, password, role, "warehouseId", "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptz710001wwl5vsspx815', 'worker@timeslotcontrol.com', 'Pracovnik Skladu', '$2b$12$vOde/eg3kynUMOP5gQ6l9.f4NLziNxJ8LRWWkuSffmBNO9TScuSN2', 'WAREHOUSE_WORKER', 'warehouse-01', NULL, NULL, true, '2026-03-02 21:53:26.124', '2026-03-02 21:53:26.124', false, true, true);
-INSERT INTO public."user" (id, email, name, password, role, "warehouseId", "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptzf2000gwwl5kqmxo4ko', 'allegro@timeslotcontrol.com', 'Allegro Manager', '$2b$12$5kvPehZhy4KG1WKP7bOuzefOIX4D/BqR4s63IpYfv0UR4.8LW1/Iy', 'CLIENT', NULL, 'client-allegro', NULL, true, '2026-03-02 21:53:26.413', '2026-03-02 21:53:26.413', false, true, true);
-INSERT INTO public."user" (id, email, name, password, role, "warehouseId", "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptzls000hwwl5o7bsn5dn', 'pg@timeslotcontrol.com', 'P&G Logistics', '$2b$12$QSHsc/jRWP6S8qT9.cFuJ.65E2A04A3yv2QUoT/hcrLIUME0eHtx.', 'SUPPLIER', NULL, NULL, 'supplier-pg', true, '2026-03-02 21:53:26.655', '2026-03-02 21:53:26.655', false, true, true);
-INSERT INTO public."user" (id, email, name, password, role, "warehouseId", "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9rz1bx00056wl50fvl9c9z', 'jarda@jicin.cz', 'Jarda Okurka', '$2b$12$1XnM7UqwNMFaJqCRQQ.2Z.CQuI34HNPW37LcAjoUAKBmYNEySrnRm', 'SUPPLIER', NULL, NULL, 'cmm9ryald00036wl5tvj8lau3', true, '2026-03-02 22:53:21.405', '2026-03-02 22:53:21.405', false, true, true);
-INSERT INTO public."user" (id, email, name, password, role, "warehouseId", "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9val4b0005mol562c8fkx8', 'alex@nejkafe.cz', 'Alex Baran', '$2b$12$q74GkpLdGrPF4HTwQ3ZFy.QjBIlfHEBjSowegC8sgGNWmkXqL24D2', 'CLIENT', NULL, 'cmm9rxiye00006wl53ybc7hao', NULL, true, '2026-03-03 00:26:19.115', '2026-03-03 00:26:19.115', false, true, true);
+INSERT INTO public."user" (id, email, name, password, role, "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptz080000wwl5kkgefd42', 'admin@timeslotcontrol.com', 'Administrator', '$2b$12$BB3yzV75czYon6kipKdjmu3JH6ePmM6ewsghwIcu9S7eD6Y7IAKji', 'ADMIN', NULL, NULL, true, '2026-03-02 21:53:25.839', '2026-03-02 21:53:25.839', false, true, true);
+INSERT INTO public."user" (id, email, name, password, role, "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptz710001wwl5vsspx815', 'worker@timeslotcontrol.com', 'Pracovnik Skladu', '$2b$12$vOde/eg3kynUMOP5gQ6l9.f4NLziNxJ8LRWWkuSffmBNO9TScuSN2', 'WAREHOUSE_WORKER', NULL, NULL, true, '2026-03-02 21:53:26.124', '2026-03-02 21:53:26.124', false, true, true);
+INSERT INTO public."user" (id, email, name, password, role, "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptzf2000gwwl5kqmxo4ko', 'allegro@timeslotcontrol.com', 'Allegro Manager', '$2b$12$5kvPehZhy4KG1WKP7bOuzefOIX4D/BqR4s63IpYfv0UR4.8LW1/Iy', 'CLIENT', 'client-allegro', NULL, true, '2026-03-02 21:53:26.413', '2026-03-02 21:53:26.413', false, true, true);
+INSERT INTO public."user" (id, email, name, password, role, "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9ptzls000hwwl5o7bsn5dn', 'pg@timeslotcontrol.com', 'P&G Logistics', '$2b$12$QSHsc/jRWP6S8qT9.cFuJ.65E2A04A3yv2QUoT/hcrLIUME0eHtx.', 'SUPPLIER', NULL, 'supplier-pg', true, '2026-03-02 21:53:26.655', '2026-03-02 21:53:26.655', false, true, true);
+INSERT INTO public."user" (id, email, name, password, role, "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9rz1bx00056wl50fvl9c9z', 'jarda@jicin.cz', 'Jarda Okurka', '$2b$12$1XnM7UqwNMFaJqCRQQ.2Z.CQuI34HNPW37LcAjoUAKBmYNEySrnRm', 'SUPPLIER', NULL, 'cmm9ryald00036wl5tvj8lau3', true, '2026-03-02 22:53:21.405', '2026-03-02 22:53:21.405', false, true, true);
+INSERT INTO public."user" (id, email, name, password, role, "clientId", "supplierId", "isActive", "createdAt", "updatedAt", "notifyBrowser", "notifyInApp", "notifyEmail") VALUES ('cmm9val4b0005mol562c8fkx8', 'alex@nejkafe.cz', 'Alex Baran', '$2b$12$q74GkpLdGrPF4HTwQ3ZFy.QjBIlfHEBjSowegC8sgGNWmkXqL24D2', 'CLIENT', 'cmm9rxiye00006wl53ybc7hao', NULL, true, '2026-03-03 00:26:19.115', '2026-03-03 00:26:19.115', false, true, true);
 
 ALTER TABLE public."user" ENABLE TRIGGER ALL;
+
+-- ─── User-Warehouse assignments ─────────────────────────────────────────────
+
+ALTER TABLE public.user_warehouse DISABLE TRIGGER ALL;
+
+INSERT INTO public.user_warehouse ("userId", "warehouseId") VALUES ('cmm9ptz710001wwl5vsspx815', 'warehouse-01');
+
+ALTER TABLE public.user_warehouse ENABLE TRIGGER ALL;
 
 -- ─── Client-Supplier relationships ───────────────────────────────────────────
 
@@ -123,3 +131,18 @@ INSERT INTO public.reservation_item (id, "reservationVersionId", quantity, descr
 INSERT INTO public.reservation_item (id, "reservationVersionId", quantity, description, "goodsWeightKg", "transportUnitId") VALUES ('cmm9vy0qv0009mol5v33ioswr', 'cmm9vy0qt0008mol5hmpiidcm', 1, NULL, NULL, 'tu-eur');
 
 ALTER TABLE public.reservation_item ENABLE TRIGGER ALL;
+
+ALTER TABLE public.reservation_status_change DISABLE TRIGGER ALL;
+
+-- Reservation 1 (CLOSED): REQUESTED → CONFIRMED → UNLOADING_STARTED → UNLOADING_COMPLETED → CLOSED
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-01', 'cmm9v5ba80000mol54zfewuw2', 'REQUESTED', '2026-03-03 00:22:13.087', 'cmm9rz1bx00056wl50fvl9c9z');
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-02', 'cmm9v5ba80000mol54zfewuw2', 'CONFIRMED', '2026-03-03 00:25:00.000', 'cmm9ptz710001wwl5vsspx815');
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-03', 'cmm9v5ba80000mol54zfewuw2', 'UNLOADING_STARTED', '2026-03-03 00:35:00.000', 'cmm9ptz710001wwl5vsspx815');
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-04', 'cmm9v5ba80000mol54zfewuw2', 'UNLOADING_COMPLETED', '2026-03-03 00:45:00.000', 'cmm9ptz710001wwl5vsspx815');
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-05', 'cmm9v5ba80000mol54zfewuw2', 'CLOSED', '2026-03-03 00:53:00.000', 'cmm9ptz710001wwl5vsspx815');
+
+-- Reservation 2 (CONFIRMED): REQUESTED → CONFIRMED
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-06', 'cmm9vy0qp0007mol534jyjlik', 'REQUESTED', '2026-03-03 00:44:32.448', 'cmm9rz1bx00056wl50fvl9c9z');
+INSERT INTO public.reservation_status_change (id, "reservationId", status, "changedAt", "changedById") VALUES ('rsc-seed-07', 'cmm9vy0qp0007mol534jyjlik', 'CONFIRMED', '2026-03-03 01:19:22.670', 'cmm9ptz710001wwl5vsspx815');
+
+ALTER TABLE public.reservation_status_change ENABLE TRIGGER ALL;

@@ -23,35 +23,67 @@ describe("auditLog", () => {
       entityType: "reservation",
       entityId: "res-1",
       action: "created",
-      oldData: null,
-      newData: { status: "REQUESTED" },
+      oldData: { status: "REQUESTED" },
+      newData: { status: "CONFIRMED" },
       userId: "user-1",
     });
 
+    expect(mockCreate).toHaveBeenCalledOnce();
     expect(mockCreate).toHaveBeenCalledWith({
       data: {
         entityType: "reservation",
         entityId: "res-1",
         action: "created",
-        newData: { status: "REQUESTED" },
+        oldData: { status: "REQUESTED" },
+        newData: { status: "CONFIRMED" },
         userId: "user-1",
       },
     });
   });
 
-  it("omits optional fields when null", async () => {
+  it("omits optional fields when not provided", async () => {
     await auditLog({
       entityType: "warehouse",
       entityId: "wh-1",
-      action: "updated",
+      action: "deleted",
     });
 
     expect(mockCreate).toHaveBeenCalledWith({
       data: {
         entityType: "warehouse",
         entityId: "wh-1",
-        action: "updated",
+        action: "deleted",
       },
     });
+  });
+
+  it("converts null oldData/newData/userId to undefined", async () => {
+    await auditLog({
+      entityType: "gate",
+      entityId: "gate-1",
+      action: "updated",
+      oldData: null,
+      newData: null,
+      userId: null,
+    });
+
+    const callData = mockCreate.mock.calls[0][0].data;
+    expect(callData.oldData).toBeUndefined();
+    expect(callData.newData).toBeUndefined();
+    expect(callData.userId).toBeUndefined();
+  });
+
+  it("handles all valid action types", async () => {
+    const actions = [
+      "created", "updated", "deleted", "status_changed",
+      "version_approved", "version_rejected", "version_proposed",
+      "profile_updated", "password_changed",
+    ] as const;
+
+    for (const action of actions) {
+      mockCreate.mockClear();
+      await auditLog({ entityType: "test", entityId: "t-1", action });
+      expect(mockCreate).toHaveBeenCalledOnce();
+    }
   });
 });

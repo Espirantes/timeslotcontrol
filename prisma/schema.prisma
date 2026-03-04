@@ -68,7 +68,7 @@ model Warehouse {
   updatedAt DateTime @updatedAt
 
   gates Gates[]
-  users User[]
+  users UserWarehouse[]
 
   @@map("warehouse")
 }
@@ -82,7 +82,7 @@ model Gates {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  warehouse    Warehouse          @relation(fields: [warehouseId], references: [id])
+  warehouse    Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   openingHours GateOpeningHours[]
   reservations Reservation[]
 
@@ -181,20 +181,35 @@ model Reservation {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  gate             Gates               @relation(fields: [gateId], references: [id])
-  client           Client              @relation(fields: [clientId], references: [id])
-  supplier         Supplier            @relation(fields: [supplierId], references: [id])
-  createdBy        User                @relation("ReservationCreatedBy", fields: [createdById], references: [id])
-  confirmedVersion ReservationVersion? @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id])
-  pendingVersion   ReservationVersion? @relation("PendingVersion", fields: [pendingVersionId], references: [id])
+  gate             Gates               @relation(fields: [gateId], references: [id], onDelete: Restrict)
+  client           Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  supplier         Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy        User                @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedVersion ReservationVersion? @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id], onDelete: SetNull)
+  pendingVersion   ReservationVersion? @relation("PendingVersion", fields: [pendingVersionId], references: [id], onDelete: SetNull)
   versions         ReservationVersion[] @relation("AllVersions")
   notifications    Notification[]
+  statusChanges    ReservationStatusChange[]
 
   @@index([gateId])
   @@index([clientId])
   @@index([supplierId])
   @@index([status])
   @@map("reservation")
+}
+
+model ReservationStatusChange {
+  id            String            @id @default(cuid())
+  reservationId String
+  status        ReservationStatus
+  changedAt     DateTime          @default(now())
+  changedById   String
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  changedBy   User        @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([reservationId])
+  @@map("reservation_status_change")
 }
 
 model ReservationVersion {
@@ -214,7 +229,7 @@ model ReservationVersion {
   reservation           Reservation  @relation("AllVersions", fields: [reservationId], references: [id], onDelete: Cascade)
   confirmedByReservation Reservation? @relation("ConfirmedVersion")
   pendingByReservation   Reservation? @relation("PendingVersion")
-  createdBy             User         @relation("VersionCreatedBy", fields: [createdById], references: [id])
+  createdBy             User         @relation("VersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   items                 ReservationItem[]
 
   @@index([reservationId])
@@ -230,7 +245,7 @@ model ReservationItem {
   goodsWeightKg        Decimal? @db.Decimal(10, 2)
   description          String?
 
-  transportUnit      TransportUnit      @relation(fields: [transportUnitId], references: [id])
+  transportUnit      TransportUnit      @relation(fields: [transportUnitId], references: [id], onDelete: Restrict)
   reservationVersion ReservationVersion @relation(fields: [reservationVersionId], references: [id], onDelete: Cascade)
 
   @@map("reservation_item")
@@ -250,7 +265,7 @@ model AuditLog {
   userId     String?
   createdAt  DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([createdAt])
@@ -289,7 +304,6 @@ model User {
   name        String
   password    String
   role        UserRole
-  warehouseId String? // only for WAREHOUSE_WORKER
   clientId    String? // only for CLIENT
   supplierId  String? // only for SUPPLIER
   isActive      Boolean   @default(true)
@@ -299,14 +313,26 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
-  client    Client?    @relation(fields: [clientId], references: [id])
-  supplier  Supplier?  @relation(fields: [supplierId], references: [id])
+  warehouses UserWarehouse[]
+  client     Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  supplier   Supplier?  @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   reservationsCreated Reservation[]        @relation("ReservationCreatedBy")
   versionsCreated     ReservationVersion[] @relation("VersionCreatedBy")
   auditLogs           AuditLog[]
   notifications       Notification[]
+  statusChanges       ReservationStatusChange[] @relation("StatusChangedBy")
 
   @@map("user")
+}
+
+model UserWarehouse {
+  userId      String
+  warehouseId String
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, warehouseId])
+  @@map("user_warehouse")
 }

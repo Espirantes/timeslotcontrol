@@ -8,7 +8,7 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: UserRole;
-      warehouseId: string | null;
+      warehouseIds: string[];
       clientId: string | null;
       supplierId: string | null;
     };
@@ -18,7 +18,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     role: UserRole;
-    warehouseId: string | null;
+    warehouseIds: string[];
     clientId: string | null;
     supplierId: string | null;
   }

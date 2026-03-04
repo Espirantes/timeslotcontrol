@@ -32,7 +32,7 @@ import {
   rejectReservation,
   updateReservationStatus,
 } from "@/lib/actions/reservations";
-import type { ReservationDetail, ReservationVersionDetail } from "@/lib/actions/reservations";
+import type { ReservationDetail, ReservationVersionDetail, StatusChangeItem } from "@/lib/actions/reservations";
 import type { UserRole } from "@/generated/prisma/client";
 import { ReservationEditDialog } from "./reservation-edit-dialog";
 
@@ -173,6 +173,36 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Status history timeline */}
+      {r.statusChanges.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">{t("statusHistory")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative pl-6">
+              <div className="absolute left-2 top-1 bottom-1 w-px bg-border" />
+              {r.statusChanges.map((sc, i) => (
+                <div key={sc.id} className="relative flex items-start gap-3 pb-4 last:pb-0">
+                  <div className={`absolute left-[-16px] top-1.5 size-2 rounded-full ${i === r.statusChanges.length - 1 ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={STATUS_VARIANT[sc.status] ?? "outline"} className="text-xs">
+                        {t(`status.${sc.status}`)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(sc.changedAt), "d. M. yyyy HH:mm", { locale: cs })}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{sc.changedByName}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status actions */}
       {isWorker && (

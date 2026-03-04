@@ -18,7 +18,7 @@ async function requireAuth() {
 async function getUserBySession() {
   const sessionUser = await requireAuth();
   return prisma.user.findUniqueOrThrow({
-    where: { email: sessionUser.email! },
+    where: { email: sessionUser.email },
   });
 }
 
@@ -39,12 +39,23 @@ export async function getProfileData(): Promise<ProfileData> {
   const sessionUser = await requireAuth();
 
   const user = await prisma.user.findUniqueOrThrow({
-    where: { email: sessionUser.email! },
-    include: { warehouse: true, client: true, supplier: true },
+    where: { email: sessionUser.email },
+    select: {
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      notifyInApp: true,
+      notifyBrowser: true,
+      notifyEmail: true,
+      warehouses: { include: { warehouse: { select: { name: true } } } },
+      client: { select: { name: true } },
+      supplier: { select: { name: true } },
+    },
   });
 
   let organizationName: string | null = null;
-  if (user.warehouse) organizationName = user.warehouse.name;
+  if (user.warehouses.length > 0) organizationName = user.warehouses.map((w) => w.warehouse.name).join(", ");
   else if (user.client) organizationName = user.client.name;
   else if (user.supplier) organizationName = user.supplier.name;
 

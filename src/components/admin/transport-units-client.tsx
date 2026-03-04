@@ -24,8 +24,6 @@ type TransportUnitItem = {
   processingMinutes: number;
   isActive: boolean;
   sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
 };
 
 type FormData = {
