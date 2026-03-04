@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
+import { it } from "date-fns/locale";
+
+const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
 import { User, Lock, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +25,8 @@ type Props = {
 
 export function SettingsClient({ profile }: Props) {
   const router = useRouter();
+  const locale = useLocale();
+  const dateLocale = DATE_LOCALES[locale] ?? enUS;
   const t = useTranslations("settings");
   const tRole = useTranslations("user.role");
   const tUserFields = useTranslations("user.fields");
@@ -153,7 +159,7 @@ export function SettingsClient({ profile }: Props) {
             <div>
               <span className="text-muted-foreground">{t("memberSince")}</span>
               <p className="font-medium">
-                {format(new Date(profile.createdAt), "d. M. yyyy", { locale: cs })}
+                {format(new Date(profile.createdAt), "d. M. yyyy", { locale: dateLocale })}
               </p>
             </div>
           </div>

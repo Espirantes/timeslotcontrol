@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Bell, CheckCheck, Plus, ShieldCheck, ShieldX, ArrowRightLeft, Pencil } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
+import { it } from "date-fns/locale";
+
+const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,8 +70,21 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
 
   useEffect(() => {
     fetchCount();
-    const interval = setInterval(fetchCount, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    let interval = setInterval(fetchCount, POLL_INTERVAL);
+
+    function handleVisibility() {
+      clearInterval(interval);
+      if (!document.hidden) {
+        fetchCount();
+        interval = setInterval(fetchCount, POLL_INTERVAL);
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [fetchCount]);
 
   // Load notifications when popover opens
@@ -95,7 +112,7 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
     }
     setOpen(false);
     if (notif.reservationId) {
-      router.push(`/${locale}/reservations/${notif.reservationId}`);
+      router.push(`/reservations/${notif.reservationId}`);
     }
   };
 
@@ -109,10 +126,10 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-[#2d3e50] hover:text-[#0c1925]">
+        <Button variant="ghost" size="icon" className="relative text-foreground hover:text-brand-navy">
           <Bell className="size-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex size-4.5 items-center justify-center rounded-full bg-[#db2b19] text-[10px] font-bold text-white">
+            <span className="absolute -top-0.5 -right-0.5 flex size-4.5 items-center justify-center rounded-full bg-brand-red text-[10px] font-bold text-white">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -162,7 +179,7 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
                         {t(notif.type as "RESERVATION_CREATED")}
                       </span>
                       {!notif.isRead && (
-                        <span className="size-1.5 rounded-full bg-[#db2b19]" />
+                        <span className="size-1.5 rounded-full bg-brand-red" />
                       )}
                     </div>
                     {notif.title && (
@@ -174,7 +191,7 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
                     <p className="mt-0.5 text-[11px] text-muted-foreground/70">
                       {formatDistanceToNow(new Date(notif.createdAt), {
                         addSuffix: true,
-                        locale: locale === "cs" ? cs : undefined,
+                        locale: DATE_LOCALES[locale] ?? enUS,
                       })}
                     </p>
                   </div>

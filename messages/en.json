@@ -21,7 +21,10 @@
     "no": "No",
     "back": "Back",
     "detail": "Detail",
-    "actions": "Actions"
+    "actions": "Actions",
+    "tryAgain": "Try again",
+    "notFound": "Page not found",
+    "backToHome": "Back to home"
   },
   "auth": {
     "login": "Sign in",
@@ -31,7 +34,8 @@
     "loginTitle": "Welcome to Dock Scheduling System",
     "loginSubtitle": "Sign in to your account",
     "loginError": "Invalid email or password",
-    "loginButton": "Sign in"
+    "loginButton": "Sign in",
+    "appName": "Dock Scheduling System"
   },
   "nav": {
     "calendar": "Calendar",

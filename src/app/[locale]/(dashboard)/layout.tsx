@@ -24,9 +24,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <AppSidebar user={session.user} />
       <SidebarInset>
         <header className="shrink-0">
-          <div className="h-1 bg-[#db2b19]" />
-          <div className="flex h-13 items-center gap-2 border-b border-[#dae1e5] bg-white px-4">
-            <SidebarTrigger className="-ml-1 text-[#2d3e50] hover:text-[#0c1925]" />
+          <div className="h-1 bg-brand-red" />
+          <div className="flex h-13 items-center gap-2 border-b border-border bg-white px-4">
+            <SidebarTrigger className="-ml-1 text-foreground hover:text-brand-navy" />
             <Separator orientation="vertical" className="h-4 bg-slate-200" />
             <HeaderLogo />
             <div className="ml-auto flex items-center gap-1">

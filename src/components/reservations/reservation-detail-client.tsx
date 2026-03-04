@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
+import { it } from "date-fns/locale";
+
+const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
 import {
   ArrowLeft,
   Check,
@@ -52,6 +56,8 @@ type Props = {
 
 export function ReservationDetailClient({ reservation: r, role }: Props) {
   const router = useRouter();
+  const locale = useLocale();
+  const dateLocale = DATE_LOCALES[locale] ?? enUS;
   const t = useTranslations("reservation");
   const tCommon = useTranslations("common");
   const [isPending, startTransition] = useTransition();
@@ -142,12 +148,12 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
 
       {/* Main info */}
       {displayVersion && (
-        <VersionCard version={displayVersion} t={t} label={r.confirmedVersion ? undefined : t("approval.pendingChange")} />
+        <VersionCard version={displayVersion} t={t} dateLocale={dateLocale} label={r.confirmedVersion ? undefined : t("approval.pendingChange")} />
       )}
 
       {/* Pending version diff (when there's also a confirmed one) */}
       {r.pendingVersion && r.confirmedVersion && (
-        <VersionCard version={r.pendingVersion} t={t} label={t("approval.pendingChange")} pending />
+        <VersionCard version={r.pendingVersion} t={t} dateLocale={dateLocale} label={t("approval.pendingChange")} pending />
       )}
 
       {/* Meta info */}
@@ -164,11 +170,11 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
             </div>
             <div>
               <span className="text-muted-foreground">{t("fields.createdAt")}</span>
-              <p className="font-medium">{format(new Date(r.createdAt), "d. M. yyyy HH:mm", { locale: cs })}</p>
+              <p className="font-medium">{format(new Date(r.createdAt), "d. M. yyyy HH:mm", { locale: dateLocale })}</p>
             </div>
             <div>
               <span className="text-muted-foreground">{t("fields.updatedAt")}</span>
-              <p className="font-medium">{format(new Date(r.updatedAt), "d. M. yyyy HH:mm", { locale: cs })}</p>
+              <p className="font-medium">{format(new Date(r.updatedAt), "d. M. yyyy HH:mm", { locale: dateLocale })}</p>
             </div>
           </div>
         </CardContent>
@@ -192,7 +198,7 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
                         {t(`status.${sc.status}`)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(sc.changedAt), "d. M. yyyy HH:mm", { locale: cs })}
+                        {format(new Date(sc.changedAt), "d. M. yyyy HH:mm", { locale: dateLocale })}
                       </span>
                     </div>
                     <span className="text-xs text-muted-foreground">{sc.changedByName}</span>
@@ -239,11 +245,13 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
 function VersionCard({
   version: v,
   t,
+  dateLocale,
   label,
   pending,
 }: {
   version: ReservationVersionDetail;
   t: ReturnType<typeof useTranslations<"reservation">>;
+  dateLocale: Locale;
   label?: string;
   pending?: boolean;
 }) {
@@ -263,7 +271,7 @@ function VersionCard({
             <Clock className="size-4 text-muted-foreground shrink-0" />
             <div>
               <span className="text-muted-foreground">{t("fields.startTime")}</span>
-              <p className="font-medium">{format(new Date(v.startTime), "d. M. yyyy HH:mm", { locale: cs })}</p>
+              <p className="font-medium">{format(new Date(v.startTime), "d. M. yyyy HH:mm", { locale: dateLocale })}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

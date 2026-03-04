@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,13 +41,13 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-sm overflow-hidden shadow-xl border-0">
-      <div className="bg-[#0c1925] px-6 py-8 flex flex-col items-center gap-3">
-        <img src="/logo-mailstep.svg" alt="Mailstep" className="h-9" />
-        <span className="text-[11px] font-medium tracking-widest uppercase text-[#5a7a8f]">Dock Scheduling System</span>
+      <div className="bg-brand-navy px-6 py-8 flex flex-col items-center gap-3">
+        <Image src="/logo-mailstep.svg" alt="Mailstep" width={160} height={36} className="h-9 w-auto" />
+        <span className="text-[11px] font-medium tracking-widest uppercase text-brand-muted">{t("appName")}</span>
       </div>
-      <div className="h-1 bg-[#db2b19]" />
+      <div className="h-1 bg-brand-red" />
       <CardHeader>
-        <CardTitle className="text-[#0c1925]">{t("loginTitle")}</CardTitle>
+        <CardTitle className="text-brand-navy">{t("loginTitle")}</CardTitle>
         <CardDescription>{t("loginSubtitle")}</CardDescription>
       </CardHeader>
       <CardContent>

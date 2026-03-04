@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useLocale } from "next-intl";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { Check } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,7 +19,7 @@ export function HeaderLogo() {
 
   if (!collapsed) return null;
 
-  return <img src="/logo-mailstep-dark.svg" alt="Mailstep" className="h-5" />;
+  return <Image src="/logo-mailstep-dark.svg" alt="Mailstep" width={100} height={20} className="h-5 w-auto" />;
 }
 
 const LOCALES = [
@@ -41,8 +42,8 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-[#2d3e50] hover:text-[#0c1925] px-2">
-          <img src={LOCALES.find((l) => l.code === locale)?.flag} alt="" className="h-4 w-6 rounded-sm object-cover" />
+        <Button variant="ghost" size="sm" className="text-foreground hover:text-brand-navy px-2">
+          <Image src={LOCALES.find((l) => l.code === locale)?.flag ?? ""} alt="" width={24} height={16} className="h-4 w-6 rounded-sm object-cover" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -52,7 +53,7 @@ export function LanguageSwitcher() {
             onClick={() => switchLocale(l.code)}
             className="gap-2"
           >
-            <img src={l.flag} alt="" className="h-4 w-6 rounded-sm object-cover" />
+            <Image src={l.flag} alt="" width={24} height={16} className="h-4 w-6 rounded-sm object-cover" />
             {l.label}
             {locale === l.code && <Check className="size-3.5 ml-auto" />}
           </DropdownMenuItem>

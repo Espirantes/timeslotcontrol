@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { CalendarView } from "./calendar-view";
@@ -39,16 +39,19 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
   const [preselectedDate, setPreselectedDate] = useState<Date | undefined>();
   const [preselectedStartTime, setPreselectedStartTime] = useState<string | undefined>();
 
-  async function loadData(wId: string, date: Date) {
+  async function loadData(wId: string, date: Date, signal?: AbortSignal) {
     startTransition(async () => {
       const data = await getCalendarData(wId, startOfDay(date), endOfDay(date));
+      if (signal?.aborted) return;
       setGates(data.gates);
       setEvents(data.events);
     });
   }
 
   useEffect(() => {
-    loadData(warehouseId, currentDate);
+    const controller = new AbortController();
+    loadData(warehouseId, currentDate, controller.signal);
+    return () => controller.abort();
   }, [warehouseId, currentDate]);
 
   function handleWarehouseChange(val: string) {

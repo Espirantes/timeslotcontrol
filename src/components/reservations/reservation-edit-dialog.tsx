@@ -170,8 +170,6 @@ export function ReservationEditDialog({
   }, [items, transportUnits]);
 
   const isAdmin = userRole === "ADMIN";
-  const selectedGate = gates.find((g) => g.id === reservation.warehouseId) ?? gates[0];
-  // Find the correct gate for time slots
   const gateForSlots = gates.find((g) => g.name === reservation.gateName);
   const parsedDate = new Date(date + "T12:00:00");
   const timeSlots = getAvailableSlots(gateForSlots, parsedDate, isAdmin);
