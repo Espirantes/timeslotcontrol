@@ -34,9 +34,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 import type { UserRole } from "@/generated/prisma/client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 
 type Props = {
   user: {
@@ -79,13 +79,13 @@ export function AppSidebar({ user }: Props) {
   return (
     <Sidebar>
       <SidebarHeader className="px-5 py-5">
-        <img src="/logo-mailstep.svg" alt="Mailstep" className="h-7" />
-        <div className="h-[3px] bg-[#db2b19] rounded-full mt-3" />
+        <Image src="/logo-mailstep.svg" alt="Mailstep" width={140} height={28} className="h-7 w-auto" />
+        <div className="h-[3px] bg-brand-red rounded-full mt-3" />
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-[10px] font-medium text-[#5a7a8f] uppercase tracking-widest mb-1">
+          <SidebarGroupLabel className="px-3 text-[10px] font-medium text-brand-muted uppercase tracking-widest mb-1">
             {t("groupWarehouse")}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -97,7 +97,7 @@ export function AppSidebar({ user }: Props) {
                     <SidebarMenuButton asChild isActive={active}>
                       <Link href={item.href} className="flex items-center gap-3">
                         <item.icon
-                          className={`size-[18px] shrink-0 ${active ? "text-[#db2b19]" : "text-[#5a7a8f]"}`}
+                          className={`size-[18px] shrink-0 ${active ? "text-brand-red" : "text-brand-muted"}`}
                         />
                         <span>{item.label}</span>
                       </Link>
@@ -111,7 +111,7 @@ export function AppSidebar({ user }: Props) {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-3 text-[10px] font-medium text-[#5a7a8f] uppercase tracking-widest mb-1">
+            <SidebarGroupLabel className="px-3 text-[10px] font-medium text-brand-muted uppercase tracking-widest mb-1">
               {t("groupAdmin")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -123,7 +123,7 @@ export function AppSidebar({ user }: Props) {
                       <SidebarMenuButton asChild isActive={active}>
                         <Link href={item.href} className="flex items-center gap-3">
                           <item.icon
-                            className={`size-[18px] shrink-0 ${active ? "text-[#db2b19]" : "text-[#5a7a8f]"}`}
+                            className={`size-[18px] shrink-0 ${active ? "text-brand-red" : "text-brand-muted"}`}
                           />
                           <span>{item.label}</span>
                         </Link>
@@ -137,7 +137,7 @@ export function AppSidebar({ user }: Props) {
         )}
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-[10px] font-medium text-[#5a7a8f] uppercase tracking-widest mb-1">
+          <SidebarGroupLabel className="px-3 text-[10px] font-medium text-brand-muted uppercase tracking-widest mb-1">
             {t("groupSystem")}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -146,7 +146,7 @@ export function AppSidebar({ user }: Props) {
                 <SidebarMenuButton asChild isActive={pathname.includes("/settings")}>
                   <Link href="/settings" className="flex items-center gap-3">
                     <Settings
-                      className={`size-[18px] shrink-0 ${pathname.includes("/settings") ? "text-[#db2b19]" : "text-[#5a7a8f]"}`}
+                      className={`size-[18px] shrink-0 ${pathname.includes("/settings") ? "text-brand-red" : "text-brand-muted"}`}
                     />
                     <span>{t("settings")}</span>
                   </Link>
@@ -156,7 +156,7 @@ export function AppSidebar({ user }: Props) {
                 <SidebarMenuButton asChild isActive={pathname.includes("/guide")}>
                   <Link href="/guide" className="flex items-center gap-3">
                     <BookOpen
-                      className={`size-[18px] shrink-0 ${pathname.includes("/guide") ? "text-[#db2b19]" : "text-[#5a7a8f]"}`}
+                      className={`size-[18px] shrink-0 ${pathname.includes("/guide") ? "text-brand-red" : "text-brand-muted"}`}
                     />
                     <span>{t("guide")}</span>
                   </Link>
@@ -167,7 +167,7 @@ export function AppSidebar({ user }: Props) {
                   <SidebarMenuButton asChild isActive={pathname.includes("/audit-log")}>
                     <Link href="/audit-log" className="flex items-center gap-3">
                       <ScrollText
-                        className={`size-[18px] shrink-0 ${pathname.includes("/audit-log") ? "text-[#db2b19]" : "text-[#5a7a8f]"}`}
+                        className={`size-[18px] shrink-0 ${pathname.includes("/audit-log") ? "text-brand-red" : "text-brand-muted"}`}
                       />
                       <span>{t("auditLog")}</span>
                     </Link>
@@ -179,18 +179,18 @@ export function AppSidebar({ user }: Props) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-[#1f3947]">
+      <SidebarFooter className="border-t border-brand-dark">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-auto py-2.5 px-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1f3947] text-white flex items-center justify-center font-medium text-xs border border-[#2d4e5f] shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center font-medium text-xs border border-brand-dark shrink-0">
                     {getInitials(user.name)}
                   </div>
                   <div className="flex flex-col text-left leading-tight min-w-0">
                     <span className="text-xs font-medium text-white truncate">{user.name}</span>
-                    <span className="text-[10px] text-[#5a7a8f] truncate">{tRole(user.role)}</span>
+                    <span className="text-[10px] text-brand-muted truncate">{tRole(user.role)}</span>
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>

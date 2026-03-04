@@ -5,6 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-red: var(--brand-red);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-bg: var(--brand-bg);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
@@ -48,6 +53,13 @@
 
 :root {
   --radius: 0.5rem;
+
+  /* ── Brand tokens ────────────────────── */
+  --brand-navy: oklch(0.18 0.04 240);          /* #0c1925 */
+  --brand-red: oklch(0.50 0.205 27);           /* #db2b19 */
+  --brand-muted: oklch(0.55 0.03 220);         /* #5a7a8f */
+  --brand-dark: oklch(0.28 0.04 220);          /* #1f3947 */
+  --brand-bg: oklch(0.95 0.005 230);           /* #eef2f5 */
 
   /* ── Base — Mailstep palette ─────────── */
   --background:          oklch(0.97 0.003 240);      /* #f4f7f9 warm grey  */

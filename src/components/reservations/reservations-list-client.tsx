@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
-import { useTranslations } from "next-intl";
+import { enUS } from "date-fns/locale";
+import { it } from "date-fns/locale";
+import { useTranslations, useLocale } from "next-intl";
+
+const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
 import { Check, X, ChevronRight, Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +47,7 @@ function ReservationRow({
   onApproved: () => void;
 }) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("reservation");
   const tCommon = useTranslations("common");
   const [isPending, startTransition] = useTransition();
@@ -72,7 +77,7 @@ function ReservationRow({
   }
 
   const displayTime = r.startTime
-    ? format(new Date(r.startTime), "d. M. yyyy HH:mm", { locale: cs })
+    ? format(new Date(r.startTime), "d. M. yyyy HH:mm", { locale: DATE_LOCALES[locale] ?? enUS })
     : "—";
 
   return (

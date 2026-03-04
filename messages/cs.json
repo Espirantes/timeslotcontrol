@@ -21,7 +21,10 @@
     "no": "Ne",
     "back": "Zpět",
     "detail": "Detail",
-    "actions": "Akce"
+    "actions": "Akce",
+    "tryAgain": "Zkusit znovu",
+    "notFound": "Stránka nebyla nalezena",
+    "backToHome": "Zpět na hlavní stránku"
   },
   "auth": {
     "login": "Přihlásit se",
@@ -31,7 +34,8 @@
     "loginTitle": "Vítejte v Dock Scheduling System",
     "loginSubtitle": "Přihlaste se ke svému účtu",
     "loginError": "Neplatný e-mail nebo heslo",
-    "loginButton": "Přihlásit se"
+    "loginButton": "Přihlásit se",
+    "appName": "Dock Scheduling System"
   },
   "nav": {
     "calendar": "Kalendář",

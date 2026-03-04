@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { format } from "date-fns";
+import { useTranslations, useLocale } from "next-intl";
+import { format, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
+import { it } from "date-fns/locale";
+
+const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
 import { ScrollText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +42,8 @@ const entityTypes = ["all", "reservation", "gate", "user", "warehouse", "client"
 
 export function AuditLogClient({ initialData }: Props) {
   const t = useTranslations("auditLog");
+  const locale = useLocale();
+  const dateLocale = DATE_LOCALES[locale] ?? enUS;
   const [items, setItems] = useState(initialData.items);
   const [total, setTotal] = useState(initialData.total);
   const [page, setPage] = useState(0);
@@ -114,7 +120,7 @@ export function AuditLogClient({ initialData }: Props) {
               items.map((item) => (
                 <tr key={item.id} className="border-b last:border-0 hover:bg-muted/20">
                   <td className="px-4 py-2.5 whitespace-nowrap text-xs text-muted-foreground">
-                    {format(new Date(item.createdAt), "d.M.yyyy HH:mm:ss", { locale: cs })}
+                    {format(new Date(item.createdAt), "d.M.yyyy HH:mm:ss", { locale: dateLocale })}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="text-xs">
