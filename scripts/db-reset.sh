@@ -23,13 +23,13 @@ echo "==> Creating database '$DB_NAME'..."
 createdb -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME"
 
 echo "==> Running Prisma migrations..."
-pnpm prisma migrate deploy
+npx prisma migrate deploy
 
 echo "==> Generating Prisma client..."
-pnpm prisma generate
+npx prisma generate
 
 echo "==> Seeding database..."
 psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -f prisma/seed-data/seed.sql
 
 echo ""
-echo "==> Reset complete! Run: pnpm dev"
+echo "==> Reset complete! Run: npm run dev"

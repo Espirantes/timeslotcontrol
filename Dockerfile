@@ -1,24 +1,22 @@
 # ── Stage 1: Dependencies ──────────────────────────────────────────────────────
 FROM node:22-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # ── Stage 2: Build ─────────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
-RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
-RUN pnpm prisma generate
+RUN npx prisma generate
 
 # Build Next.js (standalone output)
-RUN pnpm build
+RUN npm run build
 
 # ── Stage 3: Runtime ───────────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
@@ -38,8 +36,8 @@ COPY --from=build /app/public ./public
 
 # Copy Prisma files for migrations
 COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/node_modules/.pnpm/@prisma+engines*/node_modules/@prisma/engines ./node_modules/@prisma/engines
-COPY --from=build /app/node_modules/.pnpm/prisma*/node_modules/prisma ./node_modules/prisma
+COPY --from=build /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 
 # Copy messages for next-intl
 COPY --from=build /app/messages ./messages

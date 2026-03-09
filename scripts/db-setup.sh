@@ -52,13 +52,13 @@ fi
 # ─── Run Prisma migrations ──────────────────────────────────────────────────
 
 echo "==> Running Prisma migrations..."
-pnpm prisma migrate deploy
+npx prisma migrate deploy
 echo "    Migrations applied."
 
 # ─── Generate Prisma client ─────────────────────────────────────────────────
 
 echo "==> Generating Prisma client..."
-pnpm prisma generate
+npx prisma generate
 echo "    Client generated."
 
 # ─── Seed data ───────────────────────────────────────────────────────────────
@@ -86,4 +86,4 @@ echo "  Supplier (P&G):   pg@timeslotcontrol.com"
 echo "  Supplier (Jarda): jarda@jicin.cz"
 echo "  Client (Empire):  alex@nejkafe.cz"
 echo ""
-echo "Run: pnpm dev"
+echo "Run: npm run dev"

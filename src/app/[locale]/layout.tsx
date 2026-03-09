@@ -5,7 +5,10 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 
 export const metadata: Metadata = {
-  title: "Dock Scheduling System",
+  title: {
+    default: "Dock Scheduling System",
+    template: "%s | Dock Scheduling System",
+  },
   description: "Warehouse slot reservation management",
 };
 

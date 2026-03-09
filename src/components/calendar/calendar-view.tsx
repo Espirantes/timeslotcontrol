@@ -8,7 +8,7 @@ import type { EventContentArg, EventClickArg } from "@fullcalendar/core";
 import type { DateClickArg } from "@fullcalendar/interaction";
 import type { CalendarEvent, CalendarGate } from "@/lib/actions/calendar";
 import type { ReservationStatus } from "@/generated/prisma/client";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { format, addDays, subDays, type Locale } from "date-fns";
 import { cs } from "date-fns/locale";
 import { enUS } from "date-fns/locale";
@@ -18,7 +18,10 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReservationPopover } from "./reservation-popover";
 
-const STATUS_COLORS: Record<ReservationStatus | "REQUESTED_PENDING", { bg: string; border: string; text: string }> = {
+const STATUS_COLORS: Record<
+  ReservationStatus | "REQUESTED_PENDING",
+  { bg: string; border: string; text: string }
+> = {
   REQUESTED: { bg: "#fef9c3", border: "#facc15", text: "#713f12" },
   CONFIRMED: { bg: "#dcfce7", border: "#16a34a", text: "#14532d" },
   CANCELLED: { bg: "#fee2e2", border: "#dc2626", text: "#7f1d1d" },
@@ -43,47 +46,71 @@ type Props = {
 
 const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
 
-export function CalendarView({ gates, events, currentDate, onDateChange, onEventClick, onSlotClick, loading, userRole, onApprove, onReject }: Props) {
+export function CalendarView({
+  gates,
+  events,
+  currentDate,
+  onDateChange,
+  onEventClick,
+  onSlotClick,
+  loading,
+  userRole,
+  onApprove,
+  onReject,
+}: Props) {
   const locale = useLocale();
   const t = useTranslations("reservation");
   const calendarRef = useRef<FullCalendar>(null);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null,
+  );
+  const [popoverAnchor, setPopoverAnchor] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Sync FullCalendar date when currentDate prop changes
   useEffect(() => {
     calendarRef.current?.getApi().gotoDate(currentDate);
   }, [currentDate]);
 
-  const resources = gates.map((g) => ({
-    id: g.id,
-    title: g.name,
-  }));
-
-  const fcEvents = events.map((e) => {
-    const colors = STATUS_COLORS[e.status] ?? STATUS_COLORS.CONFIRMED;
-    return {
-      id: e.id,
-      resourceId: e.resourceId,
-      start: e.start,
-      end: e.end,
-      title: e.title,
-      backgroundColor: colors.bg,
-      borderColor: colors.border,
-      textColor: colors.text,
-      extendedProps: e,
-    };
-  });
-
-  const handleEventClick = useCallback(
-    (info: EventClickArg) => {
-      const ev = info.event.extendedProps as CalendarEvent;
-      const rect = info.el.getBoundingClientRect();
-      setSelectedEvent(ev);
-      setPopoverAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
-    },
-    []
+  const resources = useMemo(
+    () =>
+      gates.map((g) => ({
+        id: g.id,
+        title: g.name,
+      })),
+    [gates],
   );
+
+  const fcEvents = useMemo(
+    () =>
+      events.map((e) => {
+        const colors = STATUS_COLORS[e.status] ?? STATUS_COLORS.CONFIRMED;
+        return {
+          id: e.id,
+          resourceId: e.resourceId,
+          start: e.start,
+          end: e.end,
+          title: e.title,
+          backgroundColor: colors.bg,
+          borderColor: colors.border,
+          textColor: colors.text,
+          extendedProps: e,
+        };
+      }),
+    [events],
+  );
+
+  const handleEventClick = useCallback((info: EventClickArg) => {
+    const ev = info.event.extendedProps as CalendarEvent;
+    const rect = info.el.getBoundingClientRect();
+    setSelectedEvent(ev);
+    setPopoverAnchor({
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + window.scrollY,
+    });
+  }, []);
 
   const handleDateClick = useCallback(
     (info: DateClickArg) => {
@@ -94,16 +121,20 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
       const m = String(info.date.getMinutes()).padStart(2, "0");
       onSlotClick(gateId, info.date, `${h}:${m}`);
     },
-    [onSlotClick]
+    [onSlotClick],
   );
 
   const renderEventContent = useCallback((arg: EventContentArg) => {
     const ev = arg.event.extendedProps as CalendarEvent;
     return (
       <div className="px-1 py-0.5 overflow-hidden h-full flex flex-col">
-        <span className="font-medium text-xs leading-tight truncate">{arg.event.title}</span>
+        <span className="font-medium text-xs leading-tight truncate">
+          {arg.event.title}
+        </span>
         {ev.licensePlate && (
-          <span className="text-[10px] opacity-75 truncate">{ev.licensePlate}</span>
+          <span className="text-[10px] opacity-75 truncate">
+            {ev.licensePlate}
+          </span>
         )}
       </div>
     );
@@ -113,25 +144,45 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
     <div className="flex flex-col gap-3">
       {/* Date navigation */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => onDateChange(subDays(currentDate, 1))}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => onDateChange(subDays(currentDate, 1))}
+        >
           <ChevronLeft className="size-4" />
         </Button>
         <span className="font-medium min-w-36 text-center">
-          {format(currentDate, "EEEE d. MMMM yyyy", { locale: DATE_LOCALES[locale] ?? enUS })}
+          {format(currentDate, "EEEE d. MMMM yyyy", {
+            locale: DATE_LOCALES[locale] ?? enUS,
+          })}
         </span>
-        <Button variant="outline" size="icon" onClick={() => onDateChange(addDays(currentDate, 1))}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => onDateChange(addDays(currentDate, 1))}
+        >
           <ChevronRight className="size-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onDateChange(new Date())}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onDateChange(new Date())}
+        >
           {t("calendar.today")}
         </Button>
       </div>
 
       {/* Calendar */}
-      <div className={`border rounded-lg overflow-hidden bg-background transition-opacity ${loading ? "opacity-50 pointer-events-none" : ""}`}>
+      <div
+        className={`border rounded-lg overflow-hidden bg-background transition-opacity ${loading ? "opacity-50 pointer-events-none" : ""}`}
+      >
         <FullCalendar
           ref={calendarRef}
-          plugins={[resourceTimeGridPlugin, interactionPlugin, scrollGridPlugin]}
+          plugins={[
+            resourceTimeGridPlugin,
+            interactionPlugin,
+            scrollGridPlugin,
+          ]}
           initialView="resourceTimeGridDay"
           initialDate={currentDate}
           resources={resources}
@@ -164,8 +215,22 @@ export function CalendarView({ gates, events, currentDate, onDateChange, onEvent
             onEventClick(selectedEvent.id.replace("pending-", ""));
           }}
           userRole={userRole}
-          onApprove={onApprove ? (id) => { onApprove(id); setSelectedEvent(null); } : undefined}
-          onReject={onReject ? (id) => { onReject(id); setSelectedEvent(null); } : undefined}
+          onApprove={
+            onApprove
+              ? (id) => {
+                  onApprove(id);
+                  setSelectedEvent(null);
+                }
+              : undefined
+          }
+          onReject={
+            onReject
+              ? (id) => {
+                  onReject(id);
+                  setSelectedEvent(null);
+                }
+              : undefined
+          }
         />
       )}
     </div>

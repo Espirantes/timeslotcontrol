@@ -1,5 +1,5 @@
 -- Dock Scheduling System — seed data
--- Run after: pnpm prisma migrate deploy
+-- Run after: npx prisma migrate deploy
 -- Usage: psql -U postgres -d timeslotcontrol -f prisma/seed-data/seed.sql
 
 SET client_encoding = 'UTF8';

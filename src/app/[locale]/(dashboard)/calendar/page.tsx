@@ -3,6 +3,12 @@ import { getWarehouses } from "@/lib/actions/calendar";
 import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("nav");
+  return { title: t("calendar") };
+}
 
 export default async function CalendarPage() {
   const session = await auth();

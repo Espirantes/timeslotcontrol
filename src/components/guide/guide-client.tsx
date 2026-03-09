@@ -16,12 +16,7 @@ import {
   Lightbulb,
   ArrowRight,
 } from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { UserRole } from "@/generated/prisma/client";
 
@@ -31,8 +26,8 @@ type Props = {
 
 function Tip({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-2 rounded-md bg-[#eef5f9] border border-[#dae1e5] p-3 mt-3 text-sm text-[#2d3e50]">
-      <Lightbulb className="size-4 shrink-0 text-[#db2b19] mt-0.5" />
+    <div className="flex gap-2 rounded-md bg-secondary border border-border p-3 mt-3 text-sm text-foreground">
+      <Lightbulb className="size-4 shrink-0 text-brand-red mt-0.5" />
       <div>{children}</div>
     </div>
   );
@@ -45,7 +40,7 @@ function RoleBadges({ roles }: { roles: string[] }) {
         <Badge
           key={role}
           variant="outline"
-          className="text-[10px] font-medium border-[#dae1e5] text-[#5a7a8f]"
+          className="text-[10px] font-medium border-border text-muted-foreground"
         >
           {role}
         </Badge>
@@ -59,11 +54,11 @@ function StatusFlow({ steps }: { steps: string[] }) {
     <div className="flex flex-wrap items-center gap-1 mt-2 text-sm">
       {steps.map((step, i) => (
         <span key={i} className="flex items-center gap-1">
-          <span className="rounded bg-[#eef5f9] border border-[#dae1e5] px-2 py-0.5 text-xs font-medium text-[#2d3e50]">
+          <span className="rounded bg-secondary border border-border px-2 py-0.5 text-xs font-medium text-foreground">
             {step}
           </span>
           {i < steps.length - 1 && (
-            <ArrowRight className="size-3 text-[#5a7a8f]" />
+            <ArrowRight className="size-3 text-muted-foreground" />
           )}
         </span>
       ))}
@@ -79,35 +74,43 @@ export function GuideClient({ role }: Props) {
     <div className="flex flex-col gap-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-sm text-[#5a7a8f] mt-1">{t("subtitle")}</p>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
 
       {/* Intro */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="size-[18px] text-[#db2b19]" />
+            <Shield className="size-[18px] text-brand-red" />
             {t("intro.title")}
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-[#2d3e50] space-y-2">
+        <CardContent className="text-sm text-foreground space-y-2">
           <p>{t("intro.desc")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-            <div className="rounded-md border border-[#dae1e5] p-2.5">
+            <div className="rounded-md border border-border p-2.5">
               <span className="font-medium">{t("intro.roleAdmin")}</span>
-              <p className="text-xs text-[#5a7a8f] mt-0.5">{t("intro.roleAdminDesc")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("intro.roleAdminDesc")}
+              </p>
             </div>
-            <div className="rounded-md border border-[#dae1e5] p-2.5">
+            <div className="rounded-md border border-border p-2.5">
               <span className="font-medium">{t("intro.roleWorker")}</span>
-              <p className="text-xs text-[#5a7a8f] mt-0.5">{t("intro.roleWorkerDesc")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("intro.roleWorkerDesc")}
+              </p>
             </div>
-            <div className="rounded-md border border-[#dae1e5] p-2.5">
+            <div className="rounded-md border border-border p-2.5">
               <span className="font-medium">{t("intro.roleClient")}</span>
-              <p className="text-xs text-[#5a7a8f] mt-0.5">{t("intro.roleClientDesc")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("intro.roleClientDesc")}
+              </p>
             </div>
-            <div className="rounded-md border border-[#dae1e5] p-2.5">
+            <div className="rounded-md border border-border p-2.5">
               <span className="font-medium">{t("intro.roleSupplier")}</span>
-              <p className="text-xs text-[#5a7a8f] mt-0.5">{t("intro.roleSupplierDesc")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("intro.roleSupplierDesc")}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -117,14 +120,14 @@ export function GuideClient({ role }: Props) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <CalendarDays className="size-[18px] text-[#db2b19]" />
+            <CalendarDays className="size-[18px] text-brand-red" />
             {t("calendar.title")}
           </CardTitle>
           <RoleBadges roles={[t("roles.all")]} />
         </CardHeader>
-        <CardContent className="text-sm text-[#2d3e50] space-y-2">
+        <CardContent className="text-sm text-foreground space-y-2">
           <p>{t("calendar.desc")}</p>
-          <ul className="list-disc list-inside space-y-1 text-[#5a7a8f]">
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
             <li>{t("calendar.point1")}</li>
             <li>{t("calendar.point2")}</li>
             <li>{t("calendar.point3")}</li>
@@ -137,17 +140,17 @@ export function GuideClient({ role }: Props) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <ClipboardList className="size-[18px] text-[#db2b19]" />
+            <ClipboardList className="size-[18px] text-brand-red" />
             {t("reservations.title")}
           </CardTitle>
           <RoleBadges roles={[t("roles.all")]} />
         </CardHeader>
-        <CardContent className="text-sm text-[#2d3e50] space-y-3">
+        <CardContent className="text-sm text-foreground space-y-3">
           <p>{t("reservations.desc")}</p>
 
           <div>
             <p className="font-medium mb-1">{t("reservations.createTitle")}</p>
-            <ol className="list-decimal list-inside space-y-1 text-[#5a7a8f]">
+            <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
               <li>{t("reservations.step1")}</li>
               <li>{t("reservations.step2")}</li>
               <li>{t("reservations.step3")}</li>
@@ -176,14 +179,14 @@ export function GuideClient({ role }: Props) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Settings className="size-[18px] text-[#db2b19]" />
+            <Settings className="size-[18px] text-brand-red" />
             {t("settings.title")}
           </CardTitle>
           <RoleBadges roles={[t("roles.all")]} />
         </CardHeader>
-        <CardContent className="text-sm text-[#2d3e50] space-y-2">
+        <CardContent className="text-sm text-foreground space-y-2">
           <p>{t("settings.desc")}</p>
-          <ul className="list-disc list-inside space-y-1 text-[#5a7a8f]">
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
             <li>{t("settings.point1")}</li>
             <li>{t("settings.point2")}</li>
             <li>{t("settings.point3")}</li>
@@ -201,12 +204,12 @@ export function GuideClient({ role }: Props) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Building2 className="size-[18px] text-[#db2b19]" />
+                <Building2 className="size-[18px] text-brand-red" />
                 {t("admin.warehouses.title")}
               </CardTitle>
               <RoleBadges roles={[t("roles.admin")]} />
             </CardHeader>
-            <CardContent className="text-sm text-[#2d3e50] space-y-2">
+            <CardContent className="text-sm text-foreground space-y-2">
               <p>{t("admin.warehouses.desc")}</p>
               <Tip>{t("admin.warehouses.tip")}</Tip>
             </CardContent>
@@ -216,12 +219,12 @@ export function GuideClient({ role }: Props) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <DoorOpen className="size-[18px] text-[#db2b19]" />
+                <DoorOpen className="size-[18px] text-brand-red" />
                 {t("admin.gates.title")}
               </CardTitle>
               <RoleBadges roles={[t("roles.admin")]} />
             </CardHeader>
-            <CardContent className="text-sm text-[#2d3e50] space-y-2">
+            <CardContent className="text-sm text-foreground space-y-2">
               <p>{t("admin.gates.desc")}</p>
               <Tip>{t("admin.gates.tip")}</Tip>
             </CardContent>
@@ -231,12 +234,12 @@ export function GuideClient({ role }: Props) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Users className="size-[18px] text-[#db2b19]" />
+                <Users className="size-[18px] text-brand-red" />
                 {t("admin.clientsSuppliers.title")}
               </CardTitle>
               <RoleBadges roles={[t("roles.admin")]} />
             </CardHeader>
-            <CardContent className="text-sm text-[#2d3e50] space-y-2">
+            <CardContent className="text-sm text-foreground space-y-2">
               <p>{t("admin.clientsSuppliers.desc")}</p>
               <Tip>{t("admin.clientsSuppliers.tip")}</Tip>
             </CardContent>
@@ -246,12 +249,12 @@ export function GuideClient({ role }: Props) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <UserCircle className="size-[18px] text-[#db2b19]" />
+                <UserCircle className="size-[18px] text-brand-red" />
                 {t("admin.users.title")}
               </CardTitle>
               <RoleBadges roles={[t("roles.admin")]} />
             </CardHeader>
-            <CardContent className="text-sm text-[#2d3e50] space-y-2">
+            <CardContent className="text-sm text-foreground space-y-2">
               <p>{t("admin.users.desc")}</p>
               <Tip>{t("admin.users.tip")}</Tip>
             </CardContent>
@@ -261,12 +264,12 @@ export function GuideClient({ role }: Props) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Package className="size-[18px] text-[#db2b19]" />
+                <Package className="size-[18px] text-brand-red" />
                 {t("admin.transportUnits.title")}
               </CardTitle>
               <RoleBadges roles={[t("roles.admin")]} />
             </CardHeader>
-            <CardContent className="text-sm text-[#2d3e50] space-y-2">
+            <CardContent className="text-sm text-foreground space-y-2">
               <p>{t("admin.transportUnits.desc")}</p>
               <Tip>{t("admin.transportUnits.tip")}</Tip>
             </CardContent>
@@ -276,12 +279,12 @@ export function GuideClient({ role }: Props) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <ScrollText className="size-[18px] text-[#db2b19]" />
+                <ScrollText className="size-[18px] text-brand-red" />
                 {t("admin.auditLog.title")}
               </CardTitle>
               <RoleBadges roles={[t("roles.admin")]} />
             </CardHeader>
-            <CardContent className="text-sm text-[#2d3e50] space-y-2">
+            <CardContent className="text-sm text-foreground space-y-2">
               <p>{t("admin.auditLog.desc")}</p>
               <Tip>{t("admin.auditLog.tip")}</Tip>
             </CardContent>
