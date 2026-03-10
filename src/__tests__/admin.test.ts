@@ -7,6 +7,7 @@ const mockUpsert = vi.fn();
 
 vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
+  cachedAuth: (...args: unknown[]) => mockAuth(...args),
 }));
 
 vi.mock("next/cache", () => ({
