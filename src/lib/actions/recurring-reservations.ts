@@ -35,6 +35,7 @@ export type CreateRecurringReservationInput = {
   notes?: string;
   items: RecurringItemTemplate[];
   reservationType?: "LOADING" | "UNLOADING";
+  supplierId?: string;
 };
 
 export type SkippedInstance = {
@@ -281,10 +282,11 @@ export async function createRecurringReservation(rawInput: CreateRecurringReserv
   const input = CreateRecurringSchema.parse(rawInput);
   const user = await requireAdminOrWorker();
 
-  // Resolve supplier — same pattern as createReservation
-  const firstSupplier = await prisma.clientSupplier.findFirst({
-    where: { clientId: input.clientId },
-  });
+  // Resolve supplier — use provided supplierId or fall back to first supplier of client
+  const supplierWhere = rawInput.supplierId
+    ? { clientId: input.clientId, supplierId: rawInput.supplierId }
+    : { clientId: input.clientId };
+  const firstSupplier = await prisma.clientSupplier.findFirst({ where: supplierWhere });
   if (!firstSupplier) throw new Error("No supplier found for client");
 
   const weekDays = input.recurrenceType === "DAILY"

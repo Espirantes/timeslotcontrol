@@ -54,6 +54,7 @@ type TransportUnitOption = {
 
 type Gate = { id: string; name: string; openingHours: { dayOfWeek: number; openTime: string; closeTime: string; isOpen: boolean }[] };
 type Client = { id: string; name: string };
+type Supplier = { id: string; name: string; clientId: string };
 
 type Props = {
   open: boolean;
@@ -71,6 +72,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
   // Form data
   const [gates, setGates] = useState<Gate[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transportUnits, setTransportUnits] = useState<TransportUnitOption[]>([]);
 
   // Recurrence
@@ -84,6 +86,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
   // Reservation template
   const [gateId, setGateId] = useState("");
   const [clientId, setClientId] = useState("");
+  const [supplierId, setSupplierId] = useState("");
   const [timeOfDay, setTimeOfDay] = useState("08:00");
   const [duration, setDuration] = useState(60);
   const [vehicleType, setVehicleType] = useState<VehicleType>("TRUCK");
@@ -103,14 +106,27 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
     getFormData(warehouseId).then((data) => {
       setGates(data.gates);
       setClients(data.clients);
+      setSuppliers(data.suppliers);
       setTransportUnits(data.transportUnits);
       if (!gateId && data.gates.length > 0) setGateId(data.gates[0].id);
-      if (!clientId && data.clients.length > 0) setClientId(data.clients[0].id);
+      if (!clientId && data.clients.length > 0) {
+        const firstClient = data.clients[0].id;
+        setClientId(firstClient);
+        const firstSupplier = data.suppliers.find((s) => s.clientId === firstClient);
+        if (firstSupplier) setSupplierId(firstSupplier.id);
+      }
       if (items.length === 0 && data.transportUnits.length > 0) {
         setItems([{ transportUnitId: data.transportUnits[0].id, quantity: 1, goodsWeightKg: "", description: "" }]);
       }
     });
   }, [open, warehouseId]);
+
+  // Auto-select first supplier when client changes
+  useEffect(() => {
+    if (!clientId || suppliers.length === 0) return;
+    const first = suppliers.find((s) => s.clientId === clientId);
+    setSupplierId(first?.id ?? "");
+  }, [clientId, suppliers]);
 
   // Auto-calculate duration from items
   useEffect(() => {
@@ -150,6 +166,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
         const result = await createRecurringReservation({
           gateId,
           clientId,
+          supplierId: supplierId || undefined,
           recurrenceType,
           startDate,
           endDate: noEndDate ? undefined : endDate || undefined,
@@ -212,6 +229,21 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
                 </Select>
               </div>
             </div>
+
+            {/* Supplier — shown for admin/worker only (suppliers array is empty for other roles) */}
+            {suppliers.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">{tRes("fields.supplier")} *</label>
+                <Select value={supplierId} onValueChange={setSupplierId}>
+                  <SelectTrigger><SelectValue placeholder={tRes("form.selectSupplier")} /></SelectTrigger>
+                  <SelectContent>
+                    {suppliers.filter((s) => s.clientId === clientId).map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Recurrence type */}
             <div className="flex flex-col gap-2">

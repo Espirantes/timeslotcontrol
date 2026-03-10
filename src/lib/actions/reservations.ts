@@ -910,7 +910,18 @@ export async function getFormData(warehouseId: string) {
     return [] as { id: string; name: string }[];
   })();
 
-  const [gates, clients, transportUnits] = await Promise.all([
+  // Load suppliers with their client linkages (admin/worker only — supplier/client roles have a fixed supplier)
+  const suppliersPromise = (async () => {
+    if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
+      const links = await prisma.clientSupplier.findMany({
+        include: { supplier: { select: { id: true, name: true } } },
+      });
+      return links.map((l) => ({ id: l.supplier.id, name: l.supplier.name, clientId: l.clientId }));
+    }
+    return [] as { id: string; name: string; clientId: string }[];
+  })();
+
+  const [gates, clients, transportUnits, suppliers] = await Promise.all([
     prisma.gates.findMany({
       where: { warehouseId, isActive: true, deletedAt: null },
       include: { openingHours: true },
@@ -922,6 +933,7 @@ export async function getFormData(warehouseId: string) {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, weightKg: true, processingMinutes: true },
     }),
+    suppliersPromise,
   ]);
 
   return {
@@ -931,6 +943,7 @@ export async function getFormData(warehouseId: string) {
       openingHours: g.openingHours,
     })),
     clients,
+    suppliers,
     userRole: role,
     transportUnits: transportUnits.map((tu) => ({
       id: tu.id,
