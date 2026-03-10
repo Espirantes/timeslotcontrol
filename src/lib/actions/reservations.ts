@@ -41,6 +41,7 @@ export type ReservationAdviceInput = {
 export type CreateReservationInput = {
   gateId: string;
   clientId: string;
+  supplierId?: string;
   startTime: string; // ISO string
   durationMinutes: number;
   vehicleType: VehicleType;
@@ -170,10 +171,11 @@ export async function createReservation(rawInput: CreateReservationInput) {
     });
     if (!link) throw new Error("Supplier not linked to this client");
   } else if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
-    // Admin/worker can create on behalf — supplierId must be provided via a different field
-    // For now require a supplierUserId passed separately; simplest: first supplier of client
+    const supplierWhere = rawInput.supplierId
+      ? { clientId: input.clientId, supplierId: rawInput.supplierId }
+      : { clientId: input.clientId };
     const firstSupplier = await prisma.clientSupplier.findFirst({
-      where: { clientId: input.clientId },
+      where: supplierWhere,
     });
     if (!firstSupplier) throw new Error("No supplier found for client");
     resolvedSupplierId = firstSupplier.supplierId;

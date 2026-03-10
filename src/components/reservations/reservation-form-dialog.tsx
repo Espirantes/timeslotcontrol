@@ -54,6 +54,7 @@ type GateHours = {
 
 type Gate = { id: string; name: string; openingHours: GateHours[] };
 type Client = { id: string; name: string };
+type Supplier = { id: string; name: string; clientId: string };
 
 type Props = {
   open: boolean;
@@ -131,12 +132,14 @@ export function ReservationFormDialog({
   // Form data from server
   const [gates, setGates] = useState<Gate[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [userRole, setUserRole] = useState<UserRole>("SUPPLIER");
   const [transportUnits, setTransportUnits] = useState<TransportUnitOption[]>([]);
 
   // Form state
   const [gateId, setGateId] = useState(preselectedGateId ?? "");
   const [clientId, setClientId] = useState("");
+  const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(preselectedDate ? format(preselectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(preselectedStartTime ?? "");
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
@@ -162,15 +165,26 @@ export function ReservationFormDialog({
     getFormData(warehouseId).then((data) => {
       setGates(data.gates);
       setClients(data.clients);
+      setSuppliers(data.suppliers);
       setUserRole(data.userRole as UserRole);
       setTransportUnits(data.transportUnits);
       if (!gateId && data.gates.length > 0) setGateId(data.gates[0].id);
-      if (!clientId && data.clients.length > 0) setClientId(data.clients[0].id);
+      const firstClientId = !clientId && data.clients.length > 0 ? data.clients[0].id : clientId;
+      if (!clientId && data.clients.length > 0) setClientId(firstClientId);
+      const firstSupplier = data.suppliers.find((s) => s.clientId === firstClientId);
+      if (firstSupplier) setSupplierId(firstSupplier.id);
       if (items.length === 0 && data.transportUnits.length > 0) {
         setItems([{ key: crypto.randomUUID(), transportUnitId: data.transportUnits[0].id, quantity: 1, goodsWeightKg: "", description: "" }]);
       }
     });
   }, [open, warehouseId]);
+
+  // Auto-select first supplier when client changes
+  useEffect(() => {
+    if (!clientId || suppliers.length === 0) return;
+    const first = suppliers.find((s) => s.clientId === clientId);
+    setSupplierId(first?.id ?? "");
+  }, [clientId, suppliers]);
 
   // Sync preselected values when props change
   useEffect(() => {
@@ -206,6 +220,8 @@ export function ReservationFormDialog({
   const duration = durationOverride ?? (autoDuration || 60);
 
   const isAdmin = userRole === "ADMIN";
+  const isWorkerOrAdmin = userRole === "ADMIN" || userRole === "WAREHOUSE_WORKER";
+  const clientSuppliers = suppliers.filter((s) => s.clientId === clientId);
   const selectedGate = gates.find((g) => g.id === gateId);
   const parsedDate = new Date(date + "T12:00:00");
   const holidayName = holidays.get(date) ?? null;
@@ -262,6 +278,7 @@ export function ReservationFormDialog({
         const result = await createReservation({
           gateId,
           clientId,
+          supplierId: supplierId || undefined,
           startTime: startISO,
           durationMinutes: duration,
           vehicleType,
@@ -322,6 +339,21 @@ export function ReservationFormDialog({
               </Select>
             </div>
           </div>
+
+          {/* Supplier — shown for admin/worker when client has linked suppliers */}
+          {isWorkerOrAdmin && clientSuppliers.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.supplier")} *</label>
+              <Select value={supplierId} onValueChange={setSupplierId}>
+                <SelectTrigger><SelectValue placeholder={t("form.selectSupplier")} /></SelectTrigger>
+                <SelectContent>
+                  {clientSuppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Transport items — moved before date/time so duration auto-calculates first */}
           <div className="flex flex-col gap-2">
