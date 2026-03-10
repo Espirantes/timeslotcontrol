@@ -341,7 +341,7 @@
     "wrongPassword": "Špatné aktuální heslo",
     "nameUpdated": "Jméno aktualizováno",
     "notifications": "Oznámení",
-    "notifyEmail": "E-mailov\u00e9 notifikace",
+    "notifyEmail": "E-mailové notifikace",
     "notifyInApp": "Notifikace v aplikaci",
     "notifyBrowser": "Notifikace prohlížeče",
     "browserPermission": "Povolte notifikace v nastavení prohlížeče",
@@ -513,7 +513,7 @@
       "desc": "Opakované závozy umožňují automaticky generovat pravidelné rezervace bez ručního zadávání. Nastavíte šablonu jednou a systém vytvoří rezervace na celé období.",
       "point1": "Denní (Po–Pá), týdenní (vybrané dny) nebo měsíční (konkrétní den v měsíci).",
       "point2": "Nastavte platnost od–do nebo bez konce — rezervace se generují průběžně.",
-      "point3": "Každá vygenerovaná rezervace prochází standardním schvalovacím procesem.",
+      "point3": "Vygenerované rezervace jsou automaticky potvrzeny — nepotřebují ruční schválení.",
       "tip": "Příklad: Dodavatel Procter & Gamble dováží každé pondělí a středu v 8:00. Nastavte týdenní opakovaný závoz s dny Po a St — systém automaticky vytvoří rezervace na celý rok."
     },
     "admin": {
