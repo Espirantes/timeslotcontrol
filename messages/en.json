@@ -500,6 +500,14 @@
         "tip": "Accounts created by the client are immediately active — the supplier can log in and create reservations right away."
       }
     },
+    "recurring": {
+      "title": "Recurring Deliveries",
+      "desc": "Recurring deliveries allow you to automatically generate regular reservations without manual entry. Set up a template once and the system creates reservations for the entire period.",
+      "point1": "Daily (Mon–Fri), weekly (selected days) or monthly (specific day of the month).",
+      "point2": "Set validity from–to or open-ended — reservations are generated on an ongoing basis.",
+      "point3": "Each generated reservation goes through the standard approval process.",
+      "tip": "Example: Supplier Procter & Gamble delivers every Monday and Wednesday at 8:00. Set up a weekly recurring delivery for Mon and Wed — the system automatically creates reservations for the whole year."
+    },
     "admin": {
       "heading": "System administration (Administrator only)",
       "warehouses": {

@@ -8,7 +8,6 @@ import {
   Building2,
   DoorOpen,
   Users,
-  Truck,
   Package,
   ScrollText,
   UserCircle,
@@ -17,6 +16,7 @@ import {
   ArrowRight,
   UserPlus,
   Handshake,
+  RefreshCw,
 } from "lucide-react";
 import {
   Card,
@@ -254,6 +254,28 @@ export function GuideClient({ role }: Props) {
           <Tip>{reservationTip()}</Tip>
         </CardContent>
       </Card>
+
+      {/* Recurring */}
+      {isWorkerOrAdmin && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="size-[18px] text-brand-red" />
+              {t("recurring.title")}
+            </CardTitle>
+            <RoleBadges roles={[t("roles.admin"), t("roles.worker")]} />
+          </CardHeader>
+          <CardContent className="text-sm text-brand-navy space-y-2">
+            <p>{t("recurring.desc")}</p>
+            <ul className="list-disc list-inside space-y-1 text-brand-muted">
+              <li>{t("recurring.point1")}</li>
+              <li>{t("recurring.point2")}</li>
+              <li>{t("recurring.point3")}</li>
+            </ul>
+            <Tip>{t("recurring.tip")}</Tip>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Settings */}
       <Card>

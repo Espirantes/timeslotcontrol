@@ -500,6 +500,14 @@
         "tip": "Gli account creati dal cliente sono immediatamente attivi — il fornitore può accedere e creare prenotazioni subito."
       }
     },
+    "recurring": {
+      "title": "Consegne ricorrenti",
+      "desc": "Le consegne ricorrenti consentono di generare automaticamente prenotazioni regolari senza inserimento manuale. Imposta un modello una volta e il sistema crea prenotazioni per l'intero periodo.",
+      "point1": "Giornaliero (Lun–Ven), settimanale (giorni selezionati) o mensile (giorno specifico del mese).",
+      "point2": "Imposta la validità da–a o senza scadenza — le prenotazioni vengono generate continuamente.",
+      "point3": "Ogni prenotazione generata segue il processo di approvazione standard.",
+      "tip": "Esempio: Il fornitore Procter & Gamble consegna ogni lunedì e mercoledì alle 8:00. Imposta una consegna ricorrente settimanale per Lun e Mer — il sistema crea automaticamente le prenotazioni per tutto l'anno."
+    },
     "admin": {
       "heading": "Amministrazione del sistema (solo Amministratore)",
       "warehouses": {

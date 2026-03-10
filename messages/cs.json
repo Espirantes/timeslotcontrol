@@ -500,6 +500,14 @@
         "tip": "Účty vytvořené klientem jsou okamžitě aktivní — dodavatel se může rovnou přihlásit a vytvářet rezervace."
       }
     },
+    "recurring": {
+      "title": "Opakované závozy",
+      "desc": "Opakované závozy umožňují automaticky generovat pravidelné rezervace bez ručního zadávání. Nastavíte šablonu jednou a systém vytvoří rezervace na celé období.",
+      "point1": "Denní (Po–Pá), týdenní (vybrané dny) nebo měsíční (konkrétní den v měsíci).",
+      "point2": "Nastavte platnost od–do nebo bez konce — rezervace se generují průběžně.",
+      "point3": "Každá vygenerovaná rezervace prochází standardním schvalovacím procesem.",
+      "tip": "Příklad: Dodavatel Procter & Gamble dováží každé pondělí a středu v 8:00. Nastavte týdenní opakovaný závoz s dny Po a St — systém automaticky vytvoří rezervace na celý rok."
+    },
     "admin": {
       "heading": "Správa systému (pouze Administrátor)",
       "warehouses": {
