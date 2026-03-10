@@ -22,7 +22,9 @@ import {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-const validCuid = "clnzmtqp60000rze6h44bqktq";
+// Seed uses human-readable IDs like gate-01; CUID-format IDs also work.
+const validId = "gate-01";
+const validCuid = "clnzmtqp60000rze6h44bqktq"; // kept for backward compat
 
 function ok(schema: { safeParse: (v: unknown) => { success: boolean } }, value: unknown) {
   const r = schema.safeParse(value);
@@ -55,11 +57,13 @@ describe("WarehouseSchema", () => {
 // ─── GateSchema ──────────────────────────────────────────────────────────────
 
 describe("GateSchema", () => {
-  it("accepts minimal valid input", () =>
+  it("accepts seed-style ID (wh-01)", () =>
+    ok(GateSchema, { warehouseId: "wh-01", name: "Gate 1" }));
+  it("accepts CUID-format ID", () =>
     ok(GateSchema, { warehouseId: validCuid, name: "Gate 1" }));
   it("accepts full valid input", () =>
     ok(GateSchema, {
-      warehouseId: validCuid,
+      warehouseId: validId,
       name: "Gate 1",
       description: "desc",
       isActive: true,
@@ -68,11 +72,11 @@ describe("GateSchema", () => {
   it("rejects empty warehouseId", () =>
     fail(GateSchema, { warehouseId: "", name: "G" }));
   it("rejects empty name", () =>
-    fail(GateSchema, { warehouseId: validCuid, name: "" }));
+    fail(GateSchema, { warehouseId: validId, name: "" }));
   it("rejects sortOrder > 9999", () =>
-    fail(GateSchema, { warehouseId: validCuid, name: "G", sortOrder: 10000 }));
+    fail(GateSchema, { warehouseId: validId, name: "G", sortOrder: 10000 }));
   it("rejects negative sortOrder", () =>
-    fail(GateSchema, { warehouseId: validCuid, name: "G", sortOrder: -1 }));
+    fail(GateSchema, { warehouseId: validId, name: "G", sortOrder: -1 }));
 });
 
 describe("GateUpdateSchema", () => {
@@ -106,7 +110,7 @@ describe("GateOpeningHoursRowSchema", () => {
 
 describe("GateBlockSchema", () => {
   const base = {
-    gateId: validCuid,
+    gateId: "gate-01",
     startTime: "2025-06-09T10:00:00.000Z",
     endTime: "2025-06-09T11:00:00.000Z",
     reason: "Maintenance",
@@ -140,8 +144,8 @@ describe("ClientSchema", () => {
 
 describe("SupplierSchema", () => {
   it("accepts minimal input", () => ok(SupplierSchema, { name: "Supplier A" }));
-  it("accepts with clientIds", () =>
-    ok(SupplierSchema, { name: "Supplier A", clientIds: [validCuid] }));
+  it("accepts with seed-style clientIds", () =>
+    ok(SupplierSchema, { name: "Supplier A", clientIds: ["client-01"] }));
   it("rejects empty string in clientIds", () =>
     fail(SupplierSchema, { name: "Supplier A", clientIds: [""] }));
 });
@@ -157,8 +161,8 @@ describe("CreateUserSchema", () => {
   };
 
   it("accepts valid admin user", () => ok(CreateUserSchema, base));
-  it("accepts with warehouseIds", () =>
-    ok(CreateUserSchema, { ...base, role: "WAREHOUSE_WORKER", warehouseIds: [validCuid] }));
+  it("accepts with seed-style warehouseIds", () =>
+    ok(CreateUserSchema, { ...base, role: "WAREHOUSE_WORKER", warehouseIds: ["wh-01"] }));
   it("rejects password shorter than 8 chars", () =>
     fail(CreateUserSchema, { ...base, password: "short" }));
   it("rejects invalid email", () =>
@@ -200,12 +204,12 @@ describe("TransportUnitSchema", () => {
 // ─── ReservationItemSchema ────────────────────────────────────────────────────
 
 describe("ReservationItemSchema", () => {
-  it("accepts valid item", () =>
-    ok(ReservationItemSchema, { transportUnitId: validCuid, quantity: 2 }));
+  it("accepts valid item with seed-style ID", () =>
+    ok(ReservationItemSchema, { transportUnitId: "tu-01", quantity: 2 }));
   it("rejects quantity 0", () =>
-    fail(ReservationItemSchema, { transportUnitId: validCuid, quantity: 0 }));
+    fail(ReservationItemSchema, { transportUnitId: "tu-01", quantity: 0 }));
   it("rejects negative goodsWeightKg", () =>
-    fail(ReservationItemSchema, { transportUnitId: validCuid, quantity: 1, goodsWeightKg: -1 }));
+    fail(ReservationItemSchema, { transportUnitId: "tu-01", quantity: 1, goodsWeightKg: -1 }));
 });
 
 // ─── ReservationAdviceSchema ──────────────────────────────────────────────────
@@ -223,12 +227,12 @@ describe("ReservationAdviceSchema", () => {
 
 describe("CreateReservationSchema", () => {
   const base = {
-    gateId: validCuid,
-    clientId: validCuid,
+    gateId: "gate-01",
+    clientId: "client-01",
     startTime: "2025-06-09T10:00:00.000Z",
     durationMinutes: 60,
     vehicleType: "TRUCK",
-    items: [{ transportUnitId: validCuid, quantity: 1 }],
+    items: [{ transportUnitId: "tu-01", quantity: 1 }],
   };
 
   it("accepts valid input", () => ok(CreateReservationSchema, base));
@@ -255,28 +259,28 @@ describe("CreateReservationSchema", () => {
 
 describe("EditReservationSchema", () => {
   it("accepts minimal input (only reservationId)", () =>
-    ok(EditReservationSchema, { reservationId: validCuid }));
-  it("accepts full update", () =>
+    ok(EditReservationSchema, { reservationId: "res-01" }));
+  it("accepts full update with seed-style IDs", () =>
     ok(EditReservationSchema, {
-      reservationId: validCuid,
+      reservationId: "res-01",
       durationMinutes: 30,
       vehicleType: "VAN",
-      items: [{ transportUnitId: validCuid, quantity: 2 }],
+      items: [{ transportUnitId: "tu-01", quantity: 2 }],
     }));
   it("rejects durationMinutes not multiple of 15", () =>
-    fail(EditReservationSchema, { reservationId: validCuid, durationMinutes: 17 }));
+    fail(EditReservationSchema, { reservationId: "res-01", durationMinutes: 17 }));
 });
 
 // ─── UpdateReservationStatusSchema ───────────────────────────────────────────
 
 describe("UpdateReservationStatusSchema", () => {
-  it("accepts valid status update", () =>
-    ok(UpdateReservationStatusSchema, { reservationId: validCuid, status: "CONFIRMED" }));
+  it("accepts valid status update with seed-style ID", () =>
+    ok(UpdateReservationStatusSchema, { reservationId: "res-01", status: "CONFIRMED" }));
   it("rejects invalid status", () =>
-    fail(UpdateReservationStatusSchema, { reservationId: validCuid, status: "PENDING" }));
+    fail(UpdateReservationStatusSchema, { reservationId: "res-01", status: "PENDING" }));
   it("accepts all valid statuses", () => {
     for (const s of ["REQUESTED", "CONFIRMED", "CANCELLED", "UNLOADING_STARTED", "UNLOADING_COMPLETED", "CLOSED"]) {
-      ok(UpdateReservationStatusSchema, { reservationId: validCuid, status: s });
+      ok(UpdateReservationStatusSchema, { reservationId: "res-01", status: s });
     }
   });
 });
@@ -305,14 +309,14 @@ describe("ChangePasswordSchema", () => {
 
 describe("CreateRecurringSchema", () => {
   const base = {
-    gateId: validCuid,
-    clientId: validCuid,
+    gateId: "gate-01",
+    clientId: "client-01",
     recurrenceType: "WEEKLY",
     startDate: "2025-06-09",
     timeOfDay: "10:00",
     durationMinutes: 60,
     vehicleType: "TRUCK",
-    items: [{ transportUnitId: validCuid, quantity: 1 }],
+    items: [{ transportUnitId: "tu-01", quantity: 1 }],
   };
 
   it("accepts valid weekly recurring", () => ok(CreateRecurringSchema, base));
