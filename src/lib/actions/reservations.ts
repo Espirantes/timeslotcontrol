@@ -29,6 +29,12 @@ export type ReservationItemInput = {
   description?: string | null;
 };
 
+export type ReservationAdviceInput = {
+  adviceNumber: string;
+  quantity: number;
+  note?: string | null;
+};
+
 export type CreateReservationInput = {
   gateId: string;
   clientId: string;
@@ -41,15 +47,14 @@ export type CreateReservationInput = {
   driverContact?: string;
   notes?: string;
   items: ReservationItemInput[];
+  advices?: ReservationAdviceInput[];
+  reservationType?: "LOADING" | "UNLOADING";
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Get emails of users linked to a client/supplier who have email notifications enabled */
-async function getEmailRecipients(
-  clientId: string,
-  supplierId: string,
-): Promise<{ supplierEmail: string | null; clientEmail: string | null }> {
+async function getEmailRecipients(clientId: string, supplierId: string): Promise<{ supplierEmail: string | null; clientEmail: string | null }> {
   const [supplierUser, clientUser] = await Promise.all([
     prisma.user.findFirst({
       where: { supplierId, isActive: true, notifyEmail: true },
@@ -73,12 +78,61 @@ async function requireSupplierOrWorker() {
   return session.user;
 }
 
+/** Get public holidays for a gate's warehouse country for a given month (0-based). */
+export async function getGateHolidays(
+  gateId: string,
+  year: number,
+  month: number,
+): Promise<Array<{ date: string; name: string }>> {
+  const gate = await prisma.gates.findUnique({
+    where: { id: gateId },
+    select: { warehouse: { select: { country: true } } },
+  });
+  if (!gate?.warehouse.country) return [];
+  const { getHolidaysForMonth } = await import("@/lib/holidays");
+  return getHolidaysForMonth(gate.warehouse.country, year, month);
+}
+
+/** Check if a gate block overlaps with the given time range. Returns reason if blocked, null if free. */
+async function getBlockingReason(gateId: string, startTime: Date, endTime: Date): Promise<string | null> {
+  const block = await prisma.gateBlock.findFirst({
+    where: {
+      gateId,
+      startTime: { lt: endTime },
+      endTime: { gt: startTime },
+    },
+  });
+  return block?.reason ?? null;
+}
+
+/** Get gate blocks for a specific date (for form time select). */
+export async function getGateBlocksForDate(
+  gateId: string,
+  date: string,
+): Promise<Array<{ startTime: string; endTime: string; reason: string }>> {
+  const dayStart = new Date(date + "T00:00:00");
+  const dayEnd = new Date(date + "T23:59:59");
+  const blocks = await prisma.gateBlock.findMany({
+    where: {
+      gateId,
+      startTime: { lt: dayEnd },
+      endTime: { gt: dayStart },
+    },
+    orderBy: { startTime: "asc" },
+  });
+  return blocks.map((b) => ({
+    startTime: b.startTime.toISOString(),
+    endTime: b.endTime.toISOString(),
+    reason: b.reason,
+  }));
+}
+
 /** Check if a gate slot is free (no confirmed reservation overlapping) */
 export async function isSlotFree(
   gateId: string,
   startTime: Date,
   endTime: Date,
-  excludeReservationId?: string,
+  excludeReservationId?: string
 ) {
   const conflicting = await prisma.reservationVersion.findFirst({
     where: {
@@ -94,7 +148,7 @@ export async function isSlotFree(
 
   if (conflicting) {
     const conflEnd = new Date(
-      conflicting.startTime.getTime() + conflicting.durationMinutes * 60 * 1000,
+      conflicting.startTime.getTime() + conflicting.durationMinutes * 60 * 1000
     );
     if (conflEnd > startTime) return false;
   }
@@ -102,11 +156,7 @@ export async function isSlotFree(
 }
 
 /** Check if gate is open at the given time */
-export async function isGateOpen(
-  gateId: string,
-  startTime: Date,
-  endTime: Date,
-) {
+export async function isGateOpen(gateId: string, startTime: Date, endTime: Date) {
   const dayOfWeek = startTime.getDay();
   const hours = await prisma.gateOpeningHours.findUnique({
     where: { gateId_dayOfWeek: { gateId, dayOfWeek } },
@@ -127,11 +177,12 @@ export async function isGateOpen(
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-export async function createReservation(
-  input: CreateReservationInput,
-): Promise<ActionResult> {
+export async function createReservation(input: CreateReservationInput) {
   const user = await requireSupplierOrWorker();
   const { role, supplierId } = user;
+
+  // Block unverified users
+  if (!user.isVerified) throw new Error("Account not verified");
 
   // Determine supplierId
   let resolvedSupplierId: string;
@@ -158,19 +209,26 @@ export async function createReservation(
   }
 
   const startTime = new Date(input.startTime);
-  const endTime = new Date(
-    startTime.getTime() + input.durationMinutes * 60 * 1000,
-  );
+  const endTime = new Date(startTime.getTime() + input.durationMinutes * 60 * 1000);
 
   // Validations
-  if (input.durationMinutes % 15 !== 0)
-    throw new Error("Duration must be a multiple of 15 min");
-  if (role !== "ADMIN" && startTime < new Date())
-    throw new Error("Cannot create reservation in the past");
-  if (role !== "ADMIN" && !(await isGateOpen(input.gateId, startTime, endTime)))
-    throw new Error("Gate is closed at requested time");
-  if (!(await isSlotFree(input.gateId, startTime, endTime)))
-    throw new Error("Slot is already taken");
+  if (input.durationMinutes % 15 !== 0) throw new Error("Duration must be a multiple of 15 min");
+  if (role !== "ADMIN" && startTime < new Date()) throw new Error("Cannot create reservation in the past");
+  if (role !== "ADMIN" && !await isGateOpen(input.gateId, startTime, endTime)) throw new Error("Gate is closed at requested time");
+  if (role !== "ADMIN") {
+    const gateWithWarehouse = await prisma.gates.findUniqueOrThrow({
+      where: { id: input.gateId },
+      select: { warehouse: { select: { country: true } } },
+    });
+    if (gateWithWarehouse.warehouse.country) {
+      const { checkHoliday } = await import("@/lib/holidays");
+      const holiday = checkHoliday(gateWithWarehouse.warehouse.country, startTime);
+      if (holiday.isHoliday) throw new Error(`Holiday: ${holiday.name}`);
+    }
+    const blockReason = await getBlockingReason(input.gateId, startTime, endTime);
+    if (blockReason) throw new Error(`Blocked: ${blockReason}`);
+  }
+  if (!await isSlotFree(input.gateId, startTime, endTime)) throw new Error("Slot is already taken");
 
   const isAdminCreate = role === "ADMIN";
   const reservation = await prisma.reservation.create({
@@ -178,6 +236,7 @@ export async function createReservation(
       gateId: input.gateId,
       clientId: input.clientId,
       supplierId: resolvedSupplierId,
+      type: input.reservationType ?? "UNLOADING",
       status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
       createdById: user.id,
       versions: {
@@ -199,6 +258,13 @@ export async function createReservation(
               description: item.description ?? null,
             })),
           },
+          advices: {
+            create: (input.advices ?? []).map((a) => ({
+              adviceNumber: a.adviceNumber,
+              quantity: a.quantity,
+              note: a.note ?? null,
+            })),
+          },
         },
       },
     },
@@ -218,11 +284,7 @@ export async function createReservation(
     entityType: "reservation",
     entityId: reservation.id,
     action: "created",
-    newData: {
-      status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
-      startTime: input.startTime,
-      durationMinutes: input.durationMinutes,
-    },
+    newData: { status: isAdminCreate ? "CONFIRMED" : "REQUESTED", startTime: input.startTime, durationMinutes: input.durationMinutes },
     userId: user.id,
   });
 
@@ -238,23 +300,15 @@ export async function createReservation(
   revalidatePath("/reservations");
 
   // Email notification to warehouse workers
-  const gate = await prisma.gates.findUnique({
-    where: { id: input.gateId },
-    include: { warehouse: true },
-  });
-  const supplier = await prisma.supplier.findUnique({
-    where: { id: resolvedSupplierId },
-  });
+  const gate = await prisma.gates.findUnique({ where: { id: input.gateId }, include: { warehouse: true } });
+  const supplier = await prisma.supplier.findUnique({ where: { id: resolvedSupplierId } });
   const workers = await prisma.user.findMany({
     where: {
       isActive: true,
       notifyEmail: true,
       OR: [
         { role: "ADMIN" },
-        {
-          role: "WAREHOUSE_WORKER",
-          warehouses: { some: { warehouseId: gate?.warehouseId } },
-        },
+        { role: "WAREHOUSE_WORKER", warehouses: { some: { warehouseId: gate?.warehouseId } } },
       ],
     },
     select: { email: true },
@@ -283,9 +337,7 @@ export async function createReservation(
   return { success: true, reservationId: reservation.id };
 }
 
-export async function approveReservation(
-  reservationId: string,
-): Promise<ActionResult> {
+export async function approveReservation(reservationId: string) {
   const user = await requireSupplierOrWorker();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can approve reservations");
@@ -296,24 +348,13 @@ export async function approveReservation(
     include: { pendingVersion: true, confirmedVersion: true },
   });
 
-  if (!reservation.pendingVersionId || !reservation.pendingVersion)
-    throw new Error("No pending version to approve");
+  if (!reservation.pendingVersionId || !reservation.pendingVersion) throw new Error("No pending version to approve");
 
   const pendingVersion = reservation.pendingVersion;
-  const endTime = new Date(
-    pendingVersion.startTime.getTime() +
-      pendingVersion.durationMinutes * 60 * 1000,
-  );
+  const endTime = new Date(pendingVersion.startTime.getTime() + pendingVersion.durationMinutes * 60 * 1000);
 
   // Check slot is still free (excluding current reservation)
-  if (
-    !(await isSlotFree(
-      reservation.gateId,
-      pendingVersion.startTime,
-      endTime,
-      reservationId,
-    ))
-  ) {
+  if (!await isSlotFree(reservation.gateId, pendingVersion.startTime, endTime, reservationId)) {
     throw new Error("Slot is no longer available");
   }
 
@@ -332,10 +373,7 @@ export async function approveReservation(
     entityId: reservationId,
     action: "version_approved",
     oldData: { status: oldStatus },
-    newData: {
-      status: "CONFIRMED",
-      confirmedVersionId: reservation.pendingVersionId,
-    },
+    newData: { status: "CONFIRMED", confirmedVersionId: reservation.pendingVersionId },
     userId: user.id,
   });
 
@@ -353,19 +391,11 @@ export async function approveReservation(
   // Email notification
   const full = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    include: {
-      gate: true,
-      supplier: true,
-      client: true,
-      confirmedVersion: true,
-    },
+    include: { gate: true, supplier: true, client: true, confirmedVersion: true },
   });
   if (full?.confirmedVersion) {
     const locale = await getLocale();
-    const emailRecipients = await getEmailRecipients(
-      full.clientId,
-      full.supplierId,
-    );
+    const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
     notifyReservationApproved({
       reservationId,
       gateName: full.gate.name,
@@ -380,10 +410,7 @@ export async function approveReservation(
       type: "RESERVATION_APPROVED",
       reservationId,
       title: full.gate.name,
-      message: new Date(full.confirmedVersion.startTime).toLocaleString(
-        locale,
-        { timeZone: "Europe/Prague" },
-      ),
+      message: new Date(full.confirmedVersion.startTime).toLocaleString(locale, { timeZone: "Europe/Prague" }),
       warehouseId: full.gate.warehouseId,
       clientId: full.clientId,
       supplierId: full.supplierId,
@@ -393,9 +420,7 @@ export async function approveReservation(
   return { success: true };
 }
 
-export async function rejectReservation(
-  reservationId: string,
-): Promise<ActionResult> {
+export async function rejectReservation(reservationId: string) {
   const user = await requireSupplierOrWorker();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can reject reservations");
@@ -405,8 +430,7 @@ export async function rejectReservation(
     where: { id: reservationId },
   });
 
-  const wasNew =
-    reservation.status === "REQUESTED" && !reservation.confirmedVersionId;
+  const wasNew = reservation.status === "REQUESTED" && !reservation.confirmedVersionId;
 
   await prisma.reservation.update({
     where: { id: reservationId },
@@ -446,10 +470,7 @@ export async function rejectReservation(
   });
   if (full) {
     const locale = await getLocale();
-    const emailRecipients = await getEmailRecipients(
-      full.clientId,
-      full.supplierId,
-    );
+    const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
     notifyReservationRejected({
       reservationId,
       gateName: full.gate.name,
@@ -475,12 +496,8 @@ export async function rejectReservation(
 
 export async function updateReservationStatus(
   reservationId: string,
-  newStatus:
-    | "UNLOADING_STARTED"
-    | "UNLOADING_COMPLETED"
-    | "CLOSED"
-    | "CANCELLED",
-): Promise<ActionResult> {
+  newStatus: "UNLOADING_STARTED" | "UNLOADING_COMPLETED" | "CLOSED" | "CANCELLED"
+) {
   const user = await requireSupplierOrWorker();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can change reservation status");
@@ -497,9 +514,7 @@ export async function updateReservationStatus(
   };
 
   if (!allowed[reservation.status]?.includes(newStatus)) {
-    throw new Error(
-      `Cannot transition from ${reservation.status} to ${newStatus}`,
-    );
+    throw new Error(`Cannot transition from ${reservation.status} to ${newStatus}`);
   }
 
   await prisma.reservation.update({
@@ -535,10 +550,7 @@ export async function updateReservationStatus(
   if (full) {
     const locale = await getLocale();
     const tStatus = await getTranslations("reservation.status");
-    const emailRecipients = await getEmailRecipients(
-      full.clientId,
-      full.supplierId,
-    );
+    const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
     notifyStatusChanged({
       reservationId,
       gateName: full.gate.name,
@@ -568,6 +580,7 @@ export async function updateReservationStatus(
 export type ReservationListItem = {
   id: string;
   status: string;
+  reservationType: string;
   gateName: string;
   warehouseId: string;
   clientName: string;
@@ -620,6 +633,7 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
     return {
       id: r.id,
       status: r.status,
+      reservationType: r.type,
       gateName: r.gate.name,
       warehouseId: r.gate.warehouseId,
       clientName: r.client.name,
@@ -661,6 +675,12 @@ export type ReservationVersionDetail = {
     goodsWeightKg: number | null;
     description: string | null;
   }[];
+  advices: {
+    id: string;
+    adviceNumber: string;
+    quantity: number;
+    note: string | null;
+  }[];
 };
 
 export type StatusChangeItem = {
@@ -673,6 +693,8 @@ export type StatusChangeItem = {
 export type ReservationDetail = {
   id: string;
   status: string;
+  reservationType: string;
+  gateId: string;
   gateName: string;
   warehouseName: string;
   warehouseId: string;
@@ -686,20 +708,22 @@ export type ReservationDetail = {
   confirmedVersion: ReservationVersionDetail | null;
   pendingVersion: ReservationVersionDetail | null;
   statusChanges: StatusChangeItem[];
+  attachments: {
+    id: string;
+    originalName: string;
+    mimeType: string;
+    fileSize: number;
+    uploadedByName: string;
+    uploadedAt: string;
+  }[];
 };
 
 function mapVersion(
   v: Awaited<ReturnType<typeof prisma.reservationVersion.findUnique>> & {
     createdBy: { name: string };
-    items: {
-      id: string;
-      transportUnitId: string;
-      transportUnit: { name: string; weightKg: unknown };
-      quantity: number;
-      goodsWeightKg: unknown;
-      description: string | null;
-    }[];
-  },
+    items: { id: string; transportUnitId: string; transportUnit: { name: string; weightKg: unknown }; quantity: number; goodsWeightKg: unknown; description: string | null }[];
+    advices: { id: string; adviceNumber: string; quantity: number; note: string | null }[];
+  }
 ): ReservationVersionDetail {
   return {
     id: v.id,
@@ -722,12 +746,16 @@ function mapVersion(
       goodsWeightKg: i.goodsWeightKg !== null ? Number(i.goodsWeightKg) : null,
       description: i.description,
     })),
+    advices: v.advices.map((a) => ({
+      id: a.id,
+      adviceNumber: a.adviceNumber,
+      quantity: a.quantity,
+      note: a.note,
+    })),
   };
 }
 
-export async function getReservationDetail(
-  reservationId: string,
-): Promise<ReservationDetail | null> {
+export async function getReservationDetail(reservationId: string): Promise<ReservationDetail | null> {
   const session = await auth();
   if (!session) return null;
 
@@ -740,41 +768,25 @@ export async function getReservationDetail(
       client: true,
       supplier: true,
       createdBy: true,
-      confirmedVersion: {
-        include: {
-          createdBy: true,
-          items: { include: { transportUnit: true } },
-        },
-      },
-      pendingVersion: {
-        include: {
-          createdBy: true,
-          items: { include: { transportUnit: true } },
-        },
-      },
-      statusChanges: {
-        include: { changedBy: { select: { name: true } } },
-        orderBy: { changedAt: "asc" },
-      },
+      confirmedVersion: { include: { createdBy: true, items: { include: { transportUnit: true } }, advices: true } },
+      pendingVersion: { include: { createdBy: true, items: { include: { transportUnit: true } }, advices: true } },
+      statusChanges: { include: { changedBy: { select: { name: true } } }, orderBy: { changedAt: "asc" } },
+      attachments: { include: { uploadedBy: { select: { name: true } } }, orderBy: { uploadedAt: "asc" } },
     },
   });
 
   if (!r) return null;
 
   // Visibility check
-  if (
-    role === "WAREHOUSE_WORKER" &&
-    warehouseIds.length > 0 &&
-    !warehouseIds.includes(r.gate.warehouseId)
-  )
-    return null;
+  if (role === "WAREHOUSE_WORKER" && warehouseIds.length > 0 && !warehouseIds.includes(r.gate.warehouseId)) return null;
   if (role === "CLIENT" && clientId && r.clientId !== clientId) return null;
-  if (role === "SUPPLIER" && supplierId && r.supplierId !== supplierId)
-    return null;
+  if (role === "SUPPLIER" && supplierId && r.supplierId !== supplierId) return null;
 
   return {
     id: r.id,
     status: r.status,
+    reservationType: r.type,
+    gateId: r.gateId,
     gateName: r.gate.name,
     warehouseName: r.gate.warehouse.name,
     warehouseId: r.gate.warehouseId,
@@ -785,17 +797,21 @@ export async function getReservationDetail(
     createdByName: r.createdBy.name,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
-    confirmedVersion: r.confirmedVersion
-      ? mapVersion(r.confirmedVersion as Parameters<typeof mapVersion>[0])
-      : null,
-    pendingVersion: r.pendingVersion
-      ? mapVersion(r.pendingVersion as Parameters<typeof mapVersion>[0])
-      : null,
+    confirmedVersion: r.confirmedVersion ? mapVersion(r.confirmedVersion as Parameters<typeof mapVersion>[0]) : null,
+    pendingVersion: r.pendingVersion ? mapVersion(r.pendingVersion as Parameters<typeof mapVersion>[0]) : null,
     statusChanges: r.statusChanges.map((sc) => ({
       id: sc.id,
       status: sc.status,
       changedAt: sc.changedAt.toISOString(),
       changedByName: sc.changedBy.name,
+    })),
+    attachments: r.attachments.map((a) => ({
+      id: a.id,
+      originalName: a.originalName,
+      mimeType: a.mimeType,
+      fileSize: a.fileSize,
+      uploadedByName: a.uploadedBy.name,
+      uploadedAt: a.uploadedAt.toISOString(),
     })),
   };
 }
@@ -865,6 +881,8 @@ export type EditReservationInput = {
   driverContact?: string | null;
   notes?: string | null;
   items?: ReservationItemInput[];
+  advices?: ReservationAdviceInput[];
+  reservationType?: "LOADING" | "UNLOADING";
 };
 
 /** Detect whether changes affect unloading time (and thus require approval) */
@@ -877,39 +895,28 @@ function hasCriticalChanges(
   },
 ): boolean {
   if (input.startTime !== undefined) {
-    if (new Date(input.startTime).getTime() !== current.startTime.getTime())
-      return true;
+    if (new Date(input.startTime).getTime() !== current.startTime.getTime()) return true;
   }
-  if (
-    input.durationMinutes !== undefined &&
-    input.durationMinutes !== current.durationMinutes
-  ) {
+  if (input.durationMinutes !== undefined && input.durationMinutes !== current.durationMinutes) {
     return true;
   }
   if (input.items !== undefined) {
     if (input.items.length !== current.items.length) return true;
-    const sortedCurrent = [...current.items].sort(
-      (a, b) =>
-        a.transportUnitId.localeCompare(b.transportUnitId) ||
-        a.quantity - b.quantity,
+    const sortedCurrent = [...current.items].sort((a, b) =>
+      a.transportUnitId.localeCompare(b.transportUnitId) || a.quantity - b.quantity,
     );
-    const sortedNew = [...input.items].sort(
-      (a, b) =>
-        a.transportUnitId.localeCompare(b.transportUnitId) ||
-        a.quantity - b.quantity,
+    const sortedNew = [...input.items].sort((a, b) =>
+      a.transportUnitId.localeCompare(b.transportUnitId) || a.quantity - b.quantity,
     );
     for (let i = 0; i < sortedCurrent.length; i++) {
-      if (sortedCurrent[i].transportUnitId !== sortedNew[i].transportUnitId)
-        return true;
+      if (sortedCurrent[i].transportUnitId !== sortedNew[i].transportUnitId) return true;
       if (sortedCurrent[i].quantity !== sortedNew[i].quantity) return true;
     }
   }
   return false;
 }
 
-export async function editReservation(
-  input: EditReservationInput,
-): Promise<ActionResult> {
+export async function editReservation(input: EditReservationInput) {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
@@ -920,8 +927,8 @@ export async function editReservation(
     where: { id: input.reservationId },
     include: {
       gate: true,
-      confirmedVersion: { include: { items: true } },
-      pendingVersion: { include: { items: true } },
+      confirmedVersion: { include: { items: true, advices: true } },
+      pendingVersion: { include: { items: true, advices: true } },
     },
   });
 
@@ -938,6 +945,32 @@ export async function editReservation(
     throw new Error("Reservation cannot be edited in current status");
   }
 
+  // Holiday check when changing time (non-admin only)
+  if (input.startTime !== undefined && role !== "ADMIN") {
+    const gateWithWarehouse = await prisma.gates.findUniqueOrThrow({
+      where: { id: reservation.gateId },
+      select: { warehouse: { select: { country: true } } },
+    });
+    if (gateWithWarehouse.warehouse.country) {
+      const { checkHoliday } = await import("@/lib/holidays");
+      const holiday = checkHoliday(gateWithWarehouse.warehouse.country, new Date(input.startTime));
+      if (holiday.isHoliday) throw new Error(`Holiday: ${holiday.name}`);
+    }
+    const newStart = new Date(input.startTime);
+    const newDuration = input.durationMinutes ?? reservation.confirmedVersion?.durationMinutes ?? reservation.pendingVersion?.durationMinutes ?? 60;
+    const newEnd = new Date(newStart.getTime() + newDuration * 60 * 1000);
+    const blockReason = await getBlockingReason(reservation.gateId, newStart, newEnd);
+    if (blockReason) throw new Error(`Blocked: ${blockReason}`);
+  }
+
+  // Update reservation type if provided (lives on Reservation, not version)
+  if (input.reservationType !== undefined) {
+    await prisma.reservation.update({
+      where: { id: reservation.id },
+      data: { type: input.reservationType },
+    });
+  }
+
   // REQUESTED: edit the pending version directly (not yet approved, all changes are direct)
   if (reservation.status === "REQUESTED") {
     const pending = reservation.pendingVersion;
@@ -946,35 +979,19 @@ export async function editReservation(
     await prisma.reservationVersion.update({
       where: { id: pending.id },
       data: {
-        ...(input.startTime !== undefined
-          ? { startTime: new Date(input.startTime) }
-          : {}),
-        ...(input.durationMinutes !== undefined
-          ? { durationMinutes: input.durationMinutes }
-          : {}),
-        ...(input.vehicleType !== undefined
-          ? { vehicleType: input.vehicleType }
-          : {}),
-        ...(input.licensePlate !== undefined
-          ? { licensePlate: input.licensePlate }
-          : {}),
-        ...(input.sealNumbers !== undefined
-          ? { sealNumbers: input.sealNumbers }
-          : {}),
-        ...(input.driverName !== undefined
-          ? { driverName: input.driverName }
-          : {}),
-        ...(input.driverContact !== undefined
-          ? { driverContact: input.driverContact }
-          : {}),
+        ...(input.startTime !== undefined ? { startTime: new Date(input.startTime) } : {}),
+        ...(input.durationMinutes !== undefined ? { durationMinutes: input.durationMinutes } : {}),
+        ...(input.vehicleType !== undefined ? { vehicleType: input.vehicleType } : {}),
+        ...(input.licensePlate !== undefined ? { licensePlate: input.licensePlate } : {}),
+        ...(input.sealNumbers !== undefined ? { sealNumbers: input.sealNumbers } : {}),
+        ...(input.driverName !== undefined ? { driverName: input.driverName } : {}),
+        ...(input.driverContact !== undefined ? { driverContact: input.driverContact } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       },
     });
 
     if (input.items !== undefined) {
-      await prisma.reservationItem.deleteMany({
-        where: { reservationVersionId: pending.id },
-      });
+      await prisma.reservationItem.deleteMany({ where: { reservationVersionId: pending.id } });
       await prisma.reservationItem.createMany({
         data: input.items.map((item) => ({
           reservationVersionId: pending.id,
@@ -984,6 +1001,20 @@ export async function editReservation(
           description: item.description ?? null,
         })),
       });
+    }
+
+    if (input.advices !== undefined) {
+      await prisma.reservationAdvice.deleteMany({ where: { reservationVersionId: pending.id } });
+      if (input.advices.length > 0) {
+        await prisma.reservationAdvice.createMany({
+          data: input.advices.map((a) => ({
+            reservationVersionId: pending.id,
+            adviceNumber: a.adviceNumber,
+            quantity: a.quantity,
+            note: a.note ?? null,
+          })),
+        });
+      }
     }
 
     await auditLog({
@@ -1014,10 +1045,7 @@ export async function editReservation(
   const isCritical = hasCriticalChanges(input, {
     startTime: base.startTime,
     durationMinutes: base.durationMinutes,
-    items: base.items.map((i) => ({
-      transportUnitId: i.transportUnitId,
-      quantity: i.quantity,
-    })),
+    items: base.items.map((i) => ({ transportUnitId: i.transportUnitId, quantity: i.quantity })),
   });
 
   const isAdmin = role === "ADMIN";
@@ -1025,19 +1053,10 @@ export async function editReservation(
   if (!isCritical || isAdmin) {
     // Direct update — non-critical changes or admin overrides
     if (isCritical && isAdmin) {
-      const newStart = input.startTime
-        ? new Date(input.startTime)
-        : base.startTime;
+      const newStart = input.startTime ? new Date(input.startTime) : base.startTime;
       const newDuration = input.durationMinutes ?? base.durationMinutes;
       const newEnd = new Date(newStart.getTime() + newDuration * 60 * 1000);
-      if (
-        !(await isSlotFree(
-          reservation.gateId,
-          newStart,
-          newEnd,
-          reservation.id,
-        ))
-      ) {
+      if (!await isSlotFree(reservation.gateId, newStart, newEnd, reservation.id)) {
         throw new Error("Slot is already taken");
       }
     }
@@ -1045,35 +1064,19 @@ export async function editReservation(
     await prisma.reservationVersion.update({
       where: { id: base.id },
       data: {
-        ...(input.startTime !== undefined
-          ? { startTime: new Date(input.startTime) }
-          : {}),
-        ...(input.durationMinutes !== undefined
-          ? { durationMinutes: input.durationMinutes }
-          : {}),
-        ...(input.vehicleType !== undefined
-          ? { vehicleType: input.vehicleType }
-          : {}),
-        ...(input.licensePlate !== undefined
-          ? { licensePlate: input.licensePlate }
-          : {}),
-        ...(input.sealNumbers !== undefined
-          ? { sealNumbers: input.sealNumbers }
-          : {}),
-        ...(input.driverName !== undefined
-          ? { driverName: input.driverName }
-          : {}),
-        ...(input.driverContact !== undefined
-          ? { driverContact: input.driverContact }
-          : {}),
+        ...(input.startTime !== undefined ? { startTime: new Date(input.startTime) } : {}),
+        ...(input.durationMinutes !== undefined ? { durationMinutes: input.durationMinutes } : {}),
+        ...(input.vehicleType !== undefined ? { vehicleType: input.vehicleType } : {}),
+        ...(input.licensePlate !== undefined ? { licensePlate: input.licensePlate } : {}),
+        ...(input.sealNumbers !== undefined ? { sealNumbers: input.sealNumbers } : {}),
+        ...(input.driverName !== undefined ? { driverName: input.driverName } : {}),
+        ...(input.driverContact !== undefined ? { driverContact: input.driverContact } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       },
     });
 
     if (input.items !== undefined) {
-      await prisma.reservationItem.deleteMany({
-        where: { reservationVersionId: base.id },
-      });
+      await prisma.reservationItem.deleteMany({ where: { reservationVersionId: base.id } });
       await prisma.reservationItem.createMany({
         data: input.items.map((item) => ({
           reservationVersionId: base.id,
@@ -1083,6 +1086,20 @@ export async function editReservation(
           description: item.description ?? null,
         })),
       });
+    }
+
+    if (input.advices !== undefined) {
+      await prisma.reservationAdvice.deleteMany({ where: { reservationVersionId: base.id } });
+      if (input.advices.length > 0) {
+        await prisma.reservationAdvice.createMany({
+          data: input.advices.map((a) => ({
+            reservationVersionId: base.id,
+            adviceNumber: a.adviceNumber,
+            quantity: a.quantity,
+            note: a.note ?? null,
+          })),
+        });
+      }
     }
 
     await auditLog({
@@ -1100,36 +1117,34 @@ export async function editReservation(
         startTime: input.startTime ? new Date(input.startTime) : base.startTime,
         durationMinutes: input.durationMinutes ?? base.durationMinutes,
         vehicleType: (input.vehicleType as VehicleType) ?? base.vehicleType,
-        licensePlate:
-          input.licensePlate !== undefined
-            ? input.licensePlate
-            : base.licensePlate,
-        sealNumbers:
-          input.sealNumbers !== undefined
-            ? input.sealNumbers
-            : base.sealNumbers,
-        driverName:
-          input.driverName !== undefined ? input.driverName : base.driverName,
-        driverContact:
-          input.driverContact !== undefined
-            ? input.driverContact
-            : base.driverContact,
+        licensePlate: input.licensePlate !== undefined ? input.licensePlate : base.licensePlate,
+        sealNumbers: input.sealNumbers !== undefined ? input.sealNumbers : base.sealNumbers,
+        driverName: input.driverName !== undefined ? input.driverName : base.driverName,
+        driverContact: input.driverContact !== undefined ? input.driverContact : base.driverContact,
         notes: input.notes !== undefined ? input.notes : base.notes,
         createdById: user.id,
         items: {
-          create: (
-            input.items ??
-            base.items.map((i) => ({
-              transportUnitId: i.transportUnitId,
-              quantity: i.quantity,
-              goodsWeightKg: i.goodsWeightKg ? Number(i.goodsWeightKg) : null,
-              description: i.description,
-            }))
-          ).map((item) => ({
+          create: (input.items ?? base.items.map((i) => ({
+            transportUnitId: i.transportUnitId,
+            quantity: i.quantity,
+            goodsWeightKg: i.goodsWeightKg ? Number(i.goodsWeightKg) : null,
+            description: i.description,
+          }))).map((item) => ({
             transportUnitId: item.transportUnitId,
             quantity: item.quantity,
             goodsWeightKg: item.goodsWeightKg ?? null,
             description: item.description ?? null,
+          })),
+        },
+        advices: {
+          create: (input.advices ?? base.advices.map((a) => ({
+            adviceNumber: a.adviceNumber,
+            quantity: a.quantity,
+            note: a.note,
+          }))).map((a) => ({
+            adviceNumber: a.adviceNumber,
+            quantity: a.quantity,
+            note: a.note ?? null,
           })),
         },
       },

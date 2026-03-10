@@ -15,13 +15,32 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createWarehouse, updateWarehouse, deleteWarehouse } from "@/lib/actions/admin";
+
+const COUNTRY_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "CZ", label: "CZ" },
+  { value: "SK", label: "SK" },
+  { value: "DE", label: "DE" },
+  { value: "AT", label: "AT" },
+  { value: "PL", label: "PL" },
+  { value: "IT", label: "IT" },
+  { value: "HU", label: "HU" },
+] as const;
 
 type WarehouseItem = {
   id: string;
   name: string;
   address: string | null;
   timezone: string;
+  country: string | null;
   isActive: boolean;
 };
 
@@ -33,10 +52,11 @@ type FormData = {
   name: string;
   address: string;
   timezone: string;
+  country: string;
   isActive: boolean;
 };
 
-const emptyForm: FormData = { name: "", address: "", timezone: "Europe/Prague", isActive: true };
+const emptyForm: FormData = { name: "", address: "", timezone: "Europe/Prague", country: "", isActive: true };
 
 export function WarehousesClient({ items }: Props) {
   const t = useTranslations("warehouse");
@@ -56,7 +76,7 @@ export function WarehousesClient({ items }: Props) {
 
   function openEdit(w: WarehouseItem) {
     setEditingId(w.id);
-    setForm({ name: w.name, address: w.address ?? "", timezone: w.timezone, isActive: w.isActive });
+    setForm({ name: w.name, address: w.address ?? "", timezone: w.timezone, country: w.country ?? "", isActive: w.isActive });
     setDialogOpen(true);
   }
 
@@ -69,6 +89,7 @@ export function WarehousesClient({ items }: Props) {
             name: form.name,
             address: form.address || undefined,
             timezone: form.timezone || undefined,
+            country: form.country || undefined,
             isActive: form.isActive,
           });
           toast.success(tc("success"));
@@ -77,6 +98,7 @@ export function WarehousesClient({ items }: Props) {
             name: form.name,
             address: form.address || undefined,
             timezone: form.timezone || undefined,
+            country: form.country || undefined,
           });
           toast.success(tc("success"));
         }
@@ -120,6 +142,7 @@ export function WarehousesClient({ items }: Props) {
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.name")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.address")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.timezone")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("fields.country")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{tc("active")}</th>
                 <th className="w-24" />
               </tr>
@@ -130,6 +153,7 @@ export function WarehousesClient({ items }: Props) {
                   <td className="px-4 py-3 font-medium">{w.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{w.address || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{w.timezone}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{w.country || "—"}</td>
                   <td className="px-4 py-3">
                     <Badge variant={w.isActive ? "default" : "secondary"}>
                       {w.isActive ? tc("active") : tc("inactive")}
@@ -169,6 +193,22 @@ export function WarehousesClient({ items }: Props) {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.timezone")}</label>
               <Input value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.country")}</label>
+              <Select value={form.country} onValueChange={(v) => setForm({ ...form, country: v === "none" ? "" : v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  {COUNTRY_OPTIONS.filter((c) => c.value).map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.value} — {t(`countries.${c.value}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {editingId && (
               <label className="flex items-center gap-2 text-sm">

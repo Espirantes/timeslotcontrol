@@ -35,7 +35,25 @@
     "loginSubtitle": "Přihlaste se ke svému účtu",
     "loginError": "Neplatný e-mail nebo heslo",
     "loginButton": "Přihlásit se",
-    "appName": "Dock Scheduling System"
+    "appName": "Dock Scheduling System",
+    "name": "Jméno",
+    "confirmPassword": "Potvrzení hesla",
+    "passwordMismatch": "Hesla se neshodují",
+    "passwordTooShort": "Heslo musí mít alespoň 6 znaků",
+    "emailExists": "Tento e-mail je již zaregistrován",
+    "registerTitle": "Registrace dodavatele",
+    "registerSubtitle": "Vytvořte si účet dodavatele",
+    "registerMessage": "Zpráva",
+    "registerMessagePlaceholder": "Popište, ke které organizaci patříte a za koho dodáváte",
+    "registerButton": "Zaregistrovat se",
+    "registerError": "Registrace se nezdařila",
+    "registerSuccessTitle": "Registrace odeslána",
+    "registerSuccessMessage": "Váš účet čeká na schválení administrátorem. O výsledku budete informováni e-mailem.",
+    "backToLogin": "Zpět na přihlášení",
+    "alreadyHaveAccount": "Máte už účet?",
+    "noAccount": "Nemáte účet?",
+    "registerLink": "Zaregistrujte se",
+    "pendingApproval": "Váš účet čeká na schválení administrátorem. Dokud nebude schválen, nemůžete vytvářet rezervace."
   },
   "nav": {
     "calendar": "Kalendář",
@@ -52,7 +70,10 @@
     "logout": "Odhlásit se",
     "transportUnits": "Přepravní jednotky",
     "auditLog": "Audit log",
-    "guide": "Příručka"
+    "guide": "Příručka",
+    "mySuppliers": "Moji dodavatelé",
+    "groupClient": "Klient",
+    "recurringReservations": "Opakované závozy"
   },
   "reservation": {
     "title": "Rezervace",
@@ -64,7 +85,14 @@
       "CANCELLED": "Zrušena",
       "UNLOADING_STARTED": "Zahájena vykládka",
       "UNLOADING_COMPLETED": "Dokončena vykládka",
+      "LOADING_STARTED": "Zahájena nakládka",
+      "LOADING_COMPLETED": "Dokončena nakládka",
       "CLOSED": "Uzavřeno"
+    },
+    "reservationType": {
+      "label": "Typ",
+      "LOADING": "Nakládka",
+      "UNLOADING": "Vykládka"
     },
     "vehicleType": {
       "TRUCK": "Kamion",
@@ -109,6 +137,30 @@
       "total": "Celkem",
       "description": "Popis"
     },
+    "advices": {
+      "title": "Avíza",
+      "add": "Přidat avízo",
+      "adviceNumber": "Číslo avíza",
+      "quantity": "Množství",
+      "note": "Poznámka"
+    },
+    "attachments": {
+      "title": "Přílohy",
+      "upload": "Nahrát soubor",
+      "download": "Stáhnout",
+      "delete": "Smazat",
+      "noAttachments": "Žádné přílohy",
+      "maxSize": "Max. velikost: 10 MB",
+      "uploadSuccess": "Soubor nahrán",
+      "deleteSuccess": "Soubor smazán",
+      "invalidType": "Nepodporovaný typ souboru",
+      "tooLarge": "Soubor je příliš velký",
+      "confirmDelete": "Opravdu smazat tento soubor?",
+      "fileName": "Název souboru",
+      "size": "Velikost",
+      "uploadedBy": "Nahrál",
+      "uploadedAt": "Datum"
+    },
     "approval": {
       "pendingChange": "Čeká na schválení změny",
       "approveChange": "Schválit změnu",
@@ -150,6 +202,10 @@
       "saved": "Změny uloženy",
       "submittedForApproval": "Změna odeslána ke schválení"
     },
+    "holiday": {
+      "blocked": "Státní svátek: {name}",
+      "selectDifferentDay": "Prosím zvolte jiný den"
+    },
     "calendar": {
       "booked": "Obsazeno",
       "pending": "Čeká na schválení",
@@ -165,7 +221,17 @@
     "fields": {
       "name": "Název",
       "address": "Adresa",
-      "timezone": "Časová zóna"
+      "timezone": "Časová zóna",
+      "country": "Země (svátky)"
+    },
+    "countries": {
+      "CZ": "Česko",
+      "SK": "Slovensko",
+      "DE": "Německo",
+      "AT": "Rakousko",
+      "PL": "Polsko",
+      "IT": "Itálie",
+      "HU": "Maďarsko"
     }
   },
   "gate": {
@@ -186,7 +252,8 @@
       "description": "Popis",
       "warehouse": "Sklad",
       "openTime": "Otevření",
-      "closeTime": "Zavření"
+      "closeTime": "Zavření",
+      "sortOrder": "Pořadí"
     }
   },
   "client": {
@@ -196,8 +263,11 @@
       "name": "Název",
       "contactEmail": "Kontaktní e-mail",
       "suppliers": "Dodavatelé",
-      "reservations": "Rezervace"
-    }
+      "reservations": "Rezervace",
+      "canManageSuppliers": "Může spravovat dodavatele"
+    },
+    "enableAllSupplierMgmt": "Povolit všem",
+    "disableAllSupplierMgmt": "Zakázat všem"
   },
   "supplier": {
     "title": "Dodavatelé / Dopravci",
@@ -229,7 +299,13 @@
       "password": "Heslo",
       "passwordPlaceholder": "Zadejte heslo (min. 8 znaků)",
       "passwordHelp": "Ponechte prázdné, pokud nechcete měnit heslo"
-    }
+    },
+    "tabAll": "Všichni",
+    "tabPending": "Ke schválení",
+    "noPending": "Žádní uživatelé nečekají na schválení",
+    "approve": "Schválit",
+    "reject": "Zamítnout",
+    "approveTitle": "Schválení uživatele"
   },
   "transportUnit": {
     "title": "Přepravní jednotky",
@@ -280,7 +356,10 @@
     "RESERVATION_APPROVED": "Rezervace schválena",
     "RESERVATION_REJECTED": "Rezervace zamítnuta",
     "STATUS_CHANGED": "Změna stavu",
-    "CHANGE_REQUESTED": "Žádost o změnu"
+    "CHANGE_REQUESTED": "Žádost o změnu",
+    "USER_REGISTERED": "Nová registrace",
+    "USER_APPROVED": "Účet schválen",
+    "USER_REJECTED": "Účet zamítnut"
   },
   "auditLog": {
     "title": "Audit log",
@@ -315,15 +394,38 @@
       "version_rejected": "Zamítnuto",
       "version_proposed": "Navržena změna",
       "profile_updated": "Profil upraven",
-      "password_changed": "Heslo změněno"
+      "password_changed": "Heslo změněno",
+      "deactivated": "Deaktivováno",
+      "approved": "Schváleno",
+      "rejected": "Zamítnuto"
     }
+  },
+  "mySuppliers": {
+    "title": "Moji dodavatelé",
+    "addSupplier": "Přidat dodavatele",
+    "accounts": "účtů",
+    "deactivate": "Deaktivovat",
+    "emailExists": "Tento e-mail je již zaregistrován",
+    "supplierType": "Dodavatel",
+    "newSupplier": "Nový dodavatel",
+    "existingSupplier": "Existující dodavatel",
+    "selectSupplier": "Vyberte dodavatele",
+    "supplierName": "Název dodavatele",
+    "supplierEmail": "E-mail dodavatele",
+    "userDetails": "Údaje uživatele",
+    "userName": "Jméno",
+    "userEmail": "E-mail",
+    "userPassword": "Heslo"
   },
   "guide": {
     "title": "Příručka",
     "subtitle": "Stručný přehled všech funkcí aplikace Dock Scheduling System.",
     "roles": {
       "all": "Všechny role",
-      "admin": "Administrátor"
+      "admin": "Administrátor",
+      "worker": "Pracovník skladu",
+      "client": "Klient",
+      "supplier": "Dodavatel"
     },
     "intro": {
       "title": "O aplikaci",
@@ -337,13 +439,24 @@
       "roleSupplier": "Dodavatel / Dopravce",
       "roleSupplierDesc": "Vytváří rezervace, zadává údaje o vozidle, řidiči a přepravovaném zboží."
     },
+    "registration": {
+      "title": "Registrace nového účtu",
+      "desc": "Noví dodavatelé se mohou zaregistrovat sami přes veřejný registrační formulář. Po registraci účet čeká na schválení administrátorem.",
+      "point1": "Na přihlašovací stránce klikněte na odkaz 'Zaregistrujte se'.",
+      "point2": "Vyplňte jméno, e-mail, heslo a zprávu pro administrátora (ke komu patříte, co dovážíte).",
+      "point3": "Po registraci se můžete přihlásit, ale uvidíte banner 'Čeká na schválení' a nemůžete vytvářet rezervace.",
+      "tip": "Ve zprávě pro administrátora uveďte, pro kterého klienta (příjemce) dodáváte — usnadníte tím schválení a přiřazení k organizaci."
+    },
     "calendar": {
       "title": "Kalendář",
       "desc": "Kalendář zobrazuje všechny rezervace na časové ose podle ramp. Každá rampa je sloupec, rezervace jsou barevné bloky.",
       "point1": "Vyberte sklad v rozbalovacím menu nahoře pro filtrování ramp.",
       "point2": "Klikněte na rezervaci pro zobrazení detailu.",
       "point3": "Barevné odlišení: potvrzené rezervace vs. čekající na schválení.",
-      "tip": "Příklad: Chcete zjistit, zda je rampa A volná ve čtvrtek odpoledne? Otevřete kalendář, vyberte sklad a podívejte se na sloupec rampy A."
+      "tip": "Příklad: Chcete zjistit, zda je rampa A volná ve čtvrtek odpoledne? Otevřete kalendář, vyberte sklad a podívejte se na sloupec rampy A.",
+      "tipWorker": "Klikněte na rezervaci v kalendáři a rovnou změňte její stav — zahajte nebo dokončete vykládku.",
+      "tipSupplier": "V kalendáři vidíte jen své rezervace. Zkontrolujte si, zda je váš požadovaný čas na rampě volný.",
+      "tipClient": "V kalendáři sledujete všechny příchozí dodávky vašich dodavatelů na jednom místě."
     },
     "reservations": {
       "title": "Rezervace",
@@ -359,7 +472,13 @@
       "statusUnloading": "Vykládka",
       "statusCompleted": "Dokončeno",
       "statusClosed": "Uzavřeno",
-      "tip": "Příklad: Dodavatel PG Logistika chce dodat 10 palet do skladu Praha-Západ na rampu B, čtvrtek 8:00. Vytvoří rezervaci, vyplní SPZ a jméno řidiče. Pracovník skladu rezervaci schválí a ráno při příjezdu kamiónu změní stav na Vykládka zahájena."
+      "tip": "Příklad: Dodavatel PG Logistika chce dodat 10 palet do skladu Praha-Západ na rampu B, čtvrtek 8:00. Vytvoří rezervaci, vyplní SPZ a jméno řidiče. Pracovník skladu rezervaci schválí a ráno při příjezdu kamiónu změní stav na Vykládka zahájena.",
+      "descWorker": "Jako pracovník skladu schvalujete příchozí rezervace a řídíte průběh vykládky — od zahájení po uzavření.",
+      "descSupplier": "Jako dodavatel vytváříte rezervace na konkrétní rampy a časy. Vyplňte údaje o vozidle, řidiči a přepravovaném zboží.",
+      "descClient": "Jako klient vidíte přehled všech rezervací směřujících k vaší organizaci a můžete sledovat jejich stav.",
+      "tipWorker": "Při příjezdu kamiónu otevřete rezervaci a změňte stav na 'Vykládka zahájena'. Po dokončení klikněte na 'Vykládka dokončena'.",
+      "tipSupplier": "Vyplňte SPZ a jméno řidiče co nejdříve — usnadníte tím práci na příjmu.",
+      "tipClient": "Sledujte stav rezervací vašich dodavatelů. Zapněte si notifikace, abyste byli informováni o změnách."
     },
     "settings": {
       "title": "Nastavení",
@@ -368,6 +487,17 @@
       "point2": "Změna hesla (zadejte aktuální a nové heslo).",
       "point3": "Zapnutí/vypnutí notifikací v aplikaci a v prohlížeči.",
       "tip": "Zapněte si notifikace v prohlížeči, abyste nepropásli schválení nebo zamítnutí vaší rezervace."
+    },
+    "client": {
+      "heading": "Správa dodavatelů (role Klient)",
+      "mySuppliers": {
+        "title": "Moji dodavatelé",
+        "desc": "Pokud vám administrátor povolil správu dodavatelů, můžete vytvářet účty pro své dodavatele. Tyto účty jsou automaticky ověřené a připravené k použití.",
+        "point1": "V sekci 'Moji dodavatelé' vidíte seznam svých dodavatelských organizací a jejich uživatelů.",
+        "point2": "Tlačítkem 'Přidat dodavatele' vytvoříte nový účet — vyberete existujícího dodavatele nebo vytvoříte nového.",
+        "point3": "Můžete také deaktivovat účty dodavatelů, kteří s vámi již nespolupracují.",
+        "tip": "Účty vytvořené klientem jsou okamžitě aktivní — dodavatel se může rovnou přihlásit a vytvářet rezervace."
+      }
     },
     "admin": {
       "heading": "Správa systému (pouze Administrátor)",
@@ -388,8 +518,8 @@
       },
       "users": {
         "title": "Uživatelé",
-        "desc": "Správa uživatelských účtů. Každému uživateli přiřadíte roli (Admin, Pracovník, Klient, Dodavatel) a příslušnou organizaci.",
-        "tip": "Příklad: Nový pracovník Jan Novák → role 'Pracovník skladu', přiřazen ke skladu 'Praha-Západ'."
+        "desc": "Správa uživatelských účtů. Tab 'Všichni' zobrazuje existující uživatele, tab 'Ke schválení' nové registrace čekající na vaše schválení. U každé registrace vidíte zprávu od uživatele.",
+        "tip": "Při schvalování registrace vyberte dodavatelskou organizaci, ke které uživatel patří. Zamítnuté registrace jsou smazány a uživatel obdrží e-mail."
       },
       "transportUnits": {
         "title": "Přepravní jednotky",
@@ -402,5 +532,70 @@
         "tip": "Příklad: Chcete zjistit, kdo zamítl rezervaci #42? Otevřete audit log a filtrujte podle entity 'Rezervace'."
       }
     }
+  },
+  "gateBlock": {
+    "title": "Blokace",
+    "add": "Přidat blokaci",
+    "reason": "Důvod",
+    "startTime": "Od",
+    "endTime": "Do",
+    "date": "Datum",
+    "delete": "Smazat blokaci",
+    "confirmDelete": "Opravdu smazat tuto blokaci?",
+    "created": "Blokace vytvořena",
+    "deleted": "Blokace smazána",
+    "blocked": "Rampa blokována: {reason}",
+    "selectAction": "Vyberte akci",
+    "newReservation": "Nová rezervace",
+    "blockGate": "Blokovat rampu",
+    "fullDay": "Celý den"
+  },
+  "recurring": {
+    "title": "Opakované závozy",
+    "new": "Nový opakovaný závoz",
+    "createTitle": "Nový opakovaný závoz",
+    "type": {
+      "label": "Typ opakování",
+      "DAILY": "Denní (Po–Pá)",
+      "WEEKLY": "Týdenní",
+      "MONTHLY": "Měsíční"
+    },
+    "fields": {
+      "startDate": "Platnost od",
+      "endDate": "Platnost do",
+      "noEndDate": "Bez konce",
+      "timeOfDay": "Čas",
+      "weekDays": "Dny v týdnu",
+      "dayOfMonth": "Den v měsíci"
+    },
+    "status": {
+      "active": "Aktivní",
+      "inactive": "Neaktivní"
+    },
+    "actions": {
+      "deactivate": "Deaktivovat",
+      "cancelFuture": "Zrušit budoucí rezervace",
+      "generateMore": "Generovat další",
+      "confirmDeactivate": "Opravdu deaktivovat tento opakovaný závoz?",
+      "confirmCancelFuture": "Opravdu zrušit všechny budoucí rezervace z tohoto opakovaného závozu?"
+    },
+    "generation": {
+      "title": "Výsledek generování",
+      "created": "Vytvořeno rezervací",
+      "skipped": "Přeskočeno",
+      "reasonHoliday": "Svátek",
+      "reasonBlocked": "Blokace",
+      "reasonOccupied": "Slot obsazen",
+      "reasonGateClosed": "Rampa zavřena"
+    },
+    "list": {
+      "colRecurrence": "Opakování",
+      "colValidity": "Platnost",
+      "colStatus": "Stav",
+      "colInstances": "Rezervací",
+      "colGateClient": "Rampa / Klient",
+      "empty": "Žádné opakované závozy"
+    },
+    "badge": "Opakovaný závoz"
   }
 }

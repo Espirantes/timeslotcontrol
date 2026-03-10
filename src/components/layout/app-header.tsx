@@ -34,9 +34,7 @@ export function LanguageSwitcher() {
   const pathname = usePathname();
 
   function switchLocale(newLocale: string) {
-    const segments = pathname.split("/");
-    segments[1] = newLocale;
-    router.push(segments.join("/"));
+    router.replace(pathname, { locale: newLocale });
   }
 
   return (

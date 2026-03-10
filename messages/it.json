@@ -35,7 +35,25 @@
     "loginSubtitle": "Accedi al tuo account",
     "loginError": "Email o password non validi",
     "loginButton": "Accedi",
-    "appName": "Dock Scheduling System"
+    "appName": "Dock Scheduling System",
+    "name": "Nome",
+    "confirmPassword": "Conferma password",
+    "passwordMismatch": "Le password non coincidono",
+    "passwordTooShort": "La password deve avere almeno 6 caratteri",
+    "emailExists": "Questa email è già registrata",
+    "registerTitle": "Registrazione fornitore",
+    "registerSubtitle": "Crea un account fornitore",
+    "registerMessage": "Messaggio",
+    "registerMessagePlaceholder": "Descrivi a quale organizzazione appartieni e per chi effettui le consegne",
+    "registerButton": "Registrati",
+    "registerError": "Registrazione fallita",
+    "registerSuccessTitle": "Registrazione inviata",
+    "registerSuccessMessage": "Il tuo account è in attesa di approvazione da parte dell'amministratore. Sarai avvisato via email.",
+    "backToLogin": "Torna al login",
+    "alreadyHaveAccount": "Hai già un account?",
+    "noAccount": "Non hai un account?",
+    "registerLink": "Registrati",
+    "pendingApproval": "Il tuo account è in attesa di approvazione da parte dell'amministratore. Fino all'approvazione, non puoi creare prenotazioni."
   },
   "nav": {
     "calendar": "Calendario",
@@ -52,7 +70,10 @@
     "logout": "Esci",
     "transportUnits": "Unità di trasporto",
     "auditLog": "Audit log",
-    "guide": "Guida"
+    "guide": "Guida",
+    "mySuppliers": "I miei fornitori",
+    "groupClient": "Cliente",
+    "recurringReservations": "Prenotazioni ricorrenti"
   },
   "reservation": {
     "title": "Prenotazioni",
@@ -64,7 +85,14 @@
       "CANCELLED": "Annullata",
       "UNLOADING_STARTED": "Scarico iniziato",
       "UNLOADING_COMPLETED": "Scarico completato",
+      "LOADING_STARTED": "Carico iniziato",
+      "LOADING_COMPLETED": "Carico completato",
       "CLOSED": "Chiusa"
+    },
+    "reservationType": {
+      "label": "Tipo",
+      "LOADING": "Carico",
+      "UNLOADING": "Scarico"
     },
     "vehicleType": {
       "TRUCK": "Camion",
@@ -109,6 +137,30 @@
       "total": "Totale",
       "description": "Descrizione"
     },
+    "advices": {
+      "title": "Avvisi di consegna",
+      "add": "Aggiungi avviso",
+      "adviceNumber": "Numero avviso",
+      "quantity": "Quantità",
+      "note": "Nota"
+    },
+    "attachments": {
+      "title": "Allegati",
+      "upload": "Carica file",
+      "download": "Scarica",
+      "delete": "Elimina",
+      "noAttachments": "Nessun allegato",
+      "maxSize": "Dim. max: 10 MB",
+      "uploadSuccess": "File caricato",
+      "deleteSuccess": "File eliminato",
+      "invalidType": "Tipo di file non supportato",
+      "tooLarge": "File troppo grande",
+      "confirmDelete": "Sei sicuro di voler eliminare questo file?",
+      "fileName": "Nome file",
+      "size": "Dimensione",
+      "uploadedBy": "Caricato da",
+      "uploadedAt": "Data"
+    },
     "approval": {
       "pendingChange": "Modifica in attesa di approvazione",
       "approveChange": "Approva modifica",
@@ -150,6 +202,10 @@
       "saved": "Modifiche salvate",
       "submittedForApproval": "Modifica inviata per approvazione"
     },
+    "holiday": {
+      "blocked": "Giorno festivo: {name}",
+      "selectDifferentDay": "Si prega di selezionare un altro giorno"
+    },
     "calendar": {
       "booked": "Occupato",
       "pending": "In attesa di approvazione",
@@ -165,7 +221,17 @@
     "fields": {
       "name": "Nome",
       "address": "Indirizzo",
-      "timezone": "Fuso orario"
+      "timezone": "Fuso orario",
+      "country": "Paese (festivi)"
+    },
+    "countries": {
+      "CZ": "Repubblica Ceca",
+      "SK": "Slovacchia",
+      "DE": "Germania",
+      "AT": "Austria",
+      "PL": "Polonia",
+      "IT": "Italia",
+      "HU": "Ungheria"
     }
   },
   "gate": {
@@ -186,7 +252,8 @@
       "description": "Descrizione",
       "warehouse": "Magazzino",
       "openTime": "Apertura",
-      "closeTime": "Chiusura"
+      "closeTime": "Chiusura",
+      "sortOrder": "Ordine"
     }
   },
   "client": {
@@ -196,8 +263,11 @@
       "name": "Nome",
       "contactEmail": "Email di contatto",
       "suppliers": "Fornitori",
-      "reservations": "Prenotazioni"
-    }
+      "reservations": "Prenotazioni",
+      "canManageSuppliers": "Può gestire fornitori"
+    },
+    "enableAllSupplierMgmt": "Abilita tutti",
+    "disableAllSupplierMgmt": "Disabilita tutti"
   },
   "supplier": {
     "title": "Fornitori / Vettori",
@@ -229,7 +299,13 @@
       "password": "Password",
       "passwordPlaceholder": "Inserisci password (min. 8 caratteri)",
       "passwordHelp": "Lascia vuoto per mantenere la password attuale"
-    }
+    },
+    "tabAll": "Tutti",
+    "tabPending": "In attesa",
+    "noPending": "Nessun utente in attesa di approvazione",
+    "approve": "Approva",
+    "reject": "Rifiuta",
+    "approveTitle": "Approva utente"
   },
   "transportUnit": {
     "title": "Unità di trasporto",
@@ -280,7 +356,10 @@
     "RESERVATION_APPROVED": "Prenotazione approvata",
     "RESERVATION_REJECTED": "Prenotazione rifiutata",
     "STATUS_CHANGED": "Stato modificato",
-    "CHANGE_REQUESTED": "Modifica richiesta"
+    "CHANGE_REQUESTED": "Modifica richiesta",
+    "USER_REGISTERED": "Nuova registrazione",
+    "USER_APPROVED": "Account approvato",
+    "USER_REJECTED": "Account rifiutato"
   },
   "auditLog": {
     "title": "Audit log",
@@ -315,15 +394,38 @@
       "version_rejected": "Rifiutato",
       "version_proposed": "Modifica proposta",
       "profile_updated": "Profilo aggiornato",
-      "password_changed": "Password cambiata"
+      "password_changed": "Password cambiata",
+      "deactivated": "Disattivato",
+      "approved": "Approvato",
+      "rejected": "Rifiutato"
     }
+  },
+  "mySuppliers": {
+    "title": "I miei fornitori",
+    "addSupplier": "Aggiungi fornitore",
+    "accounts": "account",
+    "deactivate": "Disattiva",
+    "emailExists": "Questa email è già registrata",
+    "supplierType": "Fornitore",
+    "newSupplier": "Nuovo fornitore",
+    "existingSupplier": "Fornitore esistente",
+    "selectSupplier": "Seleziona fornitore",
+    "supplierName": "Nome fornitore",
+    "supplierEmail": "Email fornitore",
+    "userDetails": "Dettagli utente",
+    "userName": "Nome",
+    "userEmail": "Email",
+    "userPassword": "Password"
   },
   "guide": {
     "title": "Guida",
     "subtitle": "Una panoramica di tutte le funzionalità di Dock Scheduling System.",
     "roles": {
       "all": "Tutti i ruoli",
-      "admin": "Amministratore"
+      "admin": "Amministratore",
+      "worker": "Operatore magazzino",
+      "client": "Cliente",
+      "supplier": "Fornitore"
     },
     "intro": {
       "title": "Informazioni sull'app",
@@ -337,13 +439,24 @@
       "roleSupplier": "Fornitore / Vettore",
       "roleSupplierDesc": "Crea prenotazioni, inserisce i dati del veicolo, dell'autista e della merce."
     },
+    "registration": {
+      "title": "Registrazione account",
+      "desc": "I nuovi fornitori possono registrarsi autonomamente tramite il modulo di registrazione pubblico. Dopo la registrazione, l'account attende l'approvazione dell'amministratore.",
+      "point1": "Nella pagina di accesso, clicca sul link 'Registrati'.",
+      "point2": "Compila nome, email, password e un messaggio per l'amministratore (chi sei, a quale azienda appartieni).",
+      "point3": "Dopo la registrazione, puoi accedere ma vedrai un banner 'In attesa di approvazione' e non potrai creare prenotazioni.",
+      "tip": "Nel messaggio per l'amministratore, indica per quale cliente (destinatario) effettui le consegne — questo accelera l'approvazione e l'assegnazione all'organizzazione."
+    },
     "calendar": {
       "title": "Calendario",
       "desc": "Il calendario mostra tutte le prenotazioni su una linea temporale organizzata per banchine. Ogni banchina è una colonna, le prenotazioni sono blocchi colorati.",
       "point1": "Seleziona un magazzino dal menu a tendina in alto per filtrare le banchine.",
       "point2": "Clicca su una prenotazione per visualizzarne i dettagli.",
       "point3": "Codice colore: prenotazioni confermate vs. in attesa di approvazione.",
-      "tip": "Esempio: Vuoi verificare se la Banchina A è libera giovedì pomeriggio? Apri il calendario, seleziona il magazzino e guarda la colonna della Banchina A."
+      "tip": "Esempio: Vuoi verificare se la Banchina A è libera giovedì pomeriggio? Apri il calendario, seleziona il magazzino e guarda la colonna della Banchina A.",
+      "tipWorker": "Clicca su una prenotazione nel calendario e cambia subito il suo stato — avvia o completa lo scarico.",
+      "tipSupplier": "Nel calendario vedi solo le tue prenotazioni. Verifica se la fascia oraria desiderata alla banchina è disponibile.",
+      "tipClient": "Nel calendario puoi monitorare tutte le consegne in arrivo dai tuoi fornitori in un unico posto."
     },
     "reservations": {
       "title": "Prenotazioni",
@@ -359,7 +472,13 @@
       "statusUnloading": "Scarico",
       "statusCompleted": "Completata",
       "statusClosed": "Chiusa",
-      "tip": "Esempio: Il fornitore PG Logistika vuole consegnare 10 pallet al magazzino Praha-Západ alla Banchina B, giovedì alle 8:00. Crea una prenotazione, inserisce targa e nome autista. L'operatore approva e, all'arrivo del camion, cambia lo stato in \"Scarico iniziato\"."
+      "tip": "Esempio: Il fornitore PG Logistika vuole consegnare 10 pallet al magazzino Praha-Západ alla Banchina B, giovedì alle 8:00. Crea una prenotazione, inserisce targa e nome autista. L'operatore approva e, all'arrivo del camion, cambia lo stato in \"Scarico iniziato\".",
+      "descWorker": "Come operatore di magazzino, approvi le prenotazioni in arrivo e gestisci il processo di scarico — dall'inizio alla chiusura.",
+      "descSupplier": "Come fornitore, crei prenotazioni per banchine e orari specifici. Compila i dati del veicolo, dell'autista e della merce.",
+      "descClient": "Come cliente, visualizzi tutte le prenotazioni dirette alla tua organizzazione e puoi monitorarne lo stato.",
+      "tipWorker": "All'arrivo del camion, apri la prenotazione e cambia lo stato in \"Scarico iniziato\". Al termine, clicca \"Scarico completato\".",
+      "tipSupplier": "Inserisci targa e nome autista il prima possibile — faciliterai il processo di ricezione.",
+      "tipClient": "Monitora lo stato delle prenotazioni dei tuoi fornitori. Attiva le notifiche per essere informato sui cambiamenti."
     },
     "settings": {
       "title": "Impostazioni",
@@ -368,6 +487,17 @@
       "point2": "Cambia la password (inserisci la password attuale e quella nuova).",
       "point3": "Attiva/disattiva le notifiche in-app e del browser.",
       "tip": "Attiva le notifiche del browser per non perdere l'approvazione o il rifiuto della tua prenotazione."
+    },
+    "client": {
+      "heading": "Gestione fornitori (ruolo Cliente)",
+      "mySuppliers": {
+        "title": "I miei fornitori",
+        "desc": "Se l'amministratore ha abilitato la gestione fornitori per te, puoi creare account per i tuoi fornitori. Questi account sono automaticamente verificati e pronti all'uso.",
+        "point1": "Nella sezione 'I miei fornitori' vedi l'elenco delle tue organizzazioni di fornitori e i loro utenti.",
+        "point2": "Usa il pulsante 'Aggiungi fornitore' per creare un nuovo account — scegli un fornitore esistente o creane uno nuovo.",
+        "point3": "Puoi anche disattivare gli account dei fornitori che non collaborano più con te.",
+        "tip": "Gli account creati dal cliente sono immediatamente attivi — il fornitore può accedere e creare prenotazioni subito."
+      }
     },
     "admin": {
       "heading": "Amministrazione del sistema (solo Amministratore)",
@@ -388,8 +518,8 @@
       },
       "users": {
         "title": "Utenti",
-        "desc": "Gestione degli account utente. Assegna a ogni utente un ruolo (Admin, Operatore, Cliente, Fornitore) e l'organizzazione corrispondente.",
-        "tip": "Esempio: Nuovo operatore Jan Novák → ruolo \"Operatore magazzino\", assegnato al magazzino \"Praha-Západ\"."
+        "desc": "Gestione degli account utente. La scheda 'Tutti' mostra gli utenti esistenti, la scheda 'In attesa' mostra le nuove registrazioni che attendono la tua approvazione. Ogni registrazione include un messaggio dell'utente.",
+        "tip": "Quando approvi una registrazione, seleziona l'organizzazione fornitore a cui appartiene l'utente. Le registrazioni rifiutate vengono eliminate e l'utente riceve una notifica via email."
       },
       "transportUnits": {
         "title": "Unità di trasporto",
@@ -402,5 +532,70 @@
         "tip": "Esempio: Vuoi scoprire chi ha rifiutato la prenotazione #42? Apri l'audit log e filtra per entità \"Prenotazione\"."
       }
     }
+  },
+  "gateBlock": {
+    "title": "Blocchi",
+    "add": "Aggiungi blocco",
+    "reason": "Motivo",
+    "startTime": "Da",
+    "endTime": "A",
+    "date": "Data",
+    "delete": "Elimina blocco",
+    "confirmDelete": "Sei sicuro di voler eliminare questo blocco?",
+    "created": "Blocco creato",
+    "deleted": "Blocco eliminato",
+    "blocked": "Rampa bloccata: {reason}",
+    "selectAction": "Seleziona azione",
+    "newReservation": "Nuova prenotazione",
+    "blockGate": "Blocca rampa",
+    "fullDay": "Giornata intera"
+  },
+  "recurring": {
+    "title": "Prenotazioni ricorrenti",
+    "new": "Nuova prenotazione ricorrente",
+    "createTitle": "Nuova prenotazione ricorrente",
+    "type": {
+      "label": "Tipo di ricorrenza",
+      "DAILY": "Giornaliero (Lun–Ven)",
+      "WEEKLY": "Settimanale",
+      "MONTHLY": "Mensile"
+    },
+    "fields": {
+      "startDate": "Valido dal",
+      "endDate": "Valido fino al",
+      "noEndDate": "Senza scadenza",
+      "timeOfDay": "Ora",
+      "weekDays": "Giorni della settimana",
+      "dayOfMonth": "Giorno del mese"
+    },
+    "status": {
+      "active": "Attivo",
+      "inactive": "Inattivo"
+    },
+    "actions": {
+      "deactivate": "Disattivare",
+      "cancelFuture": "Annulla prenotazioni future",
+      "generateMore": "Genera altre",
+      "confirmDeactivate": "Disattivare davvero questa prenotazione ricorrente?",
+      "confirmCancelFuture": "Annullare davvero tutte le prenotazioni future di questa serie?"
+    },
+    "generation": {
+      "title": "Risultato della generazione",
+      "created": "Prenotazioni create",
+      "skipped": "Saltate",
+      "reasonHoliday": "Festivo",
+      "reasonBlocked": "Bloccato",
+      "reasonOccupied": "Slot occupato",
+      "reasonGateClosed": "Rampa chiusa"
+    },
+    "list": {
+      "colRecurrence": "Ricorrenza",
+      "colValidity": "Validità",
+      "colStatus": "Stato",
+      "colInstances": "Prenotazioni",
+      "colGateClient": "Rampa / Cliente",
+      "empty": "Nessuna prenotazione ricorrente"
+    },
+    "badge": "Ricorrente"
   }
 }

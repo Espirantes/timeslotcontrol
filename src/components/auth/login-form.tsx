@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
+import { Link } from "@/i18n/navigation";
 
 export function LoginForm() {
   const t = useTranslations("auth");
@@ -41,9 +42,9 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-sm overflow-hidden shadow-xl border-0">
-      <div className="bg-brand-navy px-6 py-8 flex flex-col items-center gap-3">
-        <Image src="/logo-mailstep.svg" alt="Mailstep" width={160} height={36} className="h-9 w-auto" />
-        <span className="text-[11px] font-medium tracking-widest uppercase text-brand-muted">{t("appName")}</span>
+      <div className="bg-brand-navy px-6 py-10 flex flex-col items-center gap-4">
+        <Image src="/logo-mailstep.svg" alt="Mailstep" width={200} height={48} className="h-12 w-auto" />
+        <span className="text-xs font-medium tracking-widest uppercase text-brand-muted">{t("appName")}</span>
       </div>
       <div className="h-1 bg-brand-red" />
       <CardHeader>
@@ -79,6 +80,12 @@ export function LoginForm() {
           <Button type="submit" disabled={loading}>
             {loading ? "..." : t("loginButton")}
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            {t("noAccount")}{" "}
+            <Link href="/register" className="text-brand-red hover:underline font-medium">
+              {t("registerLink")}
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>

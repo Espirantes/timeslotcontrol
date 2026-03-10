@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import type { CalendarEvent } from "@/lib/actions/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, ExternalLink, Check, XCircle } from "lucide-react";
+import { X, ExternalLink, Check, XCircle, Repeat2 } from "lucide-react";
+import { statusKey } from "@/lib/reservation-utils";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   REQUESTED: "secondary",
@@ -30,6 +31,7 @@ type Props = {
 export function ReservationPopover({ event, anchor, onClose, onOpenDetail, userRole, onApprove, onReject }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useTranslations("reservation");
+  const tRecurring = useTranslations("recurring");
   const tCommon = useTranslations("common");
 
   useEffect(() => {
@@ -68,10 +70,21 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail, userR
         </button>
       </div>
 
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {event.reservationType && (
+          <Badge variant="outline" className="text-xs">
+            {t(`reservationType.${event.reservationType}`)}
+          </Badge>
+        )}
         <Badge variant={STATUS_VARIANT[event.status] ?? "secondary"}>
-          {t(`status.${event.status}`)}
+          {t(`status.${statusKey(event.status, event.reservationType)}`)}
         </Badge>
+        {event.isRecurring && (
+          <Badge variant="outline" className="text-xs gap-0.5">
+            <Repeat2 className="size-3" />
+            {tRecurring("badge")}
+          </Badge>
+        )}
         <span className="text-sm text-muted-foreground">
           {startTime} – {endTime}
           {event.durationMinutes != null && ` (${event.durationMinutes} min)`}

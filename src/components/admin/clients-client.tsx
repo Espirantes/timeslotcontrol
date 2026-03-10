@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, ShieldCheck, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { createClient, updateClient, deleteClient } from "@/lib/actions/admin";
+import { createClient, updateClient, deleteClient, bulkToggleCanManageSuppliers } from "@/lib/actions/admin";
 import type { Client, Supplier, ClientSupplier } from "@/generated/prisma/client";
 
 type ClientWithRelations = Client & {
@@ -30,9 +30,10 @@ type Props = {
 type FormData = {
   name: string;
   contactEmail: string;
+  canManageSuppliers: boolean;
 };
 
-const emptyForm: FormData = { name: "", contactEmail: "" };
+const emptyForm: FormData = { name: "", contactEmail: "", canManageSuppliers: false };
 
 export function ClientsClient({ items }: Props) {
   const t = useTranslations("client");
@@ -44,6 +45,8 @@ export function ClientsClient({ items }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
 
+  const anyCanManage = items.some((c) => c.canManageSuppliers);
+
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
@@ -52,7 +55,7 @@ export function ClientsClient({ items }: Props) {
 
   function openEdit(c: ClientWithRelations) {
     setEditingId(c.id);
-    setForm({ name: c.name, contactEmail: c.contactEmail ?? "" });
+    setForm({ name: c.name, contactEmail: c.contactEmail ?? "", canManageSuppliers: c.canManageSuppliers });
     setDialogOpen(true);
   }
 
@@ -64,6 +67,7 @@ export function ClientsClient({ items }: Props) {
           await updateClient(editingId, {
             name: form.name,
             contactEmail: form.contactEmail || undefined,
+            canManageSuppliers: form.canManageSuppliers,
           });
         } else {
           await createClient({
@@ -92,14 +96,35 @@ export function ClientsClient({ items }: Props) {
     });
   }
 
+  function handleBulkToggle() {
+    startTransition(async () => {
+      try {
+        await bulkToggleCanManageSuppliers(!anyCanManage);
+        toast.success(tc("success"));
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tc("error"));
+      }
+    });
+  }
+
   return (
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="size-4 mr-1" />
-          {t("new")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleBulkToggle} disabled={isPending}>
+            {anyCanManage ? (
+              <><ShieldOff className="size-4 mr-1" />{t("disableAllSupplierMgmt")}</>
+            ) : (
+              <><ShieldCheck className="size-4 mr-1" />{t("enableAllSupplierMgmt")}</>
+            )}
+          </Button>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4 mr-1" />
+            {t("new")}
+          </Button>
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -113,6 +138,7 @@ export function ClientsClient({ items }: Props) {
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.contactEmail")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.suppliers")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("fields.reservations")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("fields.canManageSuppliers")}</th>
                 <th className="w-24" />
               </tr>
             </thead>
@@ -126,6 +152,13 @@ export function ClientsClient({ items }: Props) {
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="outline">{c._count.reservations}</Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.canManageSuppliers ? (
+                      <Check className="size-4 text-green-600" />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
@@ -158,6 +191,17 @@ export function ClientsClient({ items }: Props) {
               <label className="text-sm font-medium">{t("fields.contactEmail")}</label>
               <Input type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
             </div>
+            {editingId && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.canManageSuppliers}
+                  onChange={(e) => setForm({ ...form, canManageSuppliers: e.target.checked })}
+                  className="rounded"
+                />
+                {t("fields.canManageSuppliers")}
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{tc("cancel")}</Button>

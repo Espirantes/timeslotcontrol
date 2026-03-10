@@ -21,6 +21,7 @@ export default async function WarehousesPage() {
       name: true,
       address: true,
       timezone: true,
+      country: true,
       isActive: true,
     },
     orderBy: { name: "asc" },

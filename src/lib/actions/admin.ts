@@ -16,27 +16,34 @@ async function requireAdmin() {
   return session.user;
 }
 
+async function requireAdminOrWorker() {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN" && session.user.role !== "WAREHOUSE_WORKER") throw new Error("Admin or worker only");
+  return session.user;
+}
+
 // ─── Warehouses ───────────────────────────────────────────────────────────────
 
 export async function getWarehouses() {
   await requireAdmin();
   return prisma.warehouse.findMany({
-    select: { id: true, name: true, address: true, timezone: true, isActive: true },
+    select: { id: true, name: true, address: true, timezone: true, country: true, isActive: true },
     orderBy: { name: "asc" },
   });
 }
 
-export async function createWarehouse(data: { name: string; address?: string; timezone?: string }) {
+export async function createWarehouse(data: { name: string; address?: string; timezone?: string; country?: string }) {
   const user = await requireAdmin();
   const warehouse = await prisma.warehouse.create({
-    data: { name: data.name, address: data.address || null, timezone: data.timezone || "Europe/Prague" },
+    data: { name: data.name, address: data.address || null, timezone: data.timezone || "Europe/Prague", country: data.country || null },
   });
   await auditLog({ entityType: "warehouse", entityId: warehouse.id, action: "created", newData: data, userId: user.id });
   revalidatePath("/warehouses");
   return warehouse;
 }
 
-export async function updateWarehouse(id: string, data: { name: string; address?: string; timezone?: string; isActive?: boolean }) {
+export async function updateWarehouse(id: string, data: { name: string; address?: string; timezone?: string; country?: string; isActive?: boolean }) {
   const user = await requireAdmin();
   const old = await prisma.warehouse.findUniqueOrThrow({ where: { id } });
   const warehouse = await prisma.warehouse.update({ where: { id }, data });
@@ -63,24 +70,25 @@ export async function getGates() {
       name: true,
       description: true,
       isActive: true,
+      sortOrder: true,
       warehouse: { select: { id: true, name: true } },
       openingHours: { orderBy: { dayOfWeek: "asc" } },
     },
-    orderBy: [{ warehouse: { name: "asc" } }, { name: "asc" }],
+    orderBy: [{ warehouse: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
   });
 }
 
-export async function createGate(data: { warehouseId: string; name: string; description?: string }) {
+export async function createGate(data: { warehouseId: string; name: string; description?: string; sortOrder?: number }) {
   const user = await requireAdmin();
   const gate = await prisma.gates.create({
-    data: { warehouseId: data.warehouseId, name: data.name, description: data.description || null },
+    data: { warehouseId: data.warehouseId, name: data.name, description: data.description || null, sortOrder: data.sortOrder ?? 0 },
   });
   await auditLog({ entityType: "gate", entityId: gate.id, action: "created", newData: data, userId: user.id });
   revalidatePath("/gates");
   return gate;
 }
 
-export async function updateGate(id: string, data: { name: string; description?: string; isActive?: boolean }) {
+export async function updateGate(id: string, data: { name: string; description?: string; isActive?: boolean; sortOrder?: number }) {
   const user = await requireAdmin();
   const old = await prisma.gates.findUniqueOrThrow({ where: { id } });
   const gate = await prisma.gates.update({ where: { id }, data });
@@ -114,14 +122,60 @@ export async function deleteGate(id: string) {
   revalidatePath("/gates");
 }
 
+// ─── Gate Blocks ──────────────────────────────────────────────────────────────
+
+export async function getGateBlocks(gateId: string) {
+  await requireAdminOrWorker();
+  return prisma.gateBlock.findMany({
+    where: { gateId, endTime: { gte: new Date() } },
+    include: { createdBy: { select: { name: true } } },
+    orderBy: { startTime: "asc" },
+  });
+}
+
+export async function createGateBlock(data: { gateId: string; startTime: string; endTime: string; reason: string }) {
+  const user = await requireAdminOrWorker();
+  const block = await prisma.gateBlock.create({
+    data: {
+      gateId: data.gateId,
+      startTime: new Date(data.startTime),
+      endTime: new Date(data.endTime),
+      reason: data.reason,
+      createdById: user.id,
+    },
+  });
+  await auditLog({ entityType: "gateBlock", entityId: block.id, action: "created", newData: data, userId: user.id });
+  revalidatePath("/calendar");
+  revalidatePath("/gates");
+  return block;
+}
+
+export async function deleteGateBlock(id: string) {
+  const user = await requireAdminOrWorker();
+  await prisma.gateBlock.delete({ where: { id } });
+  await auditLog({ entityType: "gateBlock", entityId: id, action: "deleted", userId: user.id });
+  revalidatePath("/calendar");
+  revalidatePath("/gates");
+}
+
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
 export async function getClients() {
   await requireAdmin();
   return prisma.client.findMany({
-    include: { suppliers: { include: { supplier: true } }, _count: { select: { reservations: true } } },
+    include: {
+      suppliers: { include: { supplier: true } },
+      _count: { select: { reservations: true } },
+    },
     orderBy: { name: "asc" },
   });
+}
+
+export async function bulkToggleCanManageSuppliers(enable: boolean) {
+  const user = await requireAdmin();
+  await prisma.client.updateMany({ data: { canManageSuppliers: enable } });
+  await auditLog({ entityType: "client", entityId: "ALL", action: "bulk_updated", newData: { canManageSuppliers: enable }, userId: user.id });
+  revalidatePath("/clients");
 }
 
 export async function createClient(data: { name: string; contactEmail?: string }) {
@@ -134,10 +188,17 @@ export async function createClient(data: { name: string; contactEmail?: string }
   return client;
 }
 
-export async function updateClient(id: string, data: { name: string; contactEmail?: string }) {
+export async function updateClient(id: string, data: { name: string; contactEmail?: string; canManageSuppliers?: boolean }) {
   const user = await requireAdmin();
   const old = await prisma.client.findUniqueOrThrow({ where: { id } });
-  const client = await prisma.client.update({ where: { id }, data });
+  const client = await prisma.client.update({
+    where: { id },
+    data: {
+      name: data.name,
+      contactEmail: data.contactEmail || null,
+      ...(data.canManageSuppliers !== undefined ? { canManageSuppliers: data.canManageSuppliers } : {}),
+    },
+  });
   await auditLog({ entityType: "client", entityId: id, action: "updated", oldData: { name: old.name }, newData: data, userId: user.id });
   revalidatePath("/clients");
   return client;
@@ -216,6 +277,8 @@ export async function getUsers() {
       name: true,
       role: true,
       isActive: true,
+      isVerified: true,
+      registrationMessage: true,
       clientId: true,
       supplierId: true,
       createdAt: true,
@@ -225,6 +288,64 @@ export async function getUsers() {
     },
     orderBy: { name: "asc" },
   });
+}
+
+export async function getPendingUsersCount() {
+  await requireAdmin();
+  return prisma.user.count({ where: { isVerified: false, isActive: true } });
+}
+
+export async function approveUser(userId: string, supplierId: string) {
+  const admin = await requireAdmin();
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isVerified: true, supplierId },
+  });
+
+  await auditLog({
+    entityType: "user",
+    entityId: userId,
+    action: "approved",
+    newData: { isVerified: true, supplierId },
+    userId: admin.id,
+  });
+
+  // Notify user
+  const { createUserApprovalNotification } = await import("@/lib/actions/notifications");
+  const { notifyUserApproved } = await import("@/lib/email");
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  createUserApprovalNotification(userId, true).catch(console.error);
+  if (user) notifyUserApproved({ userEmail: user.email }).catch(console.error);
+
+  revalidatePath("/users");
+}
+
+export async function rejectUser(userId: string) {
+  const admin = await requireAdmin();
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isActive: false, isVerified: false },
+  });
+
+  await auditLog({
+    entityType: "user",
+    entityId: userId,
+    action: "rejected",
+    newData: { isActive: false },
+    userId: admin.id,
+  });
+
+  // Notify user
+  const { createUserApprovalNotification } = await import("@/lib/actions/notifications");
+  const { notifyUserRejected } = await import("@/lib/email");
+  createUserApprovalNotification(userId, false).catch(console.error);
+  if (user) notifyUserRejected({ userEmail: user.email }).catch(console.error);
+
+  revalidatePath("/users");
 }
 
 export async function createUser(data: {

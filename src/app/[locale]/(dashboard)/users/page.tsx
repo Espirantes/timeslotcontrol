@@ -23,6 +23,8 @@ export default async function UsersPage() {
         name: true,
         role: true,
         isActive: true,
+        isVerified: true,
+        registrationMessage: true,
         clientId: true,
         supplierId: true,
         createdAt: true,

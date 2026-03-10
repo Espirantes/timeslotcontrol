@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, CheckCircle2, X, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { createUser, updateUser, deleteUser } from "@/lib/actions/admin";
+import { createUser, updateUser, deleteUser, approveUser, rejectUser } from "@/lib/actions/admin";
 import type { UserRole } from "@/generated/prisma/client";
 
 type WarehouseItem = {
@@ -39,6 +39,8 @@ type UserWithRelations = {
   clientId: string | null;
   supplierId: string | null;
   isActive: boolean;
+  isVerified: boolean;
+  registrationMessage: string | null;
   createdAt: Date;
   warehouses: { userId: string; warehouseId: string; warehouse: { id: string; name: string } }[];
   client: { id: string; name: string } | null;
@@ -103,9 +105,18 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const [tab, setTab] = useState<"all" | "pending">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+
+  // Approve dialog
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approvingUser, setApprovingUser] = useState<UserWithRelations | null>(null);
+  const [approveSupplierId, setApproveSupplierId] = useState("");
+
+  const pendingUsers = items.filter((u) => !u.isVerified && u.isActive);
+  const verifiedUsers = items.filter((u) => u.isVerified);
 
   function openCreate() {
     setEditingId(null);
@@ -186,6 +197,38 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
     });
   }
 
+  function openApprove(u: UserWithRelations) {
+    setApprovingUser(u);
+    setApproveSupplierId("");
+    setApproveDialogOpen(true);
+  }
+
+  function handleApprove() {
+    if (!approvingUser || !approveSupplierId) return;
+    startTransition(async () => {
+      try {
+        await approveUser(approvingUser.id, approveSupplierId);
+        toast.success(tc("success"));
+        setApproveDialogOpen(false);
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tc("error"));
+      }
+    });
+  }
+
+  function handleReject(id: string) {
+    startTransition(async () => {
+      try {
+        await rejectUser(id);
+        toast.success(tc("success"));
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tc("error"));
+      }
+    });
+  }
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -196,54 +239,120 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
         </Button>
       </div>
 
-      {items.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">{tc("noData")}</div>
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border">
+        <button
+          onClick={() => setTab("all")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === "all" ? "border-brand-red text-brand-navy" : "border-transparent text-brand-muted hover:text-brand-navy"
+          }`}
+        >
+          {t("tabAll")}
+        </button>
+        <button
+          onClick={() => setTab("pending")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+            tab === "pending" ? "border-brand-red text-brand-navy" : "border-transparent text-brand-muted hover:text-brand-navy"
+          }`}
+        >
+          {t("tabPending")}
+          {pendingUsers.length > 0 && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+              {pendingUsers.length}
+            </Badge>
+          )}
+        </button>
+      </div>
+
+      {tab === "pending" ? (
+        /* Pending users tab */
+        pendingUsers.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">{t("noPending")}</div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {pendingUsers.map((u) => (
+              <div key={u.id} className="border rounded-lg p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-medium text-brand-navy">{u.name}</p>
+                    <p className="text-sm text-brand-muted">{u.email}</p>
+                    <p className="text-xs text-brand-muted mt-1">
+                      {new Date(u.createdAt).toLocaleDateString("cs-CZ")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-50" onClick={() => openApprove(u)} disabled={isPending}>
+                      <CheckCircle2 className="size-4 mr-1" />
+                      {t("approve")}
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-destructive border-red-300 hover:bg-red-50" onClick={() => handleReject(u.id)} disabled={isPending}>
+                      <X className="size-4 mr-1" />
+                      {t("reject")}
+                    </Button>
+                  </div>
+                </div>
+                {u.registrationMessage && (
+                  <div className="flex gap-2 rounded-md bg-blue-50 border border-border p-3 text-sm text-brand-navy">
+                    <MessageSquare className="size-4 shrink-0 text-brand-muted mt-0.5" />
+                    <p>{u.registrationMessage}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-2.5 font-medium">{t("fields.name")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">{t("fields.email")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">{t("fields.role")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">{t("fields.warehouses")}</th>
-                <th className="text-left px-4 py-2.5 font-medium">{tc("active")}</th>
-                <th className="w-24" />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((u) => (
-                <tr key={u.id} className={`border-t hover:bg-muted/30 transition-colors ${!u.isActive ? "opacity-50" : ""}`}>
-                  <td className="px-4 py-3 font-medium">{u.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={ROLE_VARIANT[u.role]}>{t(`role.${u.role}`)}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">
-                    {u.warehouses.length > 0 ? u.warehouses.map((w) => w.warehouse.name).join(", ") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={u.isActive ? "default" : "secondary"}>
-                      {u.isActive ? tc("active") : tc("inactive")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(u)}>
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(u.id)} disabled={isPending}>
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </td>
+        /* All users tab */
+        verifiedUsers.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">{tc("noData")}</div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-2.5 font-medium">{t("fields.name")}</th>
+                  <th className="text-left px-4 py-2.5 font-medium">{t("fields.email")}</th>
+                  <th className="text-left px-4 py-2.5 font-medium">{t("fields.role")}</th>
+                  <th className="text-left px-4 py-2.5 font-medium">{t("fields.warehouses")}</th>
+                  <th className="text-left px-4 py-2.5 font-medium">{tc("active")}</th>
+                  <th className="w-24" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {verifiedUsers.map((u) => (
+                  <tr key={u.id} className={`border-t hover:bg-muted/30 transition-colors ${!u.isActive ? "opacity-50" : ""}`}>
+                    <td className="px-4 py-3 font-medium">{u.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={ROLE_VARIANT[u.role]}>{t(`role.${u.role}`)}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {u.warehouses.length > 0 ? u.warehouses.map((w) => w.warehouse.name).join(", ") : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={u.isActive ? "default" : "secondary"}>
+                        {u.isActive ? tc("active") : tc("inactive")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(u)}>
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(u.id)} disabled={isPending}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
+      {/* Create/Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -360,6 +469,47 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>{tc("cancel")}</Button>
             <Button onClick={handleSave} disabled={isPending || !form.name.trim() || !form.email.trim() || (!editingId && !form.password)}>
               {isPending ? tc("loading") : tc("save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("approveTitle")}</DialogTitle>
+          </DialogHeader>
+          {approvingUser && (
+            <div className="flex flex-col gap-4">
+              <div className="text-sm">
+                <p><strong>{approvingUser.name}</strong> — {approvingUser.email}</p>
+                {approvingUser.registrationMessage && (
+                  <div className="flex gap-2 rounded-md bg-blue-50 border border-border p-3 mt-2 text-sm text-brand-navy">
+                    <MessageSquare className="size-4 shrink-0 text-brand-muted mt-0.5" />
+                    <p>{approvingUser.registrationMessage}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">{t("fields.supplier")}</label>
+                <Select value={approveSupplierId} onValueChange={setApproveSupplierId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>{tc("cancel")}</Button>
+            <Button onClick={handleApprove} disabled={isPending || !approveSupplierId}>
+              {isPending ? tc("loading") : t("approve")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -42,12 +42,30 @@ enum VehicleType {
   @@map("vehicle_type")
 }
 
+enum ReservationType {
+  LOADING
+  UNLOADING
+
+  @@map("reservation_type")
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@map("recurrence_type")
+}
+
 enum NotificationType {
   RESERVATION_CREATED
   RESERVATION_APPROVED
   RESERVATION_REJECTED
   STATUS_CHANGED
   CHANGE_REQUESTED
+  USER_REGISTERED
+  USER_APPROVED
+  USER_REJECTED
 
   @@map("notification_type")
 }
@@ -63,6 +81,7 @@ model Warehouse {
   name      String
   address   String?
   timezone  String   @default("Europe/Prague")
+  country   String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,14 +98,70 @@ model Gates {
   name        String
   description String?
   isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  warehouse    Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  openingHours GateOpeningHours[]
-  reservations Reservation[]
+  warehouse              Warehouse                @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  openingHours           GateOpeningHours[]
+  reservations           Reservation[]
+  blocks                 GateBlock[]
+  recurringReservations  RecurringReservation[]
 
   @@map("gate")
+}
+
+model GateBlock {
+  id          String   @id @default(cuid())
+  gateId      String
+  startTime   DateTime
+  endTime     DateTime
+  reason      String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  gate      Gates @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("BlockCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([gateId])
+  @@index([startTime, endTime])
+  @@map("gate_block")
+}
+
+model RecurringReservation {
+  id                String          @id @default(cuid())
+  gateId            String
+  clientId          String
+  supplierId        String
+  type              ReservationType @default(UNLOADING)
+  recurrenceType    RecurrenceType
+  startDate         DateTime
+  endDate           DateTime?
+  timeOfDay         String          // "HH:MM"
+  durationMinutes   Int
+  weekDays          String?         // "1,3,5" for Mon,Wed,Fri
+  dayOfMonth        Int?            // 1-31 for MONTHLY
+  vehicleType       VehicleType
+  licensePlate      String?
+  driverName        String?
+  driverContact     String?
+  notes             String?
+  itemsTemplate     Json            // [{transportUnitId, quantity, goodsWeightKg?, description?}]
+  isActive          Boolean         @default(true)
+  lastGeneratedDate DateTime?
+  createdById       String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  gate      Gates    @relation(fields: [gateId], references: [id], onDelete: Restrict)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy User     @relation("RecurringCreatedBy", fields: [createdById], references: [id])
+  instances Reservation[]
+
+  @@index([gateId])
+  @@index([isActive])
+  @@map("recurring_reservation")
 }
 
 model GateOpeningHours {
@@ -127,15 +202,17 @@ model TransportUnit {
 // ─────────────────────────────────────────
 
 model Client {
-  id           String   @id @default(cuid())
-  name         String
-  contactEmail String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  name               String
+  contactEmail       String?
+  canManageSuppliers Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  suppliers    ClientSupplier[]
-  reservations Reservation[]
-  users        User[]
+  suppliers             ClientSupplier[]
+  reservations          Reservation[]
+  recurringReservations RecurringReservation[]
+  users                 User[]
 
   @@map("client")
 }
@@ -147,9 +224,10 @@ model Supplier {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  clients      ClientSupplier[]
-  reservations Reservation[]
-  users        User[]
+  clients               ClientSupplier[]
+  reservations          Reservation[]
+  recurringReservations RecurringReservation[]
+  users                 User[]
 
   @@map("supplier")
 }
@@ -170,31 +248,36 @@ model ClientSupplier {
 // ─────────────────────────────────────────
 
 model Reservation {
-  id                 String            @id @default(cuid())
-  gateId             String
-  clientId           String
-  supplierId         String
-  status             ReservationStatus @default(REQUESTED)
-  confirmedVersionId String?           @unique
-  pendingVersionId   String?           @unique
-  createdById        String
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                       String            @id @default(cuid())
+  gateId                   String
+  clientId                 String
+  supplierId               String
+  type                     ReservationType   @default(UNLOADING)
+  status                   ReservationStatus @default(REQUESTED)
+  confirmedVersionId       String?           @unique
+  pendingVersionId         String?           @unique
+  recurringReservationId   String?
+  createdById              String
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
 
-  gate             Gates               @relation(fields: [gateId], references: [id], onDelete: Restrict)
-  client           Client              @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  supplier         Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  createdBy        User                @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  confirmedVersion ReservationVersion? @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id], onDelete: SetNull)
-  pendingVersion   ReservationVersion? @relation("PendingVersion", fields: [pendingVersionId], references: [id], onDelete: SetNull)
-  versions         ReservationVersion[] @relation("AllVersions")
-  notifications    Notification[]
-  statusChanges    ReservationStatusChange[]
+  gate                   Gates                  @relation(fields: [gateId], references: [id], onDelete: Restrict)
+  client                 Client                 @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  supplier               Supplier               @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy              User                   @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedVersion       ReservationVersion?    @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id], onDelete: SetNull)
+  pendingVersion         ReservationVersion?    @relation("PendingVersion", fields: [pendingVersionId], references: [id], onDelete: SetNull)
+  recurringReservation   RecurringReservation?  @relation(fields: [recurringReservationId], references: [id], onDelete: SetNull)
+  versions               ReservationVersion[]   @relation("AllVersions")
+  notifications          Notification[]
+  statusChanges          ReservationStatusChange[]
+  attachments            ReservationAttachment[]
 
   @@index([gateId])
   @@index([clientId])
   @@index([supplierId])
   @@index([status])
+  @@index([recurringReservationId])
   @@map("reservation")
 }
 
@@ -231,6 +314,7 @@ model ReservationVersion {
   pendingByReservation   Reservation? @relation("PendingVersion")
   createdBy             User         @relation("VersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   items                 ReservationItem[]
+  advices               ReservationAdvice[]
 
   @@index([reservationId])
   @@index([startTime])
@@ -249,6 +333,35 @@ model ReservationItem {
   reservationVersion ReservationVersion @relation(fields: [reservationVersionId], references: [id], onDelete: Cascade)
 
   @@map("reservation_item")
+}
+
+model ReservationAdvice {
+  id                   String  @id @default(cuid())
+  reservationVersionId String
+  adviceNumber         String
+  quantity             Int
+  note                 String?
+
+  reservationVersion ReservationVersion @relation(fields: [reservationVersionId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_advice")
+}
+
+model ReservationAttachment {
+  id            String   @id @default(cuid())
+  reservationId String
+  storageKey    String
+  originalName  String
+  mimeType      String
+  fileSize      Int
+  uploadedById  String
+  uploadedAt    DateTime @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  uploadedBy  User        @relation("AttachmentUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([reservationId])
+  @@map("reservation_attachment")
 }
 
 // ─────────────────────────────────────────
@@ -306,8 +419,10 @@ model User {
   role        UserRole
   clientId    String? // only for CLIENT
   supplierId  String? // only for SUPPLIER
-  isActive      Boolean   @default(true)
-  notifyInApp   Boolean   @default(true)
+  isActive            Boolean   @default(true)
+  isVerified          Boolean   @default(true)
+  registrationMessage String?
+  notifyInApp         Boolean   @default(true)
   notifyBrowser Boolean   @default(false)
   notifyEmail   Boolean   @default(true)
   createdAt     DateTime  @default(now())
@@ -317,11 +432,14 @@ model User {
   client     Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
   supplier   Supplier?  @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
-  reservationsCreated Reservation[]        @relation("ReservationCreatedBy")
-  versionsCreated     ReservationVersion[] @relation("VersionCreatedBy")
-  auditLogs           AuditLog[]
-  notifications       Notification[]
-  statusChanges       ReservationStatusChange[] @relation("StatusChangedBy")
+  reservationsCreated          Reservation[]              @relation("ReservationCreatedBy")
+  versionsCreated              ReservationVersion[]       @relation("VersionCreatedBy")
+  auditLogs                    AuditLog[]
+  notifications                Notification[]
+  statusChanges                ReservationStatusChange[]  @relation("StatusChangedBy")
+  attachmentUploads            ReservationAttachment[]    @relation("AttachmentUploadedBy")
+  blocksCreated                GateBlock[]                @relation("BlockCreatedBy")
+  recurringReservationsCreated RecurringReservation[]     @relation("RecurringCreatedBy")
 
   @@map("user")
 }

@@ -9,7 +9,12 @@ type AuditAction =
   | "version_rejected"
   | "version_proposed"
   | "profile_updated"
-  | "password_changed";
+  | "password_changed"
+  | "registered"
+  | "approved"
+  | "rejected"
+  | "deactivated"
+  | "bulk_updated";
 
 export async function auditLog({
   entityType,

@@ -23,10 +23,11 @@ export default async function GatesPage() {
         name: true,
         description: true,
         isActive: true,
+        sortOrder: true,
         warehouse: { select: { id: true, name: true } },
         openingHours: { orderBy: { dayOfWeek: "asc" } },
       },
-      orderBy: [{ warehouse: { name: "asc" } }, { name: "asc" }],
+      orderBy: [{ warehouse: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
     }),
     prisma.warehouse.findMany({
       select: { id: true, name: true, isActive: true },

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { approveReservation, rejectReservation } from "@/lib/actions/reservations";
 import type { ReservationListItem } from "@/lib/actions/reservations";
 import type { UserRole } from "@/generated/prisma/client";
+import { statusKey } from "@/lib/reservation-utils";
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 
@@ -84,8 +85,11 @@ function ReservationRow({
     <tr className={`border-t hover:bg-muted/30 transition-colors ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            {t(`reservationType.${r.reservationType}`)}
+          </Badge>
           <Badge variant={STATUS_VARIANT[r.status] ?? "outline"}>
-            {t(`status.${r.status}`)}
+            {t(`status.${statusKey(r.status, r.reservationType)}`)}
           </Badge>
           {r.hasPendingVersion && r.status !== "REQUESTED" && (
             <Badge variant="secondary" className="gap-1 text-amber-700 bg-amber-100 border-amber-300">

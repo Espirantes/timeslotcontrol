@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { CalendarView } from "./calendar-view";
 import { ReservationFormDialog } from "@/components/reservations/reservation-form-dialog";
+import { BlockDialog } from "./block-dialog";
 import { getCalendarData } from "@/lib/actions/calendar";
+import { deleteGateBlock } from "@/lib/actions/admin";
 import { approveReservation, rejectReservation } from "@/lib/actions/reservations";
-import type { CalendarEvent, CalendarGate } from "@/lib/actions/calendar";
-import { startOfDay, endOfDay } from "date-fns";
+import type { CalendarEvent, CalendarGate, CalendarHoliday, CalendarBlock } from "@/lib/actions/calendar";
+import { startOfDay, endOfDay, format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -25,6 +27,7 @@ type Props = {
 export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }: Props) {
   const router = useRouter();
   const t = useTranslations("reservation");
+  const tBlock = useTranslations("gateBlock");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
   const [isPending, startTransition] = useTransition();
@@ -32,12 +35,27 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
   const [currentDate, setCurrentDate] = useState(new Date());
   const [gates, setGates] = useState<CalendarGate[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [holidays, setHolidays] = useState<CalendarHoliday[]>([]);
+  const [blocks, setBlocks] = useState<CalendarBlock[]>([]);
 
-  // Dialog state
+  // Reservation dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [preselectedGateId, setPreselectedGateId] = useState<string | undefined>();
   const [preselectedDate, setPreselectedDate] = useState<Date | undefined>();
   const [preselectedStartTime, setPreselectedStartTime] = useState<string | undefined>();
+
+  // Block dialog state
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [blockGateId, setBlockGateId] = useState("");
+  const [blockGateName, setBlockGateName] = useState("");
+  const [blockDate, setBlockDate] = useState(new Date());
+  const [blockStartTime, setBlockStartTime] = useState<string | undefined>();
+
+  // Slot click action picker
+  const [actionPickerOpen, setActionPickerOpen] = useState(false);
+  const [pendingSlot, setPendingSlot] = useState<{ gateId: string; date: Date; startTime: string } | null>(null);
+
+  const canManageBlocks = userRole === "ADMIN" || userRole === "WAREHOUSE_WORKER";
 
   async function loadData(wId: string, date: Date, signal?: AbortSignal) {
     startTransition(async () => {
@@ -45,6 +63,8 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
       if (signal?.aborted) return;
       setGates(data.gates);
       setEvents(data.events);
+      setHolidays(data.holidays);
+      setBlocks(data.blocks);
     });
   }
 
@@ -67,10 +87,28 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
   }
 
   function handleSlotClick(gateId: string, date: Date, startTime: string) {
+    if (canManageBlocks) {
+      setPendingSlot({ gateId, date, startTime });
+      setActionPickerOpen(true);
+    } else {
+      openReservationDialog(gateId, date, startTime);
+    }
+  }
+
+  function openReservationDialog(gateId: string, date: Date, startTime: string) {
     setPreselectedGateId(gateId);
     setPreselectedDate(date);
     setPreselectedStartTime(startTime);
     setDialogOpen(true);
+  }
+
+  function openBlockDialog(gateId: string, date: Date, startTime: string) {
+    const gate = gates.find((g) => g.id === gateId);
+    setBlockGateId(gateId);
+    setBlockGateName(gate?.name ?? "");
+    setBlockDate(date);
+    setBlockStartTime(startTime);
+    setBlockDialogOpen(true);
   }
 
   function handleNewReservation() {
@@ -82,6 +120,18 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
 
   function handleCreated() {
     loadData(warehouseId, currentDate);
+  }
+
+  async function handleDeleteBlock(blockId: string) {
+    startTransition(async () => {
+      try {
+        await deleteGateBlock(blockId);
+        toast.success(tBlock("deleted"));
+        loadData(warehouseId, currentDate);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
+      }
+    });
   }
 
   async function handleApprove(reservationId: string) {
@@ -107,6 +157,14 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
       }
     });
   }
+
+  const mappedEvents = useMemo(() => events.map((e) => ({
+    ...e,
+    isRecurring: e.isRecurring,
+    title: e.isOwn
+      ? e.status === "REQUESTED" ? `${e.supplierName} ${t("calendar.pendingSuffix")}` : e.supplierName ?? e.title
+      : e.status === "REQUESTED" ? t("calendar.pending") : t("calendar.booked"),
+  })), [events, t]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,21 +195,58 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
 
       <CalendarView
         gates={gates}
-        events={events.map((e) => ({
-          ...e,
-          title: e.isOwn
-            ? e.status === "REQUESTED" ? `${e.supplierName} ${t("calendar.pendingSuffix")}` : e.supplierName ?? e.title
-            : e.status === "REQUESTED" ? t("calendar.pending") : t("calendar.booked"),
-        }))}
+        holidayName={holidays.find((h) => h.date === format(currentDate, "yyyy-MM-dd"))?.name}
+        events={mappedEvents}
+        blocks={blocks}
         currentDate={currentDate}
         onDateChange={handleDateChange}
         onEventClick={handleEventClick}
         onSlotClick={handleSlotClick}
+        onDeleteBlock={canManageBlocks ? handleDeleteBlock : undefined}
         loading={isPending}
         userRole={userRole}
         onApprove={handleApprove}
         onReject={handleReject}
       />
+
+      {/* Slot click action picker for admin/worker */}
+      {actionPickerOpen && pendingSlot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setActionPickerOpen(false)}
+        >
+          <div
+            className="bg-popover border rounded-lg shadow-lg p-4 w-64 flex flex-col gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-medium mb-1">{tBlock("selectAction")}</p>
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                setActionPickerOpen(false);
+                openReservationDialog(pendingSlot.gateId, pendingSlot.date, pendingSlot.startTime);
+              }}
+            >
+              <Plus className="size-3 mr-1" /> {tBlock("newReservation")}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                setActionPickerOpen(false);
+                openBlockDialog(pendingSlot.gateId, pendingSlot.date, pendingSlot.startTime);
+              }}
+            >
+              {tBlock("blockGate")}
+            </Button>
+            <Button size="sm" variant="outline" className="w-full" onClick={() => setActionPickerOpen(false)}>
+              {tCommon("cancel")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ReservationFormDialog
         open={dialogOpen}
@@ -160,6 +255,16 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
         preselectedGateId={preselectedGateId}
         preselectedDate={preselectedDate}
         preselectedStartTime={preselectedStartTime}
+        onCreated={handleCreated}
+      />
+
+      <BlockDialog
+        open={blockDialogOpen}
+        onClose={() => setBlockDialogOpen(false)}
+        gateId={blockGateId}
+        gateName={blockGateName}
+        preselectedDate={blockDate}
+        preselectedStartTime={blockStartTime}
         onCreated={handleCreated}
       />
     </div>

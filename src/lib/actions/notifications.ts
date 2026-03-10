@@ -121,6 +121,37 @@ export async function markAsRead(notificationId: string) {
   return { success: true };
 }
 
+// ─── Registration notifications ──────────────────────────────────────────────
+
+export async function createRegistrationNotification(userId: string, userName: string, userEmail: string) {
+  const admins = await prisma.user.findMany({
+    where: { role: "ADMIN", isActive: true, notifyInApp: true },
+    select: { id: true },
+  });
+
+  if (admins.length === 0) return;
+
+  await prisma.notification.createMany({
+    data: admins.map((a) => ({
+      userId: a.id,
+      type: "USER_REGISTERED" as const,
+      title: userName,
+      message: userEmail,
+    })),
+  });
+}
+
+export async function createUserApprovalNotification(userId: string, approved: boolean) {
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: approved ? ("USER_APPROVED" as const) : ("USER_REJECTED" as const),
+      title: approved ? "Account approved" : "Account rejected",
+      message: "",
+    },
+  });
+}
+
 export async function markAllAsRead() {
   const user = await getUserBySession();
   await prisma.notification.updateMany({

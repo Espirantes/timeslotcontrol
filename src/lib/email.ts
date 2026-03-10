@@ -61,6 +61,19 @@ const EMAIL_T: Record<EmailLocale, {
   statusChangedTitle: string;
   statusChangedSubject: string;
   statuses: Record<string, string>;
+  // Registration
+  regName: string;
+  regEmail: string;
+  regMessage: string;
+  regSubject: string;
+  regTitle: string;
+  regReview: string;
+  regApprovedSubject: string;
+  regApprovedTitle: string;
+  regApprovedBody: string;
+  regRejectedSubject: string;
+  regRejectedTitle: string;
+  regRejectedBody: string;
 }> = {
   cs: {
     gate: "Rampa",
@@ -83,6 +96,18 @@ const EMAIL_T: Record<EmailLocale, {
       CLOSED: "Uzavřeno",
       CANCELLED: "Zrušeno",
     },
+    regName: "Jméno",
+    regEmail: "E-mail",
+    regMessage: "Zpráva",
+    regSubject: "Nová registrace dodavatele",
+    regTitle: "Nový dodavatel čeká na schválení",
+    regReview: "Zkontrolovat",
+    regApprovedSubject: "Váš účet byl schválen",
+    regApprovedTitle: "Váš účet byl schválen",
+    regApprovedBody: "Nyní se můžete přihlásit a vytvářet rezervace.",
+    regRejectedSubject: "Vaše registrace byla zamítnuta",
+    regRejectedTitle: "Vaše registrace byla zamítnuta",
+    regRejectedBody: "Váš účet nebyl schválen. Kontaktujte prosím administrátora.",
   },
   en: {
     gate: "Gate",
@@ -105,6 +130,18 @@ const EMAIL_T: Record<EmailLocale, {
       CLOSED: "Closed",
       CANCELLED: "Cancelled",
     },
+    regName: "Name",
+    regEmail: "Email",
+    regMessage: "Message",
+    regSubject: "New supplier registration",
+    regTitle: "New supplier awaiting approval",
+    regReview: "Review",
+    regApprovedSubject: "Your account has been approved",
+    regApprovedTitle: "Your account has been approved",
+    regApprovedBody: "You can now sign in and create reservations.",
+    regRejectedSubject: "Your registration was rejected",
+    regRejectedTitle: "Your registration was rejected",
+    regRejectedBody: "Your account was not approved. Please contact the administrator.",
   },
   it: {
     gate: "Banchina",
@@ -127,6 +164,18 @@ const EMAIL_T: Record<EmailLocale, {
       CLOSED: "Chiusa",
       CANCELLED: "Annullata",
     },
+    regName: "Nome",
+    regEmail: "Email",
+    regMessage: "Messaggio",
+    regSubject: "Nuova registrazione fornitore",
+    regTitle: "Nuovo fornitore in attesa di approvazione",
+    regReview: "Verifica",
+    regApprovedSubject: "Il tuo account è stato approvato",
+    regApprovedTitle: "Il tuo account è stato approvato",
+    regApprovedBody: "Ora puoi accedere e creare prenotazioni.",
+    regRejectedSubject: "La tua registrazione è stata rifiutata",
+    regRejectedTitle: "La tua registrazione è stata rifiutata",
+    regRejectedBody: "Il tuo account non è stato approvato. Contatta l'amministratore.",
   },
 };
 
@@ -287,6 +336,80 @@ export async function notifyStatusChanged(params: {
       infoRow(t.gate, gateName) + infoRow(t.newStatus, statusLabel),
       detailUrl,
       t.viewDetail
+    ),
+  });
+}
+
+// ─── Registration email templates ───────────────────────────────────────────
+
+export async function notifyNewRegistration(params: {
+  userName: string;
+  userEmail: string;
+  message?: string;
+  locale?: string;
+}) {
+  const { userName, userEmail, message, locale = "cs" } = params;
+
+  // Send to all admin users with email notifications enabled
+  const admins = await import("@/lib/prisma").then((m) =>
+    m.prisma.user.findMany({
+      where: { role: "ADMIN", isActive: true, notifyEmail: true },
+      select: { email: true },
+    })
+  );
+
+  if (admins.length === 0) return;
+
+  const t = getEmailT(locale);
+  const usersUrl = `${APP_URL}/${locale}/users`;
+
+  await sendEmail({
+    to: admins.map((a) => a.email),
+    subject: `${t.regSubject} — ${userName}`,
+    html: emailLayout(
+      t.regTitle,
+      infoRow(t.regName, userName) +
+        infoRow(t.regEmail, userEmail) +
+        (message ? infoRow(t.regMessage, message) : ""),
+      usersUrl,
+      t.regReview
+    ),
+  });
+}
+
+export async function notifyUserApproved(params: {
+  userEmail: string;
+  locale?: string;
+}) {
+  const { userEmail, locale = "cs" } = params;
+  const t = getEmailT(locale);
+  const loginUrl = `${APP_URL}/${locale}/login`;
+
+  await sendEmail({
+    to: userEmail,
+    subject: t.regApprovedSubject,
+    html: emailLayout(
+      t.regApprovedTitle,
+      `<p style="margin:0 0 8px;font-size:14px;color:#2d3e50;">${t.regApprovedBody}</p>`,
+      loginUrl,
+      t.viewDetail
+    ),
+  });
+}
+
+export async function notifyUserRejected(params: {
+  userEmail: string;
+  locale?: string;
+}) {
+  const { userEmail, locale = "cs" } = params;
+  const t = getEmailT(locale);
+
+  await sendEmail({
+    to: userEmail,
+    subject: t.regRejectedSubject,
+    html: emailLayout(
+      t.regRejectedTitle,
+      `<p style="margin:0 0 8px;font-size:14px;color:#2d3e50;">${t.regRejectedBody}</p>`
     ),
   });
 }

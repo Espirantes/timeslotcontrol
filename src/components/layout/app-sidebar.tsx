@@ -15,6 +15,8 @@ import {
   Package,
   ScrollText,
   BookOpen,
+  Handshake,
+  Repeat2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 import type { UserRole } from "@/generated/prisma/client";
 import { Link, usePathname } from "@/i18n/navigation";
 
@@ -43,7 +46,9 @@ type Props = {
     name: string;
     email: string;
     role: UserRole;
+    canManageSuppliers: boolean;
   };
+  pendingUsersCount?: number;
 };
 
 function getInitials(name: string) {
@@ -55,16 +60,21 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function AppSidebar({ user }: Props) {
+export function AppSidebar({ user, pendingUsersCount = 0 }: Props) {
   const t = useTranslations("nav");
   const tRole = useTranslations("user.role");
   const pathname = usePathname();
 
   const isAdmin = user.role === "ADMIN";
+  const isWorker = user.role === "WAREHOUSE_WORKER";
+  const isClient = user.role === "CLIENT";
 
   const mainItems = [
     { href: "/calendar", label: t("calendar"), icon: CalendarDays },
     { href: "/reservations", label: t("reservations"), icon: ClipboardList },
+    ...((isAdmin || isWorker)
+      ? [{ href: "/recurring-reservations", label: t("recurringReservations"), icon: Repeat2 }]
+      : []),
   ];
 
   const adminItems = [
@@ -72,7 +82,7 @@ export function AppSidebar({ user }: Props) {
     { href: "/gates", label: t("gates"), icon: DoorOpen },
     { href: "/clients", label: t("clients"), icon: Users },
     { href: "/suppliers", label: t("suppliers"), icon: Truck },
-    { href: "/users", label: t("users"), icon: UserCircle },
+    { href: "/users", label: t("users"), icon: UserCircle, badge: pendingUsersCount },
     { href: "/transport-units", label: t("transportUnits"), icon: Package },
   ];
 
@@ -126,11 +136,38 @@ export function AppSidebar({ user }: Props) {
                             className={`size-[18px] shrink-0 ${active ? "text-brand-red" : "text-brand-muted"}`}
                           />
                           <span>{item.label}</span>
+                          {item.badge ? (
+                            <Badge variant="destructive" className="ml-auto text-[10px] px-1.5 py-0">
+                              {item.badge}
+                            </Badge>
+                          ) : null}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
                 })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {isClient && user.canManageSuppliers && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-3 text-[10px] font-medium text-brand-muted uppercase tracking-widest mb-1">
+              {t("groupClient")}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/my-suppliers")}>
+                    <Link href="/my-suppliers" className="flex items-center gap-3">
+                      <Handshake
+                        className={`size-[18px] shrink-0 ${pathname.includes("/my-suppliers") ? "text-brand-red" : "text-brand-muted"}`}
+                      />
+                      <span>{t("mySuppliers")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

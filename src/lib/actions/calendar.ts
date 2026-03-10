@@ -27,13 +27,28 @@ export type CalendarEvent = {
   durationMinutes?: number;
   notes?: string | null;
   hasPendingChange?: boolean;
+  reservationType?: string;
+  isRecurring?: boolean;
+};
+
+export type CalendarHoliday = {
+  date: string; // YYYY-MM-DD
+  name: string;
+};
+
+export type CalendarBlock = {
+  id: string;
+  gateId: string;
+  start: string;
+  end: string;
+  reason: string;
 };
 
 export async function getCalendarData(
   warehouseId: string,
   dateFrom: Date,
   dateTo: Date
-): Promise<{ gates: CalendarGate[]; events: CalendarEvent[] }> {
+): Promise<{ gates: CalendarGate[]; events: CalendarEvent[]; holidays: CalendarHoliday[]; blocks: CalendarBlock[] }> {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
@@ -42,7 +57,7 @@ export async function getCalendarData(
   // Fetch gates for the warehouse
   const gates = await prisma.gates.findMany({
     where: { warehouseId, isActive: true },
-    orderBy: { name: "asc" },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
   // Fetch reservations with confirmed version in the date range
@@ -93,6 +108,7 @@ export async function getCalendarData(
       durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
       notes: canSeeDetail ? v.notes : undefined,
       hasPendingChange,
+      reservationType: canSeeDetail ? r.type : undefined,
     });
   }
 
@@ -137,8 +153,125 @@ export async function getCalendarData(
         clientName: canSeeDetail ? r.client.name : undefined,
         durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
         notes: canSeeDetail ? v.notes : undefined,
+        reservationType: canSeeDetail ? r.type : undefined,
       });
     });
+
+  // Fetch holidays for this warehouse's country
+  let holidays: CalendarHoliday[] = [];
+  const warehouse = await prisma.warehouse.findUnique({
+    where: { id: warehouseId },
+    select: { country: true },
+  });
+  if (warehouse?.country) {
+    const { getHolidaysForMonth } = await import("@/lib/holidays");
+    // Collect holidays for all months in the date range
+    const seen = new Set<string>();
+    const d = new Date(dateFrom);
+    while (d <= dateTo) {
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const monthHolidays = getHolidaysForMonth(warehouse.country, d.getFullYear(), d.getMonth());
+        for (const h of monthHolidays) {
+          if (h.date >= dateFrom.toISOString().slice(0, 10) && h.date <= dateTo.toISOString().slice(0, 10)) {
+            holidays.push(h);
+          }
+        }
+      }
+      d.setMonth(d.getMonth() + 1);
+    }
+  }
+
+  // Lazy-generate recurring reservation instances for the viewed date range
+  const activeRecurring = await prisma.recurringReservation.findMany({
+    where: {
+      gateId: { in: gates.map((g) => g.id) },
+      isActive: true,
+      startDate: { lte: dateTo },
+      OR: [{ endDate: null }, { endDate: { gte: dateFrom } }],
+    },
+  });
+
+  let didGenerate = false;
+  if (activeRecurring.length > 0) {
+    const { generateInstances } = await import("@/lib/actions/recurring-reservations");
+    for (const rr of activeRecurring) {
+      if (!rr.lastGeneratedDate || rr.lastGeneratedDate < dateTo) {
+        try {
+          const result = await generateInstances(rr.id, dateTo);
+          if (result.created > 0) didGenerate = true;
+        } catch (err) {
+          console.error(`[lazy-gen] Failed for recurring ${rr.id}:`, err);
+        }
+      }
+    }
+  }
+
+  // Re-fetch confirmed reservations if any were generated
+  if (didGenerate) {
+    const newReservations = await prisma.reservation.findMany({
+      where: {
+        gateId: { in: gates.map((g) => g.id) },
+        status: { notIn: ["CANCELLED"] },
+        recurringReservationId: { not: null },
+        confirmedVersion: { startTime: { gte: dateFrom, lte: dateTo } },
+        id: { notIn: reservations.map((r) => r.id) },
+      },
+      include: {
+        confirmedVersion: { include: { items: true } },
+        pendingVersion: true,
+        supplier: true,
+        client: true,
+      },
+    });
+    for (const r of newReservations) {
+      const v = r.confirmedVersion;
+      if (!v) continue;
+      const endTime = new Date(v.startTime.getTime() + v.durationMinutes * 60 * 1000);
+      let canSeeDetail = false;
+      if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
+      else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
+      else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
+      events.push({
+        id: r.id,
+        resourceId: r.gateId,
+        start: v.startTime.toISOString(),
+        end: endTime.toISOString(),
+        status: r.status,
+        isOwn: canSeeDetail,
+        title: canSeeDetail ? r.supplier.name : "",
+        supplierName: canSeeDetail ? r.supplier.name : undefined,
+        clientName: canSeeDetail ? r.client.name : undefined,
+        vehicleType: canSeeDetail ? v.vehicleType : undefined,
+        driverName: canSeeDetail ? v.driverName : undefined,
+        licensePlate: canSeeDetail ? v.licensePlate : undefined,
+        durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
+        notes: canSeeDetail ? v.notes : undefined,
+        hasPendingChange: false,
+        reservationType: canSeeDetail ? r.type : undefined,
+        isRecurring: true,
+      });
+    }
+  }
+
+  // Mark existing recurring events
+  const recurringIds = new Set(
+    reservations.filter((r) => r.recurringReservationId).map((r) => r.id)
+  );
+  for (const ev of events) {
+    if (recurringIds.has(ev.id)) ev.isRecurring = true;
+  }
+
+  // Fetch gate blocks in the date range
+  const gateBlocks = await prisma.gateBlock.findMany({
+    where: {
+      gateId: { in: gates.map((g) => g.id) },
+      startTime: { lt: dateTo },
+      endTime: { gt: dateFrom },
+    },
+    orderBy: { startTime: "asc" },
+  });
 
   return {
     gates: gates.map((g) => ({
@@ -147,6 +280,14 @@ export async function getCalendarData(
       description: g.description,
     })),
     events,
+    holidays,
+    blocks: gateBlocks.map((b) => ({
+      id: b.id,
+      gateId: b.gateId,
+      start: b.startTime.toISOString(),
+      end: b.endTime.toISOString(),
+      reason: b.reason,
+    })),
   };
 }
 

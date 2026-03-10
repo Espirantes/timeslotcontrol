@@ -35,7 +35,25 @@
     "loginSubtitle": "Sign in to your account",
     "loginError": "Invalid email or password",
     "loginButton": "Sign in",
-    "appName": "Dock Scheduling System"
+    "appName": "Dock Scheduling System",
+    "name": "Name",
+    "confirmPassword": "Confirm password",
+    "passwordMismatch": "Passwords don't match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "emailExists": "This email is already registered",
+    "registerTitle": "Supplier registration",
+    "registerSubtitle": "Create a supplier account",
+    "registerMessage": "Message",
+    "registerMessagePlaceholder": "Describe which organization you belong to and who you deliver for",
+    "registerButton": "Register",
+    "registerError": "Registration failed",
+    "registerSuccessTitle": "Registration submitted",
+    "registerSuccessMessage": "Your account is awaiting administrator approval. You will be notified by email.",
+    "backToLogin": "Back to login",
+    "alreadyHaveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "registerLink": "Register",
+    "pendingApproval": "Your account is awaiting administrator approval. Until approved, you cannot create reservations."
   },
   "nav": {
     "calendar": "Calendar",
@@ -52,7 +70,10 @@
     "logout": "Sign out",
     "transportUnits": "Transport Units",
     "auditLog": "Audit log",
-    "guide": "Guide"
+    "guide": "Guide",
+    "mySuppliers": "My Suppliers",
+    "groupClient": "Client",
+    "recurringReservations": "Recurring Reservations"
   },
   "reservation": {
     "title": "Reservations",
@@ -64,7 +85,14 @@
       "CANCELLED": "Cancelled",
       "UNLOADING_STARTED": "Unloading started",
       "UNLOADING_COMPLETED": "Unloading completed",
+      "LOADING_STARTED": "Loading started",
+      "LOADING_COMPLETED": "Loading completed",
       "CLOSED": "Closed"
+    },
+    "reservationType": {
+      "label": "Type",
+      "LOADING": "Loading",
+      "UNLOADING": "Unloading"
     },
     "vehicleType": {
       "TRUCK": "Truck",
@@ -109,6 +137,30 @@
       "total": "Total",
       "description": "Description"
     },
+    "advices": {
+      "title": "Delivery advices",
+      "add": "Add advice",
+      "adviceNumber": "Advice number",
+      "quantity": "Quantity",
+      "note": "Note"
+    },
+    "attachments": {
+      "title": "Attachments",
+      "upload": "Upload file",
+      "download": "Download",
+      "delete": "Delete",
+      "noAttachments": "No attachments",
+      "maxSize": "Max. size: 10 MB",
+      "uploadSuccess": "File uploaded",
+      "deleteSuccess": "File deleted",
+      "invalidType": "Unsupported file type",
+      "tooLarge": "File is too large",
+      "confirmDelete": "Are you sure you want to delete this file?",
+      "fileName": "File name",
+      "size": "Size",
+      "uploadedBy": "Uploaded by",
+      "uploadedAt": "Date"
+    },
     "approval": {
       "pendingChange": "Pending change approval",
       "approveChange": "Approve change",
@@ -150,6 +202,10 @@
       "saved": "Changes saved",
       "submittedForApproval": "Change submitted for approval"
     },
+    "holiday": {
+      "blocked": "Public holiday: {name}",
+      "selectDifferentDay": "Please select a different day"
+    },
     "calendar": {
       "booked": "Booked",
       "pending": "Pending approval",
@@ -165,7 +221,17 @@
     "fields": {
       "name": "Name",
       "address": "Address",
-      "timezone": "Timezone"
+      "timezone": "Timezone",
+      "country": "Country (holidays)"
+    },
+    "countries": {
+      "CZ": "Czech Republic",
+      "SK": "Slovakia",
+      "DE": "Germany",
+      "AT": "Austria",
+      "PL": "Poland",
+      "IT": "Italy",
+      "HU": "Hungary"
     }
   },
   "gate": {
@@ -186,7 +252,8 @@
       "description": "Description",
       "warehouse": "Warehouse",
       "openTime": "Opens at",
-      "closeTime": "Closes at"
+      "closeTime": "Closes at",
+      "sortOrder": "Sort order"
     }
   },
   "client": {
@@ -196,8 +263,11 @@
       "name": "Name",
       "contactEmail": "Contact email",
       "suppliers": "Suppliers",
-      "reservations": "Reservations"
-    }
+      "reservations": "Reservations",
+      "canManageSuppliers": "Can manage suppliers"
+    },
+    "enableAllSupplierMgmt": "Enable all",
+    "disableAllSupplierMgmt": "Disable all"
   },
   "supplier": {
     "title": "Suppliers / Carriers",
@@ -229,7 +299,13 @@
       "password": "Password",
       "passwordPlaceholder": "Enter password (min. 8 chars)",
       "passwordHelp": "Leave blank to keep current password"
-    }
+    },
+    "tabAll": "All",
+    "tabPending": "Pending approval",
+    "noPending": "No users pending approval",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveTitle": "Approve user"
   },
   "transportUnit": {
     "title": "Transport Units",
@@ -280,7 +356,10 @@
     "RESERVATION_APPROVED": "Reservation approved",
     "RESERVATION_REJECTED": "Reservation rejected",
     "STATUS_CHANGED": "Status changed",
-    "CHANGE_REQUESTED": "Change requested"
+    "CHANGE_REQUESTED": "Change requested",
+    "USER_REGISTERED": "New registration",
+    "USER_APPROVED": "Account approved",
+    "USER_REJECTED": "Account rejected"
   },
   "auditLog": {
     "title": "Audit log",
@@ -315,15 +394,38 @@
       "version_rejected": "Rejected",
       "version_proposed": "Change proposed",
       "profile_updated": "Profile updated",
-      "password_changed": "Password changed"
+      "password_changed": "Password changed",
+      "deactivated": "Deactivated",
+      "approved": "Approved",
+      "rejected": "Rejected"
     }
+  },
+  "mySuppliers": {
+    "title": "My Suppliers",
+    "addSupplier": "Add supplier",
+    "accounts": "accounts",
+    "deactivate": "Deactivate",
+    "emailExists": "This email is already registered",
+    "supplierType": "Supplier",
+    "newSupplier": "New supplier",
+    "existingSupplier": "Existing supplier",
+    "selectSupplier": "Select supplier",
+    "supplierName": "Supplier name",
+    "supplierEmail": "Supplier email",
+    "userDetails": "User details",
+    "userName": "Name",
+    "userEmail": "Email",
+    "userPassword": "Password"
   },
   "guide": {
     "title": "Guide",
     "subtitle": "A brief overview of all Dock Scheduling System features.",
     "roles": {
       "all": "All roles",
-      "admin": "Administrator"
+      "admin": "Administrator",
+      "worker": "Warehouse worker",
+      "client": "Client",
+      "supplier": "Supplier"
     },
     "intro": {
       "title": "About the app",
@@ -337,13 +439,24 @@
       "roleSupplier": "Supplier / Carrier",
       "roleSupplierDesc": "Creates reservations, enters vehicle, driver and goods details."
     },
+    "registration": {
+      "title": "Account Registration",
+      "desc": "New suppliers can register themselves via the public registration form. After registration, the account awaits administrator approval.",
+      "point1": "On the login page, click the 'Register' link.",
+      "point2": "Fill in your name, email, password, and a message for the administrator (who you are, which company you belong to).",
+      "point3": "After registration, you can log in but will see a 'Pending approval' banner and cannot create reservations.",
+      "tip": "In the message for the administrator, mention which client (recipient) you deliver for — this makes approval and organization assignment faster."
+    },
     "calendar": {
       "title": "Calendar",
       "desc": "The calendar displays all reservations on a timeline organized by gates. Each gate is a column, and reservations are colored blocks.",
       "point1": "Select a warehouse from the dropdown at the top to filter gates.",
       "point2": "Click a reservation to view its details.",
       "point3": "Color coding: confirmed reservations vs. pending approval.",
-      "tip": "Example: Want to check if Gate A is free on Thursday afternoon? Open the calendar, select the warehouse and look at the Gate A column."
+      "tip": "Example: Want to check if Gate A is free on Thursday afternoon? Open the calendar, select the warehouse and look at the Gate A column.",
+      "tipWorker": "Click a reservation in the calendar and change its status right away — start or complete unloading.",
+      "tipSupplier": "The calendar shows only your reservations. Check whether your preferred time slot at the gate is available.",
+      "tipClient": "Track all incoming deliveries from your suppliers in one place using the calendar."
     },
     "reservations": {
       "title": "Reservations",
@@ -359,7 +472,13 @@
       "statusUnloading": "Unloading",
       "statusCompleted": "Completed",
       "statusClosed": "Closed",
-      "tip": "Example: Supplier PG Logistics wants to deliver 10 pallets to Praha-Západ warehouse at Gate B, Thursday 8:00 AM. They create a reservation, enter the license plate and driver name. The warehouse worker approves it, and when the truck arrives, changes the status to \"Unloading started\"."
+      "tip": "Example: Supplier PG Logistics wants to deliver 10 pallets to Praha-Západ warehouse at Gate B, Thursday 8:00 AM. They create a reservation, enter the license plate and driver name. The warehouse worker approves it, and when the truck arrives, changes the status to \"Unloading started\".",
+      "descWorker": "As a warehouse worker, you approve incoming reservations and manage the unloading process — from start to close.",
+      "descSupplier": "As a supplier, you create reservations for specific gates and times. Fill in vehicle, driver and goods details.",
+      "descClient": "As a client, you see an overview of all reservations directed to your organization and can track their status.",
+      "tipWorker": "When the truck arrives, open the reservation and change the status to \"Unloading started\". After completion, click \"Unloading completed\".",
+      "tipSupplier": "Fill in the license plate and driver name as soon as possible — it makes the receiving process smoother.",
+      "tipClient": "Track your suppliers' reservation statuses. Enable notifications to stay informed about changes."
     },
     "settings": {
       "title": "Settings",
@@ -368,6 +487,17 @@
       "point2": "Change your password (enter current and new password).",
       "point3": "Enable/disable in-app and browser notifications.",
       "tip": "Enable browser notifications so you don't miss when your reservation is approved or rejected."
+    },
+    "client": {
+      "heading": "Supplier management (Client role)",
+      "mySuppliers": {
+        "title": "My Suppliers",
+        "desc": "If the administrator has enabled supplier management for you, you can create accounts for your suppliers. These accounts are automatically verified and ready to use.",
+        "point1": "In the 'My Suppliers' section, you see a list of your supplier organizations and their users.",
+        "point2": "Use the 'Add Supplier' button to create a new account — choose an existing supplier or create a new one.",
+        "point3": "You can also deactivate accounts of suppliers who no longer work with you.",
+        "tip": "Accounts created by the client are immediately active — the supplier can log in and create reservations right away."
+      }
     },
     "admin": {
       "heading": "System administration (Administrator only)",
@@ -388,8 +518,8 @@
       },
       "users": {
         "title": "Users",
-        "desc": "Manage user accounts. Assign each user a role (Admin, Worker, Client, Supplier) and the corresponding organization.",
-        "tip": "Example: New worker Jan Novák → role \"Warehouse worker\", assigned to \"Praha-Západ\" warehouse."
+        "desc": "Manage user accounts. The 'All' tab shows existing users, the 'Pending' tab shows new registrations awaiting your approval. Each registration includes a message from the user.",
+        "tip": "When approving a registration, select the supplier organization the user belongs to. Rejected registrations are deleted and the user receives an email notification."
       },
       "transportUnits": {
         "title": "Transport Units",
@@ -402,5 +532,70 @@
         "tip": "Example: Want to find out who rejected reservation #42? Open the audit log and filter by entity \"Reservation\"."
       }
     }
+  },
+  "gateBlock": {
+    "title": "Blocks",
+    "add": "Add block",
+    "reason": "Reason",
+    "startTime": "From",
+    "endTime": "To",
+    "date": "Date",
+    "delete": "Delete block",
+    "confirmDelete": "Are you sure you want to delete this block?",
+    "created": "Block created",
+    "deleted": "Block deleted",
+    "blocked": "Gate blocked: {reason}",
+    "selectAction": "Select action",
+    "newReservation": "New reservation",
+    "blockGate": "Block gate",
+    "fullDay": "Full day"
+  },
+  "recurring": {
+    "title": "Recurring Reservations",
+    "new": "New Recurring Reservation",
+    "createTitle": "New Recurring Reservation",
+    "type": {
+      "label": "Recurrence Type",
+      "DAILY": "Daily (Mon–Fri)",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly"
+    },
+    "fields": {
+      "startDate": "Valid From",
+      "endDate": "Valid Until",
+      "noEndDate": "No end date",
+      "timeOfDay": "Time",
+      "weekDays": "Days of week",
+      "dayOfMonth": "Day of month"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "deactivate": "Deactivate",
+      "cancelFuture": "Cancel Future Reservations",
+      "generateMore": "Generate More",
+      "confirmDeactivate": "Really deactivate this recurring reservation?",
+      "confirmCancelFuture": "Really cancel all future reservations from this series?"
+    },
+    "generation": {
+      "title": "Generation Result",
+      "created": "Reservations created",
+      "skipped": "Skipped",
+      "reasonHoliday": "Holiday",
+      "reasonBlocked": "Blocked",
+      "reasonOccupied": "Slot occupied",
+      "reasonGateClosed": "Gate closed"
+    },
+    "list": {
+      "colRecurrence": "Recurrence",
+      "colValidity": "Validity",
+      "colStatus": "Status",
+      "colInstances": "Instances",
+      "colGateClient": "Gate / Client",
+      "empty": "No recurring reservations"
+    },
+    "badge": "Recurring"
   }
 }

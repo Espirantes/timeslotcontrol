@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
@@ -26,6 +26,11 @@ import {
   Package,
   AlertCircle,
   Pencil,
+  FileText,
+  Paperclip,
+  Download,
+  Trash2,
+  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +43,7 @@ import {
 } from "@/lib/actions/reservations";
 import type { ReservationDetail, ReservationVersionDetail, StatusChangeItem } from "@/lib/actions/reservations";
 import type { UserRole } from "@/generated/prisma/client";
+import { statusKey } from "@/lib/reservation-utils";
 import { ReservationEditDialog } from "./reservation-edit-dialog";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -65,12 +71,55 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
   const isWorker = role === "ADMIN" || role === "WAREHOUSE_WORKER";
   const displayVersion = r.confirmedVersion ?? r.pendingVersion;
   const [editOpen, setEditOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   // REQUESTED: supplier can edit their pending request
   // CONFIRMED: anyone can edit if no pending change exists
   const canEdit =
     (r.status === "REQUESTED" && !!r.pendingVersion) ||
     (r.status === "CONFIRMED" && !!r.confirmedVersion && !r.pendingVersion);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/reservations/${r.id}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? tCommon("error"));
+      }
+      toast.success(t("attachments.uploadSuccess"));
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : tCommon("error"));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: string) {
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/reservations/${r.id}/attachments/${attachmentId}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? tCommon("error"));
+        }
+        toast.success(t("attachments.deleteSuccess"));
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tCommon("error"));
+      }
+    });
+  }
 
   function handleAction(action: () => Promise<{ success: boolean }>, successMsg: string) {
     startTransition(async () => {
@@ -108,8 +157,11 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
               {tCommon("edit")}
             </Button>
           )}
+          <Badge variant="outline" className="text-sm px-3 py-1">
+            {t(`reservationType.${r.reservationType}`)}
+          </Badge>
           <Badge variant={STATUS_VARIANT[r.status] ?? "outline"} className="text-sm px-3 py-1">
-            {t(`status.${r.status}`)}
+            {t(`status.${statusKey(r.status, r.reservationType)}`)}
           </Badge>
         </div>
       </div>
@@ -195,7 +247,7 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2">
                       <Badge variant={STATUS_VARIANT[sc.status] ?? "outline"} className="text-xs">
-                        {t(`status.${sc.status}`)}
+                        {t(`status.${statusKey(sc.status, r.reservationType)}`)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(sc.changedAt), "d. M. yyyy HH:mm", { locale: dateLocale })}
@@ -210,10 +262,107 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
         </Card>
       )}
 
+      {/* Attachments */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Paperclip className="size-4" />
+              {t("attachments.title")}
+            </CardTitle>
+            {canEdit && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUpload(file);
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="size-3.5" />
+                  {t("attachments.upload")}
+                </Button>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">{t("attachments.maxSize")}</p>
+        </CardHeader>
+        <CardContent>
+          {r.attachments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("attachments.noAttachments")}</p>
+          ) : (
+            <div className="border rounded-md overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">{t("attachments.fileName")}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t("attachments.size")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("attachments.uploadedBy")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("attachments.uploadedAt")}</th>
+                    <th className="text-right px-3 py-2 font-medium" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.attachments.map((att) => (
+                    <tr key={att.id} className="border-t">
+                      <td className="px-3 py-2">{att.originalName}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">
+                        {att.fileSize < 1024
+                          ? `${att.fileSize} B`
+                          : att.fileSize < 1024 * 1024
+                            ? `${(att.fileSize / 1024).toFixed(0)} KB`
+                            : `${(att.fileSize / 1024 / 1024).toFixed(1)} MB`}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{att.uploadedByName}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {format(new Date(att.uploadedAt), "d. M. yyyy HH:mm", { locale: dateLocale })}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <a
+                            href={`/api/reservations/${r.id}/attachments/${att.id}`}
+                            className="inline-flex items-center justify-center size-8 rounded-md hover:bg-muted"
+                            title={t("attachments.download")}
+                          >
+                            <Download className="size-4" />
+                          </a>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-destructive hover:text-destructive"
+                              disabled={isPending}
+                              onClick={() => handleDeleteAttachment(att.id)}
+                              title={t("attachments.delete")}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Status actions */}
       {isWorker && (
         <StatusActions
           status={r.status}
+          reservationType={r.reservationType}
           hasPending={!!r.pendingVersion && !r.confirmedVersion}
           isPending={isPending}
           onAction={handleAction}
@@ -389,6 +538,36 @@ function VersionCard({
             </div>
           </>
         )}
+
+        {v.advices.length > 0 && (
+          <>
+            <Separator className="my-4" />
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="size-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{t("advices.title")}</span>
+            </div>
+            <div className="border rounded-md overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">{t("advices.adviceNumber")}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t("advices.quantity")}</th>
+                    <th className="text-left px-3 py-2 font-medium">{t("advices.note")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {v.advices.map((advice) => (
+                    <tr key={advice.id} className="border-t">
+                      <td className="px-3 py-2">{advice.adviceNumber}</td>
+                      <td className="px-3 py-2 text-right">{advice.quantity}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{advice.note ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
@@ -398,6 +577,7 @@ function VersionCard({
 
 function StatusActions({
   status,
+  reservationType,
   hasPending,
   isPending,
   onAction,
@@ -406,6 +586,7 @@ function StatusActions({
   tCommon,
 }: {
   status: string;
+  reservationType: string;
   hasPending: boolean;
   isPending: boolean;
   onAction: (action: () => Promise<{ success: boolean }>, msg: string) => void;
@@ -432,7 +613,7 @@ function StatusActions({
 
   if (status === "CONFIRMED") {
     buttons.push({
-      label: t("status.UNLOADING_STARTED"),
+      label: t(`status.${statusKey("UNLOADING_STARTED", reservationType)}`),
       icon: <Play className="size-4" />,
       action: () => updateReservationStatus(reservationId, "UNLOADING_STARTED"),
       variant: "default",
@@ -447,7 +628,7 @@ function StatusActions({
 
   if (status === "UNLOADING_STARTED") {
     buttons.push({
-      label: t("status.UNLOADING_COMPLETED"),
+      label: t(`status.${statusKey("UNLOADING_COMPLETED", reservationType)}`),
       icon: <Square className="size-4" />,
       action: () => updateReservationStatus(reservationId, "UNLOADING_COMPLETED"),
       variant: "default",
