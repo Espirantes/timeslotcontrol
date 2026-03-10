@@ -481,13 +481,21 @@
       "tipSupplier": "Vyplňte SPZ a jméno řidiče co nejdříve — usnadníte tím práci na příjmu.",
       "tipClient": "Sledujte stav rezervací vašich dodavatelů. Zapněte si notifikace, abyste byli informováni o změnách."
     },
+    "reservationDetail": {
+      "title": "Detail rezervace",
+      "desc": "Každá rezervace má svou detailní stránku s kompletními informacemi — vozidlo, řidič, přepravní jednotky, avíza a celou historii stavů.",
+      "point1": "Klikněte na rezervaci v kalendáři nebo v seznamu rezervací pro otevření detailu.",
+      "point2": "Admin a pracovník skladu vidí tlačítka pro schválení, zamítnutí a změnu stavu vykládky.",
+      "point3": "Historie stavů zobrazuje kdo a kdy změnil stav rezervace.",
+      "tip": "Z detailu rezervace lze rezervaci také přímo upravit (změnit čas, vozidlo, přepravní jednotky)."
+    },
     "settings": {
       "title": "Nastavení",
       "desc": "Na stránce Nastavení můžete spravovat svůj profil a předvolby.",
       "point1": "Změna zobrazovaného jména.",
       "point2": "Změna hesla (zadejte aktuální a nové heslo).",
-      "point3": "Zapnutí/vypnutí notifikací v aplikaci a v prohlížeči.",
-      "tip": "Zapněte si notifikace v prohlížeči, abyste nepropásli schválení nebo zamítnutí vaší rezervace."
+      "point3": "Zapnutí/vypnutí notifikací v aplikaci, v prohlížeči a e-mailem.",
+      "tip": "E-mailové notifikace jsou určeny pro adminy a pracovníky skladu — zapněte je, abyste dostávali upozornění na nové rezervace i při zavřeném prohlížeči."
     },
     "client": {
       "heading": "Správa dodavatelů (role Klient)",
@@ -519,6 +527,11 @@
         "title": "Rampy",
         "desc": "Rampy jsou nakládací/vykládací místa uvnitř skladu. Každé rampě nastavíte otevírací hodiny pro každý den v týdnu — mimo tyto hodiny nelze vytvořit rezervaci.",
         "tip": "Příklad: Rampa A je otevřená Po–Pá 6:00–18:00, So 6:00–12:00, Ne zavřeno."
+      },
+      "gateBlocks": {
+        "title": "Blokace ramp",
+        "desc": "Blokace umožňují dočasně uzavřít rampu pro rezervace — například při opravě, inventuře nebo státním svátku. V zablokovaném období nelze vytvořit novou rezervaci.",
+        "tip": "Příklad: Blokujte rampu B od 10:00 do 14:00 v den údržby. Stávající schválené rezervace zůstanou, nové nelze přidat."
       },
       "clientsSuppliers": {
         "title": "Klienti a Dodavatelé",

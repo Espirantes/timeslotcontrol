@@ -481,13 +481,21 @@
       "tipSupplier": "Fill in the license plate and driver name as soon as possible — it makes the receiving process smoother.",
       "tipClient": "Track your suppliers' reservation statuses. Enable notifications to stay informed about changes."
     },
+    "reservationDetail": {
+      "title": "Reservation Detail",
+      "desc": "Each reservation has its own detail page with complete information — vehicle, driver, transport units, advices and full status history.",
+      "point1": "Click a reservation in the calendar or reservation list to open the detail.",
+      "point2": "Admin and warehouse workers see buttons to approve, reject and change unloading status.",
+      "point3": "Status history shows who changed the status and when.",
+      "tip": "From the reservation detail you can also directly edit it — change time, vehicle or transport units."
+    },
     "settings": {
       "title": "Settings",
       "desc": "On the Settings page you can manage your profile and preferences.",
       "point1": "Change your display name.",
       "point2": "Change your password (enter current and new password).",
-      "point3": "Enable/disable in-app and browser notifications.",
-      "tip": "Enable browser notifications so you don't miss when your reservation is approved or rejected."
+      "point3": "Enable/disable in-app, browser and email notifications.",
+      "tip": "Email notifications are intended for admins and warehouse workers — enable them to receive alerts about new reservations even when the browser is closed."
     },
     "client": {
       "heading": "Supplier management (Client role)",
@@ -519,6 +527,11 @@
         "title": "Gates",
         "desc": "Gates are loading/unloading docks within a warehouse. Set opening hours for each day of the week — reservations cannot be created outside these hours.",
         "tip": "Example: Gate A is open Mon–Fri 6:00–18:00, Sat 6:00–12:00, Sun closed."
+      },
+      "gateBlocks": {
+        "title": "Gate Blocks",
+        "desc": "Blocks allow you to temporarily close a gate for reservations — for example during maintenance, stock-taking or a public holiday. No new reservations can be created during a blocked period.",
+        "tip": "Example: Block Gate B from 10:00 to 14:00 on a maintenance day. Existing approved reservations remain, new ones cannot be added."
       },
       "clientsSuppliers": {
         "title": "Clients & Suppliers",

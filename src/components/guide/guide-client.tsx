@@ -17,6 +17,8 @@ import {
   UserPlus,
   Handshake,
   RefreshCw,
+  FileText,
+  Ban,
 } from "lucide-react";
 import {
   Card,
@@ -255,6 +257,26 @@ export function GuideClient({ role }: Props) {
         </CardContent>
       </Card>
 
+      {/* Reservation Detail */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="size-[18px] text-brand-red" />
+            {t("reservationDetail.title")}
+          </CardTitle>
+          <RoleBadges roles={[t("roles.all")]} />
+        </CardHeader>
+        <CardContent className="text-sm text-brand-navy space-y-2">
+          <p>{t("reservationDetail.desc")}</p>
+          <ul className="list-disc list-inside space-y-1 text-brand-muted">
+            <li>{t("reservationDetail.point1")}</li>
+            <li>{t("reservationDetail.point2")}</li>
+            <li>{t("reservationDetail.point3")}</li>
+          </ul>
+          <Tip>{t("reservationDetail.tip")}</Tip>
+        </CardContent>
+      </Card>
+
       {/* Recurring */}
       {isWorkerOrAdmin && (
         <Card>
@@ -356,6 +378,21 @@ export function GuideClient({ role }: Props) {
             <CardContent className="text-sm text-brand-navy space-y-2">
               <p>{t("admin.gates.desc")}</p>
               <Tip>{t("admin.gates.tip")}</Tip>
+            </CardContent>
+          </Card>
+
+          {/* Gate Blocks */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Ban className="size-[18px] text-brand-red" />
+                {t("admin.gateBlocks.title")}
+              </CardTitle>
+              <RoleBadges roles={[t("roles.admin")]} />
+            </CardHeader>
+            <CardContent className="text-sm text-brand-navy space-y-2">
+              <p>{t("admin.gateBlocks.desc")}</p>
+              <Tip>{t("admin.gateBlocks.tip")}</Tip>
             </CardContent>
           </Card>
 

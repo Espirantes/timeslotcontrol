@@ -481,13 +481,21 @@
       "tipSupplier": "Inserisci targa e nome autista il prima possibile — faciliterai il processo di ricezione.",
       "tipClient": "Monitora lo stato delle prenotazioni dei tuoi fornitori. Attiva le notifiche per essere informato sui cambiamenti."
     },
+    "reservationDetail": {
+      "title": "Dettaglio prenotazione",
+      "desc": "Ogni prenotazione ha la propria pagina di dettaglio con informazioni complete — veicolo, autista, unità di trasporto, avvisi e cronologia completa degli stati.",
+      "point1": "Clicca una prenotazione nel calendario o nell'elenco prenotazioni per aprire il dettaglio.",
+      "point2": "Admin e addetti al magazzino vedono i pulsanti per approvare, rifiutare e cambiare lo stato dello scarico.",
+      "point3": "La cronologia degli stati mostra chi ha modificato lo stato e quando.",
+      "tip": "Dal dettaglio della prenotazione puoi anche modificarla direttamente — cambiare orario, veicolo o unità di trasporto."
+    },
     "settings": {
       "title": "Impostazioni",
       "desc": "Nella pagina Impostazioni puoi gestire il tuo profilo e le preferenze.",
       "point1": "Cambia il tuo nome visualizzato.",
       "point2": "Cambia la password (inserisci la password attuale e quella nuova).",
-      "point3": "Attiva/disattiva le notifiche in-app e del browser.",
-      "tip": "Attiva le notifiche del browser per non perdere l'approvazione o il rifiuto della tua prenotazione."
+      "point3": "Attiva/disattiva le notifiche in-app, del browser e via email.",
+      "tip": "Le notifiche email sono destinate ad admin e addetti al magazzino — attivale per ricevere avvisi sulle nuove prenotazioni anche con il browser chiuso."
     },
     "client": {
       "heading": "Gestione fornitori (ruolo Cliente)",
@@ -519,6 +527,11 @@
         "title": "Banchine",
         "desc": "Le banchine sono punti di carico/scarico all'interno di un magazzino. Imposta gli orari di apertura per ogni giorno della settimana — non è possibile creare prenotazioni al di fuori di questi orari.",
         "tip": "Esempio: Banchina A aperta Lun–Ven 6:00–18:00, Sab 6:00–12:00, Dom chiusa."
+      },
+      "gateBlocks": {
+        "title": "Blocchi banchine",
+        "desc": "I blocchi consentono di chiudere temporaneamente una banchina alle prenotazioni — ad esempio durante manutenzione, inventario o festività. Nel periodo bloccato non è possibile creare nuove prenotazioni.",
+        "tip": "Esempio: Blocca la banchina B dalle 10:00 alle 14:00 nel giorno di manutenzione. Le prenotazioni approvate esistenti rimangono, non è possibile aggiungerne di nuove."
       },
       "clientsSuppliers": {
         "title": "Clienti e Fornitori",
