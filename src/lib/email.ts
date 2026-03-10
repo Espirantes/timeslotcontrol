@@ -183,6 +183,16 @@ function getEmailT(locale: string) {
   return EMAIL_T[(locale as EmailLocale)] ?? EMAIL_T.cs;
 }
 
+// H5: Escape HTML to prevent injection in email templates
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ─── Branded email wrapper ───────────────────────────────────────────────────
 
 function emailLayout(title: string, body: string, ctaUrl?: string, ctaLabel?: string) {
@@ -202,12 +212,12 @@ function emailLayout(title: string, body: string, ctaUrl?: string, ctaLabel?: st
         <tr><td style="background-color:#db2b19;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
         <!-- Body -->
         <tr><td style="background-color:#ffffff;padding:32px;">
-          <h2 style="margin:0 0 16px;font-size:20px;color:#0c1925;">${title}</h2>
+          <h2 style="margin:0 0 16px;font-size:20px;color:#0c1925;">${escapeHtml(title)}</h2>
           ${body}
           ${ctaUrl ? `
           <table cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
             <tr><td style="background-color:#db2b19;border-radius:6px;padding:12px 24px;">
-              <a href="${ctaUrl}" style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;">${ctaLabel ?? ""}</a>
+              <a href="${escapeHtml(ctaUrl)}" style="color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;">${escapeHtml(ctaLabel ?? "")}</a>
             </td></tr>
           </table>
           ` : ""}
@@ -224,7 +234,7 @@ function emailLayout(title: string, body: string, ctaUrl?: string, ctaLabel?: st
 }
 
 function infoRow(label: string, value: string) {
-  return `<p style="margin:0 0 8px;font-size:14px;color:#2d3e50;"><strong style="color:#0c1925;">${label}:</strong> ${value}</p>`;
+  return `<p style="margin:0 0 8px;font-size:14px;color:#2d3e50;"><strong style="color:#0c1925;">${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`;
 }
 
 // ─── Notification templates ──────────────────────────────────────────────────

@@ -295,9 +295,14 @@ export async function getWarehouses() {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, warehouseIds } = session.user;
+  const { role, warehouseIds, clientId, supplierId } = session.user;
 
-  if (role === "WAREHOUSE_WORKER" && warehouseIds.length > 0) {
+  // C4: Fail closed — scoped roles with missing scope values must not fall through
+  if (role === "WAREHOUSE_WORKER" && warehouseIds.length === 0) throw new Error("INVALID_SESSION");
+  if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
+  if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+
+  if (role === "WAREHOUSE_WORKER") {
     return prisma.warehouse.findMany({
       where: { id: { in: warehouseIds }, isActive: true },
       orderBy: { name: "asc" },

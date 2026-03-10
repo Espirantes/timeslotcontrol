@@ -78,6 +78,18 @@ async function requireSupplierOrWorker() {
   return session.user;
 }
 
+/** Verify that the gate belongs to one of the worker's assigned warehouses (C3). */
+async function requireWarehouseAccess(gateId: string, warehouseIds: string[]) {
+  const gate = await prisma.gates.findUnique({
+    where: { id: gateId },
+    select: { warehouseId: true },
+  });
+  if (!gate) throw new Error("Gate not found");
+  if (!warehouseIds.includes(gate.warehouseId)) {
+    throw new Error("Gate is not in your assigned warehouse");
+  }
+}
+
 /** Get public holidays for a gate's warehouse country for a given month (0-based). */
 export async function getGateHolidays(
   gateId: string,
@@ -127,14 +139,17 @@ export async function getGateBlocksForDate(
   }));
 }
 
-/** Check if a gate slot is free (no confirmed reservation overlapping) */
+/** Check if a gate slot is free (no confirmed reservation overlapping).
+ *  Uses findMany with proper two-sided overlap condition to avoid
+ *  the findFirst single-row bug (C1). */
 export async function isSlotFree(
   gateId: string,
   startTime: Date,
   endTime: Date,
-  excludeReservationId?: string
+  excludeReservationId?: string,
 ) {
-  const conflicting = await prisma.reservationVersion.findFirst({
+  // Fetch ALL versions that start before the requested end time
+  const candidates = await prisma.reservationVersion.findMany({
     where: {
       confirmedByReservation: {
         gateId,
@@ -142,17 +157,15 @@ export async function isSlotFree(
         ...(excludeReservationId ? { id: { not: excludeReservationId } } : {}),
       },
       startTime: { lt: endTime },
-      // end time > startTime: startTime + durationMinutes > startTime
     },
+    select: { startTime: true, durationMinutes: true },
   });
 
-  if (conflicting) {
-    const conflEnd = new Date(
-      conflicting.startTime.getTime() + conflicting.durationMinutes * 60 * 1000
-    );
-    if (conflEnd > startTime) return false;
-  }
-  return true;
+  // Check the second half of the overlap condition in JS
+  return !candidates.some((c) => {
+    const conflEnd = new Date(c.startTime.getTime() + c.durationMinutes * 60 * 1000);
+    return conflEnd > startTime;
+  });
 }
 
 /** Check if gate is open at the given time */
@@ -183,6 +196,11 @@ export async function createReservation(input: CreateReservationInput) {
 
   // Block unverified users
   if (!user.isVerified) throw new Error("Account not verified");
+
+  // C3: Warehouse scope check for workers
+  if (role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccess(input.gateId, user.warehouseIds);
+  }
 
   // Determine supplierId
   let resolvedSupplierId: string;
@@ -228,56 +246,85 @@ export async function createReservation(input: CreateReservationInput) {
     const blockReason = await getBlockingReason(input.gateId, startTime, endTime);
     if (blockReason) throw new Error(`Blocked: ${blockReason}`);
   }
-  if (!await isSlotFree(input.gateId, startTime, endTime)) throw new Error("Slot is already taken");
-
   const isAdminCreate = role === "ADMIN";
-  const reservation = await prisma.reservation.create({
-    data: {
-      gateId: input.gateId,
-      clientId: input.clientId,
-      supplierId: resolvedSupplierId,
-      type: input.reservationType ?? "UNLOADING",
-      status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
-      createdById: user.id,
-      versions: {
-        create: {
-          startTime,
-          durationMinutes: input.durationMinutes,
-          vehicleType: input.vehicleType,
-          licensePlate: input.licensePlate || null,
-          sealNumbers: input.sealNumbers || null,
-          driverName: input.driverName || null,
-          driverContact: input.driverContact || null,
-          notes: input.notes || null,
-          createdById: user.id,
-          items: {
-            create: input.items.map((item) => ({
-              transportUnitId: item.transportUnitId,
-              quantity: item.quantity,
-              goodsWeightKg: item.goodsWeightKg ?? null,
-              description: item.description ?? null,
-            })),
-          },
-          advices: {
-            create: (input.advices ?? []).map((a) => ({
-              adviceNumber: a.adviceNumber,
-              quantity: a.quantity,
-              note: a.note ?? null,
-            })),
+
+  // Wrap availability check + creation in transaction to prevent TOCTOU race (C2)
+  const reservation = await prisma.$transaction(async (tx) => {
+    // Re-check slot availability inside transaction
+    const candidates = await tx.reservationVersion.findMany({
+      where: {
+        confirmedByReservation: {
+          gateId: input.gateId,
+          status: { in: ["CONFIRMED", "UNLOADING_STARTED"] },
+        },
+        startTime: { lt: endTime },
+      },
+      select: { startTime: true, durationMinutes: true },
+    });
+    const hasConflict = candidates.some((c) => {
+      const conflEnd = new Date(c.startTime.getTime() + c.durationMinutes * 60 * 1000);
+      return conflEnd > startTime;
+    });
+    if (hasConflict) throw new Error("Slot is already taken");
+
+    const res = await tx.reservation.create({
+      data: {
+        gateId: input.gateId,
+        clientId: input.clientId,
+        supplierId: resolvedSupplierId,
+        type: input.reservationType ?? "UNLOADING",
+        status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
+        createdById: user.id,
+        versions: {
+          create: {
+            startTime,
+            durationMinutes: input.durationMinutes,
+            vehicleType: input.vehicleType,
+            licensePlate: input.licensePlate || null,
+            sealNumbers: input.sealNumbers || null,
+            driverName: input.driverName || null,
+            driverContact: input.driverContact || null,
+            notes: input.notes || null,
+            createdById: user.id,
+            items: {
+              create: input.items.map((item) => ({
+                transportUnitId: item.transportUnitId,
+                quantity: item.quantity,
+                goodsWeightKg: item.goodsWeightKg ?? null,
+                description: item.description ?? null,
+              })),
+            },
+            advices: {
+              create: (input.advices ?? []).map((a) => ({
+                adviceNumber: a.adviceNumber,
+                quantity: a.quantity,
+                note: a.note ?? null,
+              })),
+            },
           },
         },
       },
-    },
-    include: { versions: true },
-  });
+      include: { versions: true },
+    });
 
-  // Set version pointer — admin confirms immediately, others go to pending
-  const versionId = reservation.versions[0].id;
-  await prisma.reservation.update({
-    where: { id: reservation.id },
-    data: isAdminCreate
-      ? { confirmedVersionId: versionId }
-      : { pendingVersionId: versionId },
+    // Set version pointer — admin confirms immediately, others go to pending
+    const versionId = res.versions[0].id;
+    await tx.reservation.update({
+      where: { id: res.id },
+      data: isAdminCreate
+        ? { confirmedVersionId: versionId }
+        : { pendingVersionId: versionId },
+    });
+
+    await tx.reservationStatusChange.create({
+      data: {
+        reservationId: res.id,
+        status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
+        changedById: user.id,
+      },
+    });
+
+    return res;
   });
 
   await auditLog({
@@ -286,14 +333,6 @@ export async function createReservation(input: CreateReservationInput) {
     action: "created",
     newData: { status: isAdminCreate ? "CONFIRMED" : "REQUESTED", startTime: input.startTime, durationMinutes: input.durationMinutes },
     userId: user.id,
-  });
-
-  await prisma.reservationStatusChange.create({
-    data: {
-      reservationId: reservation.id,
-      status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
-      changedById: user.id,
-    },
   });
 
   revalidatePath("/calendar");
@@ -348,24 +387,52 @@ export async function approveReservation(reservationId: string) {
     include: { pendingVersion: true, confirmedVersion: true },
   });
 
+  // C3: Warehouse scope check for workers
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccess(reservation.gateId, user.warehouseIds);
+  }
+
   if (!reservation.pendingVersionId || !reservation.pendingVersion) throw new Error("No pending version to approve");
 
   const pendingVersion = reservation.pendingVersion;
   const endTime = new Date(pendingVersion.startTime.getTime() + pendingVersion.durationMinutes * 60 * 1000);
-
-  // Check slot is still free (excluding current reservation)
-  if (!await isSlotFree(reservation.gateId, pendingVersion.startTime, endTime, reservationId)) {
-    throw new Error("Slot is no longer available");
-  }
-
   const oldStatus = reservation.status;
-  await prisma.reservation.update({
-    where: { id: reservationId },
-    data: {
-      status: "CONFIRMED",
-      confirmedVersionId: reservation.pendingVersionId,
-      pendingVersionId: null,
-    },
+
+  // Wrap slot check + approval in transaction to prevent TOCTOU race (C2)
+  await prisma.$transaction(async (tx) => {
+    const candidates = await tx.reservationVersion.findMany({
+      where: {
+        confirmedByReservation: {
+          gateId: reservation.gateId,
+          status: { in: ["CONFIRMED", "UNLOADING_STARTED"] },
+          id: { not: reservationId },
+        },
+        startTime: { lt: endTime },
+      },
+      select: { startTime: true, durationMinutes: true },
+    });
+    const hasConflict = candidates.some((c) => {
+      const conflEnd = new Date(c.startTime.getTime() + c.durationMinutes * 60 * 1000);
+      return conflEnd > pendingVersion.startTime;
+    });
+    if (hasConflict) throw new Error("Slot is no longer available");
+
+    await tx.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: "CONFIRMED",
+        confirmedVersionId: reservation.pendingVersionId,
+        pendingVersionId: null,
+      },
+    });
+
+    await tx.reservationStatusChange.create({
+      data: {
+        reservationId,
+        status: "CONFIRMED",
+        changedById: user.id,
+      },
+    });
   });
 
   await auditLog({
@@ -375,14 +442,6 @@ export async function approveReservation(reservationId: string) {
     oldData: { status: oldStatus },
     newData: { status: "CONFIRMED", confirmedVersionId: reservation.pendingVersionId },
     userId: user.id,
-  });
-
-  await prisma.reservationStatusChange.create({
-    data: {
-      reservationId,
-      status: "CONFIRMED",
-      changedById: user.id,
-    },
   });
 
   revalidatePath("/calendar");
@@ -429,6 +488,11 @@ export async function rejectReservation(reservationId: string) {
   const reservation = await prisma.reservation.findUniqueOrThrow({
     where: { id: reservationId },
   });
+
+  // C3: Warehouse scope check for workers
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccess(reservation.gateId, user.warehouseIds);
+  }
 
   const wasNew = reservation.status === "REQUESTED" && !reservation.confirmedVersionId;
 
@@ -506,6 +570,11 @@ export async function updateReservationStatus(
   const reservation = await prisma.reservation.findUniqueOrThrow({
     where: { id: reservationId },
   });
+
+  // C3: Warehouse scope check for workers
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccess(reservation.gateId, user.warehouseIds);
+  }
 
   const allowed: Record<string, string[]> = {
     CONFIRMED: ["UNLOADING_STARTED", "CANCELLED"],
@@ -604,14 +673,19 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
 
   const { role, warehouseIds, clientId, supplierId } = session.user;
 
+  // C4: Fail closed — scoped roles with missing scope values must not fall through
+  if (role === "WAREHOUSE_WORKER" && warehouseIds.length === 0) throw new Error("INVALID_SESSION");
+  if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
+  if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+
   const reservations = await prisma.reservation.findMany({
     where: {
-      ...(role === "WAREHOUSE_WORKER" && warehouseIds.length > 0
+      ...(role === "WAREHOUSE_WORKER"
         ? { gate: { warehouseId: { in: warehouseIds } } }
         : {}),
       ...(role === "ADMIN" ? {} : {}),
-      ...(role === "CLIENT" && clientId ? { clientId } : {}),
-      ...(role === "SUPPLIER" && supplierId ? { supplierId } : {}),
+      ...(role === "CLIENT" ? { clientId: clientId! } : {}),
+      ...(role === "SUPPLIER" ? { supplierId: supplierId! } : {}),
     },
     include: {
       gate: { include: { warehouse: true } },
@@ -761,6 +835,11 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
 
   const { role, warehouseIds, clientId, supplierId } = session.user;
 
+  // C4: Fail closed — scoped roles with missing scope values must not fall through
+  if (role === "WAREHOUSE_WORKER" && warehouseIds.length === 0) throw new Error("INVALID_SESSION");
+  if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
+  if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+
   const r = await prisma.reservation.findUnique({
     where: { id: reservationId },
     include: {
@@ -778,9 +857,9 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
   if (!r) return null;
 
   // Visibility check
-  if (role === "WAREHOUSE_WORKER" && warehouseIds.length > 0 && !warehouseIds.includes(r.gate.warehouseId)) return null;
-  if (role === "CLIENT" && clientId && r.clientId !== clientId) return null;
-  if (role === "SUPPLIER" && supplierId && r.supplierId !== supplierId) return null;
+  if (role === "WAREHOUSE_WORKER" && !warehouseIds.includes(r.gate.warehouseId)) return null;
+  if (role === "CLIENT" && r.clientId !== clientId) return null;
+  if (role === "SUPPLIER" && r.supplierId !== supplierId) return null;
 
   return {
     id: r.id,

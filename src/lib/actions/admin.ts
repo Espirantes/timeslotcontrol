@@ -374,7 +374,9 @@ export async function createUser(data: {
   });
   await auditLog({ entityType: "user", entityId: newUser.id, action: "created", newData: { email: data.email, role: data.role }, userId: user.id });
   revalidatePath("/users");
-  return newUser;
+  // H2: Strip password hash from response
+  const { password: _, ...safeUser } = newUser;
+  return safeUser;
 }
 
 export async function updateUser(id: string, data: {

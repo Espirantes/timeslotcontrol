@@ -30,6 +30,8 @@ export async function createNotificationsForEvent(params: {
   clientId: string;
   supplierId: string;
 }) {
+  // H1: Auth guard — this is exposed as a server action, so verify authentication
+  await requireAuth();
   const { type, reservationId, title, message, warehouseId, clientId, supplierId } = params;
 
   // Determine recipients based on event type
