@@ -1,5 +1,5 @@
 import { RegisterForm } from "@/components/auth/register-form";
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { redirect } from "next/navigation";
 
 export default async function RegisterPage() {

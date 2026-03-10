@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getRecurringReservations } from "@/lib/actions/recurring-reservations";
 import { getWarehouses } from "@/lib/actions/calendar";

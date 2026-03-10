@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { getWarehouses } from "@/lib/actions/calendar";
 import { CalendarPageClient } from "@/components/calendar/calendar-page-client";
 import { redirect } from "next/navigation";

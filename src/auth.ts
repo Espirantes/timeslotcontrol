@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@/generated/prisma/client";
 
@@ -45,7 +46,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         const u = user as {
           role: UserRole;
@@ -61,7 +62,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.supplierId = u.supplierId;
         token.isVerified = u.isVerified;
         token.canManageSuppliers = u.canManageSuppliers;
+        token.lastRefreshed = Date.now();
       }
+
+      // H3: Refresh claims from DB every 5 minutes to pick up role/scope changes
+      const REFRESH_INTERVAL = 5 * 60 * 1000;
+      if (!user && token.sub && (Date.now() - ((token.lastRefreshed as number) ?? 0)) > REFRESH_INTERVAL) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            include: {
+              warehouses: { select: { warehouseId: true } },
+              client: { select: { canManageSuppliers: true } },
+            },
+          });
+          if (!dbUser || !dbUser.isActive) {
+            // Force sign-out by returning empty token
+            return { ...token, role: undefined };
+          }
+          token.role = dbUser.role;
+          token.warehouseIds = dbUser.warehouses.map((w) => w.warehouseId);
+          token.clientId = dbUser.clientId;
+          token.supplierId = dbUser.supplierId;
+          token.isVerified = dbUser.isVerified;
+          token.canManageSuppliers = dbUser.client?.canManageSuppliers ?? false;
+          token.lastRefreshed = Date.now();
+        } catch {
+          // DB unreachable — keep stale claims until next interval
+        }
+      }
+
       return token;
     },
     session({ session, token }) {
@@ -80,3 +110,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: { strategy: "jwt" },
 });
+
+/** H13: Per-request deduplication of auth() via React.cache() */
+export const cachedAuth = cache(auth);

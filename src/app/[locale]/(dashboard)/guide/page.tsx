@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { GuideClient } from "@/components/guide/guide-client";
 import { getTranslations } from "next-intl/server";

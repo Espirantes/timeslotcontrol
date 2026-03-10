@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { auditLog } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import type { VehicleType, RecurrenceType } from "@/generated/prisma/client";

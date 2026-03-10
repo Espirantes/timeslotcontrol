@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { redirect } from "next/navigation";
 
 export default async function LoginPage() {

@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { getReservationList } from "@/lib/actions/reservations";
 import { ReservationsListClient } from "@/components/reservations/reservations-list-client";
 import { getTranslations } from "next-intl/server";

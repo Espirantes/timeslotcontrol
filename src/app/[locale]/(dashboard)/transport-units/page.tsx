@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { TransportUnitsClient } from "@/components/admin/transport-units-client";

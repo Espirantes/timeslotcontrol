@@ -33,7 +33,7 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
   const tNav = useTranslations("nav");
   const [isPending, startTransition] = useTransition();
   const [warehouseId, setWarehouseId] = useState(defaultWarehouseId);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [gates, setGates] = useState<CalendarGate[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<CalendarHoliday[]>([]);

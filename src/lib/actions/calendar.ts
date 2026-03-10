@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import type { ReservationStatus } from "@/generated/prisma/client";
 
 export type CalendarGate = {
@@ -60,22 +60,53 @@ export async function getCalendarData(
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
-  // Fetch reservations with confirmed version in the date range
-  const reservations = await prisma.reservation.findMany({
-    where: {
-      gateId: { in: gates.map((g) => g.id) },
-      status: { notIn: ["CANCELLED"] },
-      confirmedVersion: {
-        startTime: { gte: dateFrom, lte: dateTo },
+  const gateIds = gates.map((g) => g.id);
+
+  // M13: Parallelize confirmed, pending, warehouse, and block queries
+  const [reservations, pendingReservations, warehouse, gateBlocks, activeRecurringRaw] = await Promise.all([
+    prisma.reservation.findMany({
+      where: {
+        gateId: { in: gateIds },
+        status: { notIn: ["CANCELLED"] },
+        confirmedVersion: { startTime: { gte: dateFrom, lte: dateTo } },
       },
-    },
-    include: {
-      confirmedVersion: { include: { items: true } },
-      pendingVersion: true,
-      supplier: true,
-      client: true,
-    },
-  });
+      include: {
+        confirmedVersion: { include: { items: true } },
+        pendingVersion: true,
+        supplier: true,
+        client: true,
+      },
+    }),
+    prisma.reservation.findMany({
+      where: {
+        gateId: { in: gateIds },
+        status: "REQUESTED",
+        confirmedVersionId: null,
+        pendingVersion: { startTime: { gte: dateFrom, lte: dateTo } },
+      },
+      include: { pendingVersion: true, supplier: true, client: true },
+    }),
+    prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+      select: { country: true },
+    }),
+    prisma.gateBlock.findMany({
+      where: {
+        gateId: { in: gateIds },
+        startTime: { lt: dateTo },
+        endTime: { gt: dateFrom },
+      },
+      orderBy: { startTime: "asc" },
+    }),
+    prisma.recurringReservation.findMany({
+      where: {
+        gateId: { in: gateIds },
+        isActive: true,
+        startDate: { lte: dateTo },
+        OR: [{ endDate: null }, { endDate: { gte: dateFrom } }],
+      },
+    }),
+  ]);
 
   const events: CalendarEvent[] = [];
 
@@ -112,60 +143,36 @@ export async function getCalendarData(
     });
   }
 
-  // Also add pending (not-yet-confirmed) reservations as lighter events
-  const pendingReservations = await prisma.reservation.findMany({
-    where: {
-      gateId: { in: gates.map((g) => g.id) },
+  for (const r of pendingReservations) {
+    const v = r.pendingVersion;
+    if (!v) continue;
+    const endTime = new Date(v.startTime.getTime() + v.durationMinutes * 60 * 1000);
+
+    let canSeeDetail = false;
+    if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
+    else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
+    else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
+
+    events.push({
+      id: `pending-${r.id}`,
+      resourceId: r.gateId,
+      start: v.startTime.toISOString(),
+      end: endTime.toISOString(),
       status: "REQUESTED",
-      confirmedVersionId: null,
-      pendingVersion: {
-        startTime: { gte: dateFrom, lte: dateTo },
-      },
-    },
-    include: {
-      pendingVersion: true,
-      supplier: true,
-      client: true,
-    },
-  });
-
-  pendingReservations.forEach((r) => {
-      const v = r.pendingVersion;
-      if (!v) return;
-      const endTime = new Date(
-        v.startTime.getTime() + v.durationMinutes * 60 * 1000
-      );
-
-      let canSeeDetail = false;
-      if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-      else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
-      else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
-
-      events.push({
-        id: `pending-${r.id}`,
-        resourceId: r.gateId,
-        start: v.startTime.toISOString(),
-        end: endTime.toISOString(),
-        status: "REQUESTED",
-        isOwn: canSeeDetail,
-        title: canSeeDetail ? r.supplier.name : "",
-        supplierName: canSeeDetail ? r.supplier.name : undefined,
-        clientName: canSeeDetail ? r.client.name : undefined,
-        durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
-        notes: canSeeDetail ? v.notes : undefined,
-        reservationType: canSeeDetail ? r.type : undefined,
-      });
+      isOwn: canSeeDetail,
+      title: canSeeDetail ? r.supplier.name : "",
+      supplierName: canSeeDetail ? r.supplier.name : undefined,
+      clientName: canSeeDetail ? r.client.name : undefined,
+      durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
+      notes: canSeeDetail ? v.notes : undefined,
+      reservationType: canSeeDetail ? r.type : undefined,
     });
+  }
 
-  // Fetch holidays for this warehouse's country
+  // Build holidays from warehouse country
   let holidays: CalendarHoliday[] = [];
-  const warehouse = await prisma.warehouse.findUnique({
-    where: { id: warehouseId },
-    select: { country: true },
-  });
   if (warehouse?.country) {
     const { getHolidaysForMonth } = await import("@/lib/holidays");
-    // Collect holidays for all months in the date range
     const seen = new Set<string>();
     const d = new Date(dateFrom);
     while (d <= dateTo) {
@@ -184,19 +191,10 @@ export async function getCalendarData(
   }
 
   // Lazy-generate recurring reservation instances for the viewed date range
-  const activeRecurring = await prisma.recurringReservation.findMany({
-    where: {
-      gateId: { in: gates.map((g) => g.id) },
-      isActive: true,
-      startDate: { lte: dateTo },
-      OR: [{ endDate: null }, { endDate: { gte: dateFrom } }],
-    },
-  });
-
   let didGenerate = false;
-  if (activeRecurring.length > 0) {
+  if (activeRecurringRaw.length > 0) {
     const { generateInstances } = await import("@/lib/actions/recurring-reservations");
-    for (const rr of activeRecurring) {
+    for (const rr of activeRecurringRaw) {
       if (!rr.lastGeneratedDate || rr.lastGeneratedDate < dateTo) {
         try {
           const result = await generateInstances(rr.id, dateTo);
@@ -262,16 +260,6 @@ export async function getCalendarData(
   for (const ev of events) {
     if (recurringIds.has(ev.id)) ev.isRecurring = true;
   }
-
-  // Fetch gate blocks in the date range
-  const gateBlocks = await prisma.gateBlock.findMany({
-    where: {
-      gateId: { in: gates.map((g) => g.id) },
-      startTime: { lt: dateTo },
-      endTime: { gt: dateFrom },
-    },
-    orderBy: { startTime: "asc" },
-  });
 
   return {
     gates: gates.map((g) => ({

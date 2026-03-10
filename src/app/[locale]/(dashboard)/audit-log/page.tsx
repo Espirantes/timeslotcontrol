@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getAuditLogs } from "@/lib/actions/admin";
 import { AuditLogClient } from "@/components/admin/audit-log-client";

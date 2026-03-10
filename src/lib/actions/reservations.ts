@@ -1,9 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import { cachedAuth as auth } from "@/auth";
 import { auditLog } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import type { VehicleType } from "@/generated/prisma/client";
 import {
   notifyReservationCreated,
@@ -71,8 +72,8 @@ async function getEmailRecipients(clientId: string, supplierId: string): Promise
   };
 }
 
-/** Returns supplier id for current user, throwing if not a supplier */
-async function requireSupplierOrWorker() {
+/** Verify the caller is authenticated and return the session user (M5). */
+async function requireSession() {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
   return session.user;
@@ -191,7 +192,7 @@ export async function isGateOpen(gateId: string, startTime: Date, endTime: Date)
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export async function createReservation(input: CreateReservationInput) {
-  const user = await requireSupplierOrWorker();
+  const user = await requireSession();
   const { role, supplierId } = user;
 
   // Block unverified users
@@ -327,57 +328,69 @@ export async function createReservation(input: CreateReservationInput) {
     return res;
   });
 
-  await auditLog({
-    entityType: "reservation",
-    entityId: reservation.id,
-    action: "created",
-    newData: { status: isAdminCreate ? "CONFIRMED" : "REQUESTED", startTime: input.startTime, durationMinutes: input.durationMinutes },
-    userId: user.id,
-  });
-
   revalidatePath("/calendar");
   revalidatePath("/reservations");
 
-  // Email notification to warehouse workers
-  const gate = await prisma.gates.findUnique({ where: { id: input.gateId }, include: { warehouse: true } });
-  const supplier = await prisma.supplier.findUnique({ where: { id: resolvedSupplierId } });
-  const workers = await prisma.user.findMany({
-    where: {
-      isActive: true,
-      notifyEmail: true,
-      OR: [
-        { role: "ADMIN" },
-        { role: "WAREHOUSE_WORKER", warehouses: { some: { warehouseId: gate?.warehouseId } } },
-      ],
-    },
-    select: { email: true },
+  // H12: Move audit, email, and notification side effects after response
+  const resId = reservation.id;
+  const gateId = input.gateId;
+  const inputStartTime = input.startTime;
+  const cId = input.clientId;
+  const sId = resolvedSupplierId;
+  const userId = user.id;
+  const status = isAdminCreate ? "CONFIRMED" : "REQUESTED";
+
+  after(async () => {
+    await auditLog({
+      entityType: "reservation",
+      entityId: resId,
+      action: "created",
+      newData: { status, startTime: inputStartTime, durationMinutes: input.durationMinutes },
+      userId,
+    });
+
+    const [gate, supplier, workers, locale] = await Promise.all([
+      prisma.gates.findUnique({ where: { id: gateId }, include: { warehouse: true } }),
+      prisma.supplier.findUnique({ where: { id: sId } }),
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          notifyEmail: true,
+          OR: [
+            { role: "ADMIN" },
+            { role: "WAREHOUSE_WORKER", warehouses: { some: { warehouseId: gateId } } },
+          ],
+        },
+        select: { email: true },
+      }),
+      getLocale(),
+    ]);
+
+    notifyReservationCreated({
+      reservationId: resId,
+      gateName: gate?.name ?? "",
+      supplierName: supplier?.name ?? "",
+      startTime: inputStartTime,
+      workerEmails: workers.map((w) => w.email),
+      locale,
+    }).catch(console.error);
+
+    createNotificationsForEvent({
+      type: "RESERVATION_CREATED",
+      reservationId: resId,
+      title: gate?.name ?? "",
+      message: `${supplier?.name ?? ""} — ${new Date(inputStartTime).toLocaleString(locale, { timeZone: "Europe/Prague" })}`,
+      warehouseId: gate?.warehouseId ?? "",
+      clientId: cId,
+      supplierId: sId,
+    }).catch(console.error);
   });
-  const locale = await getLocale();
-  notifyReservationCreated({
-    reservationId: reservation.id,
-    gateName: gate?.name ?? "",
-    supplierName: supplier?.name ?? "",
-    startTime: input.startTime,
-    workerEmails: workers.map((w) => w.email),
-    locale,
-  }).catch(console.error);
 
-  // In-app notification
-  createNotificationsForEvent({
-    type: "RESERVATION_CREATED",
-    reservationId: reservation.id,
-    title: `${gate?.name ?? ""}`,
-    message: `${supplier?.name ?? ""} — ${new Date(input.startTime).toLocaleString(locale, { timeZone: "Europe/Prague" })}`,
-    warehouseId: gate?.warehouseId ?? "",
-    clientId: input.clientId,
-    supplierId: resolvedSupplierId,
-  }).catch(console.error);
-
-  return { success: true, reservationId: reservation.id };
+  return { success: true, reservationId: resId };
 }
 
 export async function approveReservation(reservationId: string) {
-  const user = await requireSupplierOrWorker();
+  const user = await requireSession();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can approve reservations");
   }
@@ -435,52 +448,57 @@ export async function approveReservation(reservationId: string) {
     });
   });
 
-  await auditLog({
-    entityType: "reservation",
-    entityId: reservationId,
-    action: "version_approved",
-    oldData: { status: oldStatus },
-    newData: { status: "CONFIRMED", confirmedVersionId: reservation.pendingVersionId },
-    userId: user.id,
-  });
-
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
 
-  // Email notification
-  const full = await prisma.reservation.findUnique({
-    where: { id: reservationId },
-    include: { gate: true, supplier: true, client: true, confirmedVersion: true },
-  });
-  if (full?.confirmedVersion) {
-    const locale = await getLocale();
-    const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
-    notifyReservationApproved({
-      reservationId,
-      gateName: full.gate.name,
-      startTime: full.confirmedVersion.startTime.toISOString(),
-      supplierEmail: emailRecipients.supplierEmail,
-      clientEmail: emailRecipients.clientEmail,
-      locale,
-    }).catch(console.error);
+  // H12: Side effects after response
+  const approveUserId = user.id;
+  const pendingVerId = reservation.pendingVersionId;
+  after(async () => {
+    await auditLog({
+      entityType: "reservation",
+      entityId: reservationId,
+      action: "version_approved",
+      oldData: { status: oldStatus },
+      newData: { status: "CONFIRMED", confirmedVersionId: pendingVerId },
+      userId: approveUserId,
+    });
 
-    // In-app notification
-    createNotificationsForEvent({
-      type: "RESERVATION_APPROVED",
-      reservationId,
-      title: full.gate.name,
-      message: new Date(full.confirmedVersion.startTime).toLocaleString(locale, { timeZone: "Europe/Prague" }),
-      warehouseId: full.gate.warehouseId,
-      clientId: full.clientId,
-      supplierId: full.supplierId,
-    }).catch(console.error);
-  }
+    const full = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { gate: true, supplier: true, client: true, confirmedVersion: true },
+    });
+    if (full?.confirmedVersion) {
+      const [locale, emailRecipients] = await Promise.all([
+        getLocale(),
+        getEmailRecipients(full.clientId, full.supplierId),
+      ]);
+      notifyReservationApproved({
+        reservationId,
+        gateName: full.gate.name,
+        startTime: full.confirmedVersion.startTime.toISOString(),
+        supplierEmail: emailRecipients.supplierEmail,
+        clientEmail: emailRecipients.clientEmail,
+        locale,
+      }).catch(console.error);
+
+      createNotificationsForEvent({
+        type: "RESERVATION_APPROVED",
+        reservationId,
+        title: full.gate.name,
+        message: new Date(full.confirmedVersion.startTime).toLocaleString(locale, { timeZone: "Europe/Prague" }),
+        warehouseId: full.gate.warehouseId,
+        clientId: full.clientId,
+        supplierId: full.supplierId,
+      }).catch(console.error);
+    }
+  });
 
   return { success: true };
 }
 
 export async function rejectReservation(reservationId: string) {
-  const user = await requireSupplierOrWorker();
+  const user = await requireSession();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can reject reservations");
   }
@@ -496,64 +514,71 @@ export async function rejectReservation(reservationId: string) {
 
   const wasNew = reservation.status === "REQUESTED" && !reservation.confirmedVersionId;
 
-  await prisma.reservation.update({
-    where: { id: reservationId },
-    data: {
-      // If it was a brand new request with no confirmed version → cancel
-      status: wasNew ? "CANCELLED" : reservation.status,
-      pendingVersionId: null,
-    },
-  });
-
-  await auditLog({
-    entityType: "reservation",
-    entityId: reservationId,
-    action: "version_rejected",
-    oldData: { status: reservation.status },
-    newData: { pendingVersionId: null },
-    userId: user.id,
-  });
-
-  if (wasNew) {
-    await prisma.reservationStatusChange.create({
+  // H4: Wrap mutation + status change atomically
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.update({
+      where: { id: reservationId },
       data: {
-        reservationId,
-        status: "CANCELLED",
-        changedById: user.id,
+        status: wasNew ? "CANCELLED" : reservation.status,
+        pendingVersionId: null,
       },
     });
-  }
+
+    if (wasNew) {
+      await tx.reservationStatusChange.create({
+        data: {
+          reservationId,
+          status: "CANCELLED",
+          changedById: user.id,
+        },
+      });
+    }
+  });
 
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
 
-  // Email notification
-  const full = await prisma.reservation.findUnique({
-    where: { id: reservationId },
-    include: { gate: true, supplier: true, client: true },
-  });
-  if (full) {
-    const locale = await getLocale();
-    const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
-    notifyReservationRejected({
-      reservationId,
-      gateName: full.gate.name,
-      supplierEmail: emailRecipients.supplierEmail,
-      clientEmail: emailRecipients.clientEmail,
-      locale,
-    }).catch(console.error);
+  // H12: Side effects after response
+  const rejectUserId = user.id;
+  const rejectOldStatus = reservation.status;
+  after(async () => {
+    await auditLog({
+      entityType: "reservation",
+      entityId: reservationId,
+      action: "version_rejected",
+      oldData: { status: rejectOldStatus },
+      newData: { pendingVersionId: null },
+      userId: rejectUserId,
+    });
 
-    // In-app notification
-    createNotificationsForEvent({
-      type: "RESERVATION_REJECTED",
-      reservationId,
-      title: full.gate.name,
-      message: "",
-      warehouseId: full.gate.warehouseId,
-      clientId: full.clientId,
-      supplierId: full.supplierId,
-    }).catch(console.error);
-  }
+    const full = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { gate: true, supplier: true, client: true },
+    });
+    if (full) {
+      const [locale, emailRecipients] = await Promise.all([
+        getLocale(),
+        getEmailRecipients(full.clientId, full.supplierId),
+      ]);
+      notifyReservationRejected({
+        reservationId,
+        gateName: full.gate.name,
+        supplierEmail: emailRecipients.supplierEmail,
+        clientEmail: emailRecipients.clientEmail,
+        locale,
+      }).catch(console.error);
+
+      createNotificationsForEvent({
+        type: "RESERVATION_REJECTED",
+        reservationId,
+        title: full.gate.name,
+        message: "",
+        warehouseId: full.gate.warehouseId,
+        clientId: full.clientId,
+        supplierId: full.supplierId,
+      }).catch(console.error);
+    }
+  });
 
   return { success: true };
 }
@@ -562,7 +587,7 @@ export async function updateReservationStatus(
   reservationId: string,
   newStatus: "UNLOADING_STARTED" | "UNLOADING_COMPLETED" | "CLOSED" | "CANCELLED"
 ) {
-  const user = await requireSupplierOrWorker();
+  const user = await requireSession();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can change reservation status");
   }
@@ -586,60 +611,68 @@ export async function updateReservationStatus(
     throw new Error(`Cannot transition from ${reservation.status} to ${newStatus}`);
   }
 
-  await prisma.reservation.update({
-    where: { id: reservationId },
-    data: { status: newStatus },
-  });
+  // H4: Wrap mutation + status change atomically
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.update({
+      where: { id: reservationId },
+      data: { status: newStatus },
+    });
 
-  await auditLog({
-    entityType: "reservation",
-    entityId: reservationId,
-    action: "status_changed",
-    oldData: { status: reservation.status },
-    newData: { status: newStatus },
-    userId: user.id,
-  });
-
-  await prisma.reservationStatusChange.create({
-    data: {
-      reservationId,
-      status: newStatus,
-      changedById: user.id,
-    },
+    await tx.reservationStatusChange.create({
+      data: {
+        reservationId,
+        status: newStatus,
+        changedById: user.id,
+      },
+    });
   });
 
   revalidatePath("/calendar");
   revalidatePath(`/reservations/${reservationId}`);
 
-  // Email notification
-  const full = await prisma.reservation.findUnique({
-    where: { id: reservationId },
-    include: { gate: true, supplier: true, client: true },
-  });
-  if (full) {
-    const locale = await getLocale();
-    const tStatus = await getTranslations("reservation.status");
-    const emailRecipients = await getEmailRecipients(full.clientId, full.supplierId);
-    notifyStatusChanged({
-      reservationId,
-      gateName: full.gate.name,
-      newStatus,
-      supplierEmail: emailRecipients.supplierEmail,
-      clientEmail: emailRecipients.clientEmail,
-      locale,
-    }).catch(console.error);
+  // H12: Side effects after response
+  const statusUserId = user.id;
+  const statusOld = reservation.status;
+  after(async () => {
+    await auditLog({
+      entityType: "reservation",
+      entityId: reservationId,
+      action: "status_changed",
+      oldData: { status: statusOld },
+      newData: { status: newStatus },
+      userId: statusUserId,
+    });
 
-    // In-app notification
-    createNotificationsForEvent({
-      type: "STATUS_CHANGED",
-      reservationId,
-      title: full.gate.name,
-      message: tStatus(newStatus),
-      warehouseId: full.gate.warehouseId,
-      clientId: full.clientId,
-      supplierId: full.supplierId,
-    }).catch(console.error);
-  }
+    const full = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { gate: true, supplier: true, client: true },
+    });
+    if (full) {
+      const [locale, tStatus, emailRecipients] = await Promise.all([
+        getLocale(),
+        getTranslations("reservation.status"),
+        getEmailRecipients(full.clientId, full.supplierId),
+      ]);
+      notifyStatusChanged({
+        reservationId,
+        gateName: full.gate.name,
+        newStatus,
+        supplierEmail: emailRecipients.supplierEmail,
+        clientEmail: emailRecipients.clientEmail,
+        locale,
+      }).catch(console.error);
+
+      createNotificationsForEvent({
+        type: "STATUS_CHANGED",
+        reservationId,
+        title: full.gate.name,
+        message: tStatus(newStatus),
+        warehouseId: full.gate.warehouseId,
+        clientId: full.clientId,
+        supplierId: full.supplierId,
+      }).catch(console.error);
+    }
+  });
 
   return { success: true };
 }
@@ -903,32 +936,36 @@ export async function getFormData(warehouseId: string) {
 
   const { role, supplierId, clientId } = session.user;
 
-  const gates = await prisma.gates.findMany({
-    where: { warehouseId, isActive: true },
-    include: { openingHours: true },
-    orderBy: { name: "asc" },
-  });
+  // M13: Parallelize independent queries
+  const clientsPromise = (async () => {
+    if (role === "SUPPLIER" && supplierId) {
+      const links = await prisma.clientSupplier.findMany({
+        where: { supplierId },
+        include: { client: true },
+      });
+      return links.map((l) => ({ id: l.client.id, name: l.client.name }));
+    } else if (role === "CLIENT" && clientId) {
+      const client = await prisma.client.findUnique({ where: { id: clientId } });
+      return client ? [{ id: client.id, name: client.name }] : [];
+    } else if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
+      return prisma.client.findMany({ orderBy: { name: "asc" } });
+    }
+    return [] as { id: string; name: string }[];
+  })();
 
-  let clients: { id: string; name: string }[] = [];
-
-  if (role === "SUPPLIER" && supplierId) {
-    const links = await prisma.clientSupplier.findMany({
-      where: { supplierId },
-      include: { client: true },
-    });
-    clients = links.map((l) => ({ id: l.client.id, name: l.client.name }));
-  } else if (role === "CLIENT" && clientId) {
-    const client = await prisma.client.findUnique({ where: { id: clientId } });
-    if (client) clients = [{ id: client.id, name: client.name }];
-  } else if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
-    clients = await prisma.client.findMany({ orderBy: { name: "asc" } });
-  }
-
-  const transportUnits = await prisma.transportUnit.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, weightKg: true, processingMinutes: true },
-  });
+  const [gates, clients, transportUnits] = await Promise.all([
+    prisma.gates.findMany({
+      where: { warehouseId, isActive: true },
+      include: { openingHours: true },
+      orderBy: { name: "asc" },
+    }),
+    clientsPromise,
+    prisma.transportUnit.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, weightKg: true, processingMinutes: true },
+    }),
+  ]);
 
   return {
     gates: gates.map((g) => ({
@@ -1001,6 +1038,11 @@ export async function editReservation(input: EditReservationInput) {
 
   const user = session.user;
   const { role, clientId, supplierId } = user;
+
+  // M2: enforce 15-minute duration grid (same as create)
+  if (input.durationMinutes !== undefined && input.durationMinutes % 15 !== 0) {
+    throw new Error("Duration must be a multiple of 15 minutes");
+  }
 
   const reservation = await prisma.reservation.findUniqueOrThrow({
     where: { id: input.reservationId },

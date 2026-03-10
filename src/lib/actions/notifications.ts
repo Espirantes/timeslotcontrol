@@ -96,11 +96,12 @@ export type NotificationItem = {
 
 export async function getNotifications(limit = 20): Promise<NotificationItem[]> {
   const user = await getUserBySession();
+  const clampedLimit = Math.min(Math.max(1, limit), 100); // M10: clamp to safe range
 
   const rows = await prisma.notification.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: clampedLimit,
   });
 
   return rows.map((r) => ({
