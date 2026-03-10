@@ -21,7 +21,7 @@ Warehouse dock scheduling system. Suppliers/carriers request time slots on speci
 | CSS             | **Tailwind CSS v4**       | + `shadcn/ui` components in `src/components/ui/` |
 | i18n            | **next-intl v4**          | cs, en, it — messages in `messages/`             |
 | Calendar        | **@fullcalendar/react 6** | Resource time grid + day grid                    |
-| Package manager | **pnpm**                  | **Never** use npm or yarn                        |
+| Package manager | **npm**                   | **Never** use pnpm or yarn                       |
 | Testing         | **Vitest 4**              | `vitest.config.ts`, path alias `@/` → `src/`     |
 | Email           | **Resend API**            | Raw fetch, no SDK package                        |
 | Icons           | **lucide-react**          |                                                  |
@@ -202,17 +202,17 @@ if (!session) redirect("/login");
 
 ### Commands
 
-| Script             | Purpose                                                  |
-| ------------------ | -------------------------------------------------------- |
-| `pnpm db:setup`    | Create DB + run migrations + seed (safe, skips existing) |
-| `pnpm db:reset`    | Drop DB, recreate, migrate + seed (**destructive**)      |
-| `pnpm db:migrate`  | `prisma migrate dev`                                     |
-| `pnpm db:generate` | `prisma generate`                                        |
+| Script                | Purpose                                                  |
+| --------------------- | -------------------------------------------------------- |
+| `npm run db:setup`    | Create DB + run migrations + seed (safe, skips existing) |
+| `npm run db:reset`    | Drop DB, recreate, migrate + seed (**destructive**)      |
+| `npm run db:migrate`  | `prisma migrate dev`                                     |
+| `npm run db:generate` | `prisma generate`                                        |
 
 ### New Migration
 
 ```bash
-pnpm prisma migrate dev --name <name>
+npx prisma migrate dev --name <name>
 ```
 
 ### Prisma Config
@@ -364,14 +364,14 @@ export async function doSomething(data: FormData) {
 - Framework: Vitest 4 with `globals: true`
 - Path alias: `@/` → `src/`
 - Test files: `src/__tests__/*.test.ts`
-- Run: `pnpm test` (watch) / `pnpm test:run` (single run)
+- Run: `npm test` (watch) / `npm run test:run` (single run)
 - Existing tests: audit, email, i18n, reservations
 
 ---
 
 ## Rules — DO
 
-- ✅ Use `pnpm` exclusively
+- ✅ Use `npm` exclusively
 - ✅ Add translations to all 3 locale files (cs, en, it) for every new UI string
 - ✅ Call `auditLog()` on every entity mutation
 - ✅ Import Prisma types from `@/generated/prisma/client`
@@ -385,7 +385,7 @@ export async function doSomething(data: FormData) {
 
 ## Rules — DO NOT
 
-- ❌ Never use `npm` or `yarn`
+- ❌ Never use `pnpm` or `yarn`
 - ❌ Never import from `@prisma/client` directly — use `@/generated/prisma/client`
 - ❌ Never add comments to self-documenting code
 - ❌ Never create new files when editing existing ones suffices

@@ -19,24 +19,24 @@ Built for **Mailstep Group**.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| Frontend | React 19, TypeScript, Tailwind CSS v4, shadcn/ui |
-| ORM | Prisma 7 |
-| Database | PostgreSQL |
-| Auth | Auth.js v5 (credentials + JWT) |
-| i18n | next-intl v4 (cs, en, it) |
-| Calendar | @fullcalendar/react |
-| Email | Resend API |
-| Package manager | pnpm |
+| Layer           | Technology                                       |
+| --------------- | ------------------------------------------------ |
+| Framework       | Next.js 16 (App Router)                          |
+| Frontend        | React 19, TypeScript, Tailwind CSS v4, shadcn/ui |
+| ORM             | Prisma 7                                         |
+| Database        | PostgreSQL                                       |
+| Auth            | Auth.js v5 (credentials + JWT)                   |
+| i18n            | next-intl v4 (cs, en, it)                        |
+| Calendar        | @fullcalendar/react                              |
+| Email           | Resend API                                       |
+| Package manager | npm                                              |
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 20+
-- pnpm (`npm install -g pnpm`)
+- npm (included with Node.js)
 - PostgreSQL running locally (user: `postgres`, password: `postgres`)
 
 ### Setup
@@ -44,44 +44,44 @@ Built for **Mailstep Group**.
 ```bash
 git clone <repo-url>
 cd timeslotcontrol
-pnpm install
+npm install
 cp .env.local.example .env.local   # edit if your DB credentials differ
-pnpm db:setup                       # creates DB, runs migrations, seeds data
-pnpm dev                            # http://localhost:3000
+npm run db:setup                    # creates DB, runs migrations, seeds data
+npm run dev                         # http://localhost:3000
 ```
 
 ### Reset database
 
 ```bash
-pnpm db:reset   # drops DB, recreates, migrates, seeds
+npm run db:reset   # drops DB, recreates, migrates, seeds
 ```
 
 ## Test Accounts
 
 All passwords: `password123`
 
-| Email | Role | Organization |
-|-------|------|-------------|
-| admin@timeslotcontrol.com | Admin | -- |
-| worker@timeslotcontrol.com | Warehouse Worker | Sklad Praha |
-| allegro@timeslotcontrol.com | Client | Allegro |
-| pg@timeslotcontrol.com | Supplier | Procter & Gamble |
-| jarda@jicin.cz | Supplier | Jarda z Jicina |
-| alex@nejkafe.cz | Client | Online Empire s.r.o. |
+| Email                       | Role             | Organization         |
+| --------------------------- | ---------------- | -------------------- |
+| admin@timeslotcontrol.com   | Admin            | --                   |
+| worker@timeslotcontrol.com  | Warehouse Worker | Sklad Praha          |
+| allegro@timeslotcontrol.com | Client           | Allegro              |
+| pg@timeslotcontrol.com      | Supplier         | Procter & Gamble     |
+| jarda@jicin.cz              | Supplier         | Jarda z Jicina       |
+| alex@nejkafe.cz             | Client           | Online Empire s.r.o. |
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Production build |
-| `pnpm db:setup` | Create DB + migrate + seed (safe, skips if data exists) |
-| `pnpm db:reset` | Drop & recreate DB + migrate + seed |
-| `pnpm db:migrate` | Run Prisma migrations |
-| `pnpm db:generate` | Regenerate Prisma client |
-| `pnpm lint` | ESLint |
-| `pnpm typecheck` | TypeScript check |
-| `pnpm test` | Run tests (vitest) |
+| Command               | Description                                             |
+| --------------------- | ------------------------------------------------------- |
+| `npm run dev`         | Start dev server                                        |
+| `npm run build`       | Production build                                        |
+| `npm run db:setup`    | Create DB + migrate + seed (safe, skips if data exists) |
+| `npm run db:reset`    | Drop & recreate DB + migrate + seed                     |
+| `npm run db:migrate`  | Run Prisma migrations                                   |
+| `npm run db:generate` | Regenerate Prisma client                                |
+| `npm run lint`        | ESLint                                                  |
+| `npm run typecheck`   | TypeScript check                                        |
+| `npm test`            | Run tests (vitest)                                      |
 
 ## Project Structure
 
@@ -126,13 +126,13 @@ scripts/
 
 See [.env.local.example](.env.local.example):
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `AUTH_SECRET` | Yes | Random string for session encryption |
-| `RESEND_API_KEY` | No | Resend API key for email notifications |
-| `RESEND_FROM_EMAIL` | No | Sender email address |
-| `NEXT_PUBLIC_APP_URL` | No | App URL for email links (default: http://localhost:3000) |
+| Variable              | Required | Description                                              |
+| --------------------- | -------- | -------------------------------------------------------- |
+| `DATABASE_URL`        | Yes      | PostgreSQL connection string                             |
+| `AUTH_SECRET`         | Yes      | Random string for session encryption                     |
+| `RESEND_API_KEY`      | No       | Resend API key for email notifications                   |
+| `RESEND_FROM_EMAIL`   | No       | Sender email address                                     |
+| `NEXT_PUBLIC_APP_URL` | No       | App URL for email links (default: http://localhost:3000) |
 
 ## License
 
