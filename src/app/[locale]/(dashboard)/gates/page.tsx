@@ -25,7 +25,11 @@ export default async function GatesPage() {
         isActive: true,
         sortOrder: true,
         warehouse: { select: { id: true, name: true } },
-        openingHours: { orderBy: { dayOfWeek: "asc" } },
+        // M16: Only send fields the client actually reads — omit id/gateId/createdAt/updatedAt
+        openingHours: {
+          select: { dayOfWeek: true, openTime: true, closeTime: true, isOpen: true },
+          orderBy: { dayOfWeek: "asc" },
+        },
       },
       orderBy: [{ warehouse: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
     }),

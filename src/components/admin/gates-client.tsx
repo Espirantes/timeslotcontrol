@@ -23,7 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { createGate, updateGate, deleteGate, updateGateOpeningHours, getGateBlocks, createGateBlock, deleteGateBlock } from "@/lib/actions/admin";
-import type { GateOpeningHours } from "@/generated/prisma/client";
+
 import { format } from "date-fns";
 
 type WarehouseItem = {
@@ -40,7 +40,8 @@ type GateWithRelations = {
   isActive: boolean;
   sortOrder: number;
   warehouse: { id: string; name: string };
-  openingHours: GateOpeningHours[];
+  // M16: Minimal shape — only fields the component actually reads
+  openingHours: { dayOfWeek: number; openTime: string; closeTime: string; isOpen: boolean }[];
 };
 
 type Props = {
