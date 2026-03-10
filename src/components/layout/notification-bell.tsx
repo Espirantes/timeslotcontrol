@@ -47,16 +47,21 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const prevCountRef = useRef(0);
+  // M14: Use refs so fetchCount is stable and doesn't restart the interval on translation changes
+  const notifyBrowserRef = useRef(notifyBrowser);
+  notifyBrowserRef.current = notifyBrowser;
+  const tRef = useRef(t);
+  tRef.current = t;
 
-  // Poll unread count
+  // Poll unread count — stable callback with no deps
   const fetchCount = useCallback(async () => {
     try {
       const count = await getUnreadCount();
       // Browser notification when count increases
-      if (notifyBrowser && count > prevCountRef.current && prevCountRef.current >= 0) {
+      if (notifyBrowserRef.current && count > prevCountRef.current && prevCountRef.current >= 0) {
         if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
           new Notification("Dock Scheduling System", {
-            body: t("newNotification"),
+            body: tRef.current("newNotification"),
             icon: "/logo-mailstep.svg",
           });
         }
@@ -66,7 +71,7 @@ export function NotificationBell({ notifyBrowser }: { notifyBrowser: boolean }) 
     } catch {
       // silently ignore
     }
-  }, [notifyBrowser, t]);
+  }, []);
 
   useEffect(() => {
     fetchCount();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -139,7 +139,7 @@ export function ReservationFormDialog({
   const [clientId, setClientId] = useState("");
   const [date, setDate] = useState(preselectedDate ? format(preselectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(preselectedStartTime ?? "");
-  const [duration, setDuration] = useState(60);
+  const [durationOverride, setDurationOverride] = useState<number | null>(null);
   const [vehicleType, setVehicleType] = useState<VehicleType>("TRUCK");
   const [licensePlate, setLicensePlate] = useState("");
   const [sealNumbers, setSealNumbers] = useState("");
@@ -194,17 +194,16 @@ export function ReservationFormDialog({
     getGateBlocksForDate(gateId, date).then(setGateBlocks);
   }, [gateId, date]);
 
-  // Auto-calculate duration from items
-  useEffect(() => {
-    if (transportUnits.length === 0) return;
+  // M15: Derive duration from items during render — no extra render cycle via useEffect
+  const autoDuration = useMemo(() => {
+    if (transportUnits.length === 0) return 0;
     const rawMinutes = items.reduce((sum, item) => {
       const unit = transportUnits.find((u) => u.id === item.transportUnitId);
       return sum + (item.quantity * (unit?.processingMinutes ?? 0));
     }, 0);
-    if (rawMinutes > 0) {
-      setDuration(Math.max(15, Math.ceil(rawMinutes / 15) * 15));
-    }
+    return rawMinutes > 0 ? Math.max(15, Math.ceil(rawMinutes / 15) * 15) : 0;
   }, [items, transportUnits]);
+  const duration = durationOverride ?? (autoDuration || 60);
 
   const isAdmin = userRole === "ADMIN";
   const selectedGate = gates.find((g) => g.id === gateId);
@@ -488,7 +487,7 @@ export function ReservationFormDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.duration")}</label>
-              <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
+              <Select value={String(duration)} onValueChange={(v) => setDurationOverride(Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DURATIONS.map((d) => <SelectItem key={d} value={String(d)}>{d} min</SelectItem>)}

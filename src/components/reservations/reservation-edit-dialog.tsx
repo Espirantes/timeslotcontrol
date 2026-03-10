@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ export function ReservationEditDialog({
 
   const [date, setDate] = useState(initDate);
   const [startTime, setStartTime] = useState(initTime);
-  const [duration, setDuration] = useState(version.durationMinutes);
+  const [durationOverride, setDurationOverride] = useState<number | null>(null);
   const [vehicleType, setVehicleType] = useState<VehicleType>(version.vehicleType as VehicleType);
   const [licensePlate, setLicensePlate] = useState(version.licensePlate ?? "");
   const [sealNumbers, setSealNumbers] = useState(version.sealNumbers ?? "");
@@ -164,7 +164,7 @@ export function ReservationEditDialog({
     const tm = format(new Date(v.startTime), "HH:mm");
     setDate(d);
     setStartTime(tm);
-    setDuration(v.durationMinutes);
+    setDurationOverride(null); // reset so autoDuration takes effect
     setVehicleType(v.vehicleType as VehicleType);
     setLicensePlate(v.licensePlate ?? "");
     setSealNumbers(v.sealNumbers ?? "");
@@ -202,17 +202,16 @@ export function ReservationEditDialog({
     getGateBlocksForDate(reservation.gateId, date).then(setGateBlocks);
   }, [reservation.gateId, date]);
 
-  // Auto-calculate duration from items
-  useEffect(() => {
-    if (transportUnits.length === 0) return;
+  // M15: Derive duration from items during render — no extra render cycle via useEffect
+  const autoDuration = useMemo(() => {
+    if (transportUnits.length === 0) return 0;
     const rawMinutes = items.reduce((sum, item) => {
       const unit = transportUnits.find((u) => u.id === item.transportUnitId);
       return sum + (item.quantity * (unit?.processingMinutes ?? 0));
     }, 0);
-    if (rawMinutes > 0) {
-      setDuration(Math.max(15, Math.ceil(rawMinutes / 15) * 15));
-    }
+    return rawMinutes > 0 ? Math.max(15, Math.ceil(rawMinutes / 15) * 15) : 0;
   }, [items, transportUnits]);
+  const duration = durationOverride ?? (autoDuration || version.durationMinutes);
 
   const isAdmin = userRole === "ADMIN";
   const gateForSlots = gates.find((g) => g.name === reservation.gateName);
@@ -481,7 +480,7 @@ export function ReservationEditDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.duration")}</label>
-              <Select value={String(duration)} onValueChange={(v) => setDuration(Number(v))}>
+              <Select value={String(duration)} onValueChange={(v) => setDurationOverride(Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DURATIONS.map((d) => <SelectItem key={d} value={String(d)}>{d} min</SelectItem>)}

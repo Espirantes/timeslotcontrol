@@ -1,6 +1,7 @@
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@dockscheduling.com";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+import { env } from "@/lib/env"; // M11
+const RESEND_API_KEY = env.RESEND_API_KEY;
+const RESEND_FROM_EMAIL = env.RESEND_FROM_EMAIL ?? "noreply@dockscheduling.com";
+const APP_URL = env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const LOGO_URL = "https://www.mailstep.cz/frontend/build/img/logo.svg";
 
 type SendEmailParams = {
