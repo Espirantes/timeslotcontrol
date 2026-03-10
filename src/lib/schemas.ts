@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ─── Common ───────────────────────────────────────────────────────────────────
 
-const cuid = () => z.string().cuid();
+const cuid = () => z.string().min(1);
 const optEmail = z.string().email().max(255).optional().or(z.literal("").transform(() => undefined));
 const timeStr = z.string().regex(/^\d{2}:\d{2}$/, "Expected HH:MM");
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");

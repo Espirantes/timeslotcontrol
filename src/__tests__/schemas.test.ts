@@ -65,8 +65,8 @@ describe("GateSchema", () => {
       isActive: true,
       sortOrder: 0,
     }));
-  it("rejects non-cuid warehouseId", () =>
-    fail(GateSchema, { warehouseId: "not-a-cuid", name: "G" }));
+  it("rejects empty warehouseId", () =>
+    fail(GateSchema, { warehouseId: "", name: "G" }));
   it("rejects empty name", () =>
     fail(GateSchema, { warehouseId: validCuid, name: "" }));
   it("rejects sortOrder > 9999", () =>
@@ -142,8 +142,8 @@ describe("SupplierSchema", () => {
   it("accepts minimal input", () => ok(SupplierSchema, { name: "Supplier A" }));
   it("accepts with clientIds", () =>
     ok(SupplierSchema, { name: "Supplier A", clientIds: [validCuid] }));
-  it("rejects non-cuid in clientIds", () =>
-    fail(SupplierSchema, { name: "Supplier A", clientIds: ["bad-id"] }));
+  it("rejects empty string in clientIds", () =>
+    fail(SupplierSchema, { name: "Supplier A", clientIds: [""] }));
 });
 
 // ─── CreateUserSchema ─────────────────────────────────────────────────────────
