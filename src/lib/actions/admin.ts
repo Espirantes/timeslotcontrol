@@ -6,6 +6,10 @@ import { auditLog } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import type { UserRole } from "@/generated/prisma/client";
+import {
+  WarehouseSchema, GateSchema, GateUpdateSchema, GateOpeningHoursRowSchema, GateBlockSchema,
+  ClientSchema, SupplierSchema, CreateUserSchema, UpdateUserSchema, TransportUnitSchema,
+} from "@/lib/schemas";
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
@@ -28,6 +32,7 @@ async function requireAdminOrWorker() {
 export async function getWarehouses() {
   await requireAdmin();
   return prisma.warehouse.findMany({
+    where: { deletedAt: null },
     select: { id: true, name: true, address: true, timezone: true, country: true, isActive: true },
     orderBy: { name: "asc" },
   });
@@ -35,27 +40,30 @@ export async function getWarehouses() {
 
 export async function createWarehouse(data: { name: string; address?: string; timezone?: string; country?: string }) {
   const user = await requireAdmin();
+  const d = WarehouseSchema.parse(data);
   const warehouse = await prisma.warehouse.create({
-    data: { name: data.name, address: data.address || null, timezone: data.timezone || "Europe/Prague", country: data.country || null },
+    data: { name: d.name, address: d.address || null, timezone: d.timezone || "Europe/Prague", country: d.country || null },
   });
-  await auditLog({ entityType: "warehouse", entityId: warehouse.id, action: "created", newData: data, userId: user.id });
+  await auditLog({ entityType: "warehouse", entityId: warehouse.id, action: "created", newData: d, userId: user.id });
   revalidatePath("/warehouses");
   return warehouse;
 }
 
 export async function updateWarehouse(id: string, data: { name: string; address?: string; timezone?: string; country?: string; isActive?: boolean }) {
   const user = await requireAdmin();
+  const d = WarehouseSchema.parse(data);
   const old = await prisma.warehouse.findUniqueOrThrow({ where: { id } });
-  const warehouse = await prisma.warehouse.update({ where: { id }, data });
-  await auditLog({ entityType: "warehouse", entityId: id, action: "updated", oldData: { name: old.name, address: old.address }, newData: data, userId: user.id });
+  const warehouse = await prisma.warehouse.update({ where: { id }, data: d });
+  await auditLog({ entityType: "warehouse", entityId: id, action: "updated", oldData: { name: old.name, address: old.address }, newData: d, userId: user.id });
   revalidatePath("/warehouses");
   return warehouse;
 }
 
 export async function deleteWarehouse(id: string) {
   const user = await requireAdmin();
-  await prisma.warehouse.delete({ where: { id } });
-  await auditLog({ entityType: "warehouse", entityId: id, action: "deleted", userId: user.id });
+  const old = await prisma.warehouse.findUniqueOrThrow({ where: { id }, select: { name: true, address: true } });
+  await prisma.warehouse.update({ where: { id }, data: { deletedAt: new Date() } });
+  await auditLog({ entityType: "warehouse", entityId: id, action: "deleted", oldData: old, userId: user.id });
   revalidatePath("/warehouses");
 }
 
@@ -64,6 +72,7 @@ export async function deleteWarehouse(id: string) {
 export async function getGates() {
   await requireAdmin();
   return prisma.gates.findMany({
+    where: { deletedAt: null },
     select: {
       id: true,
       warehouseId: true,
@@ -80,19 +89,21 @@ export async function getGates() {
 
 export async function createGate(data: { warehouseId: string; name: string; description?: string; sortOrder?: number }) {
   const user = await requireAdmin();
+  const d = GateSchema.parse(data);
   const gate = await prisma.gates.create({
-    data: { warehouseId: data.warehouseId, name: data.name, description: data.description || null, sortOrder: data.sortOrder ?? 0 },
+    data: { warehouseId: d.warehouseId, name: d.name, description: d.description || null, sortOrder: d.sortOrder ?? 0 },
   });
-  await auditLog({ entityType: "gate", entityId: gate.id, action: "created", newData: data, userId: user.id });
+  await auditLog({ entityType: "gate", entityId: gate.id, action: "created", newData: d, userId: user.id });
   revalidatePath("/gates");
   return gate;
 }
 
 export async function updateGate(id: string, data: { name: string; description?: string; isActive?: boolean; sortOrder?: number }) {
   const user = await requireAdmin();
+  const d = GateUpdateSchema.parse(data);
   const old = await prisma.gates.findUniqueOrThrow({ where: { id } });
-  const gate = await prisma.gates.update({ where: { id }, data });
-  await auditLog({ entityType: "gate", entityId: id, action: "updated", oldData: { name: old.name }, newData: data, userId: user.id });
+  const gate = await prisma.gates.update({ where: { id }, data: d });
+  await auditLog({ entityType: "gate", entityId: id, action: "updated", oldData: { name: old.name }, newData: d, userId: user.id });
   revalidatePath("/gates");
   return gate;
 }
@@ -102,8 +113,9 @@ export async function updateGateOpeningHours(
   hours: { dayOfWeek: number; openTime: string; closeTime: string; isOpen: boolean }[]
 ) {
   const user = await requireAdmin();
+  const validatedHours = hours.map((h) => GateOpeningHoursRowSchema.parse(h));
   await prisma.$transaction(
-    hours.map((h) =>
+    validatedHours.map((h) =>
       prisma.gateOpeningHours.upsert({
         where: { gateId_dayOfWeek: { gateId, dayOfWeek: h.dayOfWeek } },
         update: { openTime: h.openTime, closeTime: h.closeTime, isOpen: h.isOpen },
@@ -111,14 +123,15 @@ export async function updateGateOpeningHours(
       })
     )
   );
-  await auditLog({ entityType: "gate", entityId: gateId, action: "updated", newData: { openingHours: hours }, userId: user.id });
+  await auditLog({ entityType: "gate", entityId: gateId, action: "updated", newData: { openingHours: validatedHours }, userId: user.id });
   revalidatePath("/gates");
 }
 
 export async function deleteGate(id: string) {
   const user = await requireAdmin();
-  await prisma.gates.delete({ where: { id } });
-  await auditLog({ entityType: "gate", entityId: id, action: "deleted", userId: user.id });
+  const old = await prisma.gates.findUniqueOrThrow({ where: { id }, select: { name: true, warehouseId: true } });
+  await prisma.gates.update({ where: { id }, data: { deletedAt: new Date() } });
+  await auditLog({ entityType: "gate", entityId: id, action: "deleted", oldData: old, userId: user.id });
   revalidatePath("/gates");
 }
 
@@ -135,16 +148,17 @@ export async function getGateBlocks(gateId: string) {
 
 export async function createGateBlock(data: { gateId: string; startTime: string; endTime: string; reason: string }) {
   const user = await requireAdminOrWorker();
+  const d = GateBlockSchema.parse(data);
   const block = await prisma.gateBlock.create({
     data: {
-      gateId: data.gateId,
-      startTime: new Date(data.startTime),
-      endTime: new Date(data.endTime),
-      reason: data.reason,
+      gateId: d.gateId,
+      startTime: new Date(d.startTime),
+      endTime: new Date(d.endTime),
+      reason: d.reason,
       createdById: user.id,
     },
   });
-  await auditLog({ entityType: "gateBlock", entityId: block.id, action: "created", newData: data, userId: user.id });
+  await auditLog({ entityType: "gateBlock", entityId: block.id, action: "created", newData: d, userId: user.id });
   revalidatePath("/calendar");
   revalidatePath("/gates");
   return block;
@@ -163,6 +177,7 @@ export async function deleteGateBlock(id: string) {
 export async function getClients() {
   await requireAdmin();
   return prisma.client.findMany({
+    where: { deletedAt: null },
     include: {
       suppliers: { include: { supplier: true } },
       _count: { select: { reservations: true } },
@@ -180,34 +195,37 @@ export async function bulkToggleCanManageSuppliers(enable: boolean) {
 
 export async function createClient(data: { name: string; contactEmail?: string }) {
   const user = await requireAdmin();
+  const d = ClientSchema.parse(data);
   const client = await prisma.client.create({
-    data: { name: data.name, contactEmail: data.contactEmail || null },
+    data: { name: d.name, contactEmail: d.contactEmail || null },
   });
-  await auditLog({ entityType: "client", entityId: client.id, action: "created", newData: data, userId: user.id });
+  await auditLog({ entityType: "client", entityId: client.id, action: "created", newData: d, userId: user.id });
   revalidatePath("/clients");
   return client;
 }
 
 export async function updateClient(id: string, data: { name: string; contactEmail?: string; canManageSuppliers?: boolean }) {
   const user = await requireAdmin();
+  const d = ClientSchema.parse(data);
   const old = await prisma.client.findUniqueOrThrow({ where: { id } });
   const client = await prisma.client.update({
     where: { id },
     data: {
-      name: data.name,
-      contactEmail: data.contactEmail || null,
-      ...(data.canManageSuppliers !== undefined ? { canManageSuppliers: data.canManageSuppliers } : {}),
+      name: d.name,
+      contactEmail: d.contactEmail || null,
+      ...(d.canManageSuppliers !== undefined ? { canManageSuppliers: d.canManageSuppliers } : {}),
     },
   });
-  await auditLog({ entityType: "client", entityId: id, action: "updated", oldData: { name: old.name }, newData: data, userId: user.id });
+  await auditLog({ entityType: "client", entityId: id, action: "updated", oldData: { name: old.name }, newData: d, userId: user.id });
   revalidatePath("/clients");
   return client;
 }
 
 export async function deleteClient(id: string) {
   const user = await requireAdmin();
-  await prisma.client.delete({ where: { id } });
-  await auditLog({ entityType: "client", entityId: id, action: "deleted", userId: user.id });
+  const old = await prisma.client.findUniqueOrThrow({ where: { id }, select: { name: true, contactEmail: true } });
+  await prisma.client.update({ where: { id }, data: { deletedAt: new Date() } });
+  await auditLog({ entityType: "client", entityId: id, action: "deleted", oldData: old, userId: user.id });
   revalidatePath("/clients");
 }
 
@@ -216,6 +234,7 @@ export async function deleteClient(id: string) {
 export async function getSuppliers() {
   await requireAdmin();
   return prisma.supplier.findMany({
+    where: { deletedAt: null },
     include: { clients: { include: { client: true } }, _count: { select: { reservations: true } } },
     orderBy: { name: "asc" },
   });
@@ -223,46 +242,49 @@ export async function getSuppliers() {
 
 export async function createSupplier(data: { name: string; contactEmail?: string; clientIds?: string[] }) {
   const user = await requireAdmin();
+  const d = SupplierSchema.parse(data);
   const supplier = await prisma.supplier.create({
     data: {
-      name: data.name,
-      contactEmail: data.contactEmail || null,
-      clients: data.clientIds?.length
-        ? { create: data.clientIds.map((clientId) => ({ clientId })) }
+      name: d.name,
+      contactEmail: d.contactEmail || null,
+      clients: d.clientIds?.length
+        ? { create: d.clientIds.map((clientId) => ({ clientId })) }
         : undefined,
     },
   });
-  await auditLog({ entityType: "supplier", entityId: supplier.id, action: "created", newData: data, userId: user.id });
+  await auditLog({ entityType: "supplier", entityId: supplier.id, action: "created", newData: d, userId: user.id });
   revalidatePath("/suppliers");
   return supplier;
 }
 
 export async function updateSupplier(id: string, data: { name: string; contactEmail?: string; clientIds?: string[] }) {
   const user = await requireAdmin();
+  const d = SupplierSchema.parse(data);
   const old = await prisma.supplier.findUniqueOrThrow({ where: { id } });
 
   await prisma.supplier.update({
     where: { id },
-    data: { name: data.name, contactEmail: data.contactEmail || null },
+    data: { name: d.name, contactEmail: d.contactEmail || null },
   });
 
-  if (data.clientIds !== undefined) {
+  if (d.clientIds !== undefined) {
     await prisma.clientSupplier.deleteMany({ where: { supplierId: id } });
-    if (data.clientIds.length > 0) {
+    if (d.clientIds.length > 0) {
       await prisma.clientSupplier.createMany({
-        data: data.clientIds.map((clientId) => ({ clientId, supplierId: id })),
+        data: d.clientIds.map((clientId) => ({ clientId, supplierId: id })),
       });
     }
   }
 
-  await auditLog({ entityType: "supplier", entityId: id, action: "updated", oldData: { name: old.name }, newData: data, userId: user.id });
+  await auditLog({ entityType: "supplier", entityId: id, action: "updated", oldData: { name: old.name }, newData: d, userId: user.id });
   revalidatePath("/suppliers");
 }
 
 export async function deleteSupplier(id: string) {
   const user = await requireAdmin();
-  await prisma.supplier.delete({ where: { id } });
-  await auditLog({ entityType: "supplier", entityId: id, action: "deleted", userId: user.id });
+  const old = await prisma.supplier.findUniqueOrThrow({ where: { id }, select: { name: true, contactEmail: true } });
+  await prisma.supplier.update({ where: { id }, data: { deletedAt: new Date() } });
+  await auditLog({ entityType: "supplier", entityId: id, action: "deleted", oldData: old, userId: user.id });
   revalidatePath("/suppliers");
 }
 
@@ -358,21 +380,22 @@ export async function createUser(data: {
   supplierId?: string;
 }) {
   const user = await requireAdmin();
-  const hashedPassword = await bcrypt.hash(data.password, 12);
+  const d = CreateUserSchema.parse(data);
+  const hashedPassword = await bcrypt.hash(d.password, 12);
   const newUser = await prisma.user.create({
     data: {
-      email: data.email,
-      name: data.name,
+      email: d.email,
+      name: d.name,
       password: hashedPassword,
-      role: data.role,
-      clientId: data.clientId || null,
-      supplierId: data.supplierId || null,
-      warehouses: data.warehouseIds?.length
-        ? { create: data.warehouseIds.map((warehouseId) => ({ warehouseId })) }
+      role: d.role,
+      clientId: d.clientId || null,
+      supplierId: d.supplierId || null,
+      warehouses: d.warehouseIds?.length
+        ? { create: d.warehouseIds.map((warehouseId) => ({ warehouseId })) }
         : undefined,
     },
   });
-  await auditLog({ entityType: "user", entityId: newUser.id, action: "created", newData: { email: data.email, role: data.role }, userId: user.id });
+  await auditLog({ entityType: "user", entityId: newUser.id, action: "created", newData: { email: d.email, role: d.role }, userId: user.id });
   revalidatePath("/users");
   // H2: Strip password hash from response
   const { password: _, ...safeUser } = newUser;
@@ -390,34 +413,35 @@ export async function updateUser(id: string, data: {
   isActive?: boolean;
 }) {
   const admin = await requireAdmin();
+  const d = UpdateUserSchema.parse(data);
   const old = await prisma.user.findUniqueOrThrow({ where: { id } });
 
   const updateData: Record<string, unknown> = {
-    email: data.email,
-    name: data.name,
-    role: data.role,
-    clientId: data.clientId || null,
-    supplierId: data.supplierId || null,
-    isActive: data.isActive ?? old.isActive,
+    email: d.email,
+    name: d.name,
+    role: d.role,
+    clientId: d.clientId || null,
+    supplierId: d.supplierId || null,
+    isActive: d.isActive ?? old.isActive,
   };
 
-  if (data.password) {
-    updateData.password = await bcrypt.hash(data.password, 12);
+  if (d.password) {
+    updateData.password = await bcrypt.hash(d.password, 12);
   }
 
   await prisma.user.update({ where: { id }, data: updateData });
 
   // Sync warehouse assignments
-  if (data.warehouseIds !== undefined) {
+  if (d.warehouseIds !== undefined) {
     await prisma.userWarehouse.deleteMany({ where: { userId: id } });
-    if (data.warehouseIds.length > 0) {
+    if (d.warehouseIds.length > 0) {
       await prisma.userWarehouse.createMany({
-        data: data.warehouseIds.map((warehouseId) => ({ userId: id, warehouseId })),
+        data: d.warehouseIds.map((warehouseId) => ({ userId: id, warehouseId })),
       });
     }
   }
 
-  await auditLog({ entityType: "user", entityId: id, action: "updated", oldData: { email: old.email, role: old.role }, newData: { email: data.email, role: data.role }, userId: admin.id });
+  await auditLog({ entityType: "user", entityId: id, action: "updated", oldData: { email: old.email, role: old.role }, newData: { email: d.email, role: d.role }, userId: admin.id });
   revalidatePath("/users");
 }
 
@@ -445,15 +469,16 @@ export async function createTransportUnit(data: {
   sortOrder?: number;
 }) {
   const user = await requireAdmin();
+  const d = TransportUnitSchema.parse(data);
   const tu = await prisma.transportUnit.create({
     data: {
-      name: data.name,
-      weightKg: data.weightKg,
-      processingMinutes: data.processingMinutes,
-      sortOrder: data.sortOrder ?? 0,
+      name: d.name,
+      weightKg: d.weightKg,
+      processingMinutes: d.processingMinutes,
+      sortOrder: d.sortOrder ?? 0,
     },
   });
-  await auditLog({ entityType: "transportUnit", entityId: tu.id, action: "created", newData: data, userId: user.id });
+  await auditLog({ entityType: "transportUnit", entityId: tu.id, action: "created", newData: d, userId: user.id });
   revalidatePath("/transport-units");
   return tu;
 }
@@ -463,9 +488,10 @@ export async function updateTransportUnit(
   data: { name: string; weightKg: number; processingMinutes: number; isActive?: boolean; sortOrder?: number }
 ) {
   const user = await requireAdmin();
+  const d = TransportUnitSchema.parse(data);
   const old = await prisma.transportUnit.findUniqueOrThrow({ where: { id } });
-  const tu = await prisma.transportUnit.update({ where: { id }, data });
-  await auditLog({ entityType: "transportUnit", entityId: id, action: "updated", oldData: { name: old.name }, newData: data, userId: user.id });
+  const tu = await prisma.transportUnit.update({ where: { id }, data: d });
+  await auditLog({ entityType: "transportUnit", entityId: id, action: "updated", oldData: { name: old.name }, newData: d, userId: user.id });
   revalidatePath("/transport-units");
   return tu;
 }

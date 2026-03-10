@@ -74,9 +74,9 @@ export function LoginForm() {
               autoComplete="current-password"
             />
           </div>
-          {error && (
+          {error ? (
             <p className="text-sm text-destructive">{error}</p>
-          )}
+          ) : null}
           <Button type="submit" disabled={loading}>
             {loading ? "..." : t("loginButton")}
           </Button>

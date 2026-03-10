@@ -24,6 +24,7 @@ const DURATIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180, 210, 240, 300, 360];
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ItemRow = {
+  key: string;
   transportUnitId: string;
   quantity: number;
   goodsWeightKg: string;
@@ -31,6 +32,7 @@ type ItemRow = {
 };
 
 type AdviceRow = {
+  key: string;
   adviceNumber: string;
   quantity: number;
   note: string;
@@ -118,6 +120,7 @@ export function ReservationEditDialog({
   const [notes, setNotes] = useState(version.notes ?? "");
   const [items, setItems] = useState<ItemRow[]>(
     version.items.map((i) => ({
+      key: crypto.randomUUID(),
       transportUnitId: i.transportUnitId,
       quantity: i.quantity,
       goodsWeightKg: i.goodsWeightKg != null ? String(i.goodsWeightKg) : "",
@@ -129,6 +132,7 @@ export function ReservationEditDialog({
   );
   const [advices, setAdvices] = useState<AdviceRow[]>(
     version.advices.map((a) => ({
+      key: crypto.randomUUID(),
       adviceNumber: a.adviceNumber,
       quantity: a.quantity,
       note: a.note ?? "",
@@ -138,7 +142,7 @@ export function ReservationEditDialog({
   const [gateBlocks, setGateBlocks] = useState<Array<{ startTime: string; endTime: string; reason: string }>>([]);
 
   function defaultItem(): ItemRow {
-    return { transportUnitId: transportUnits[0]?.id ?? "", quantity: 1, goodsWeightKg: "", description: "" };
+    return { key: crypto.randomUUID(), transportUnitId: transportUnits[0]?.id ?? "", quantity: 1, goodsWeightKg: "", description: "" };
   }
 
   // Load form data when dialog opens
@@ -169,12 +173,14 @@ export function ReservationEditDialog({
     setNotes(v.notes ?? "");
     setReservationType((reservation.reservationType as "LOADING" | "UNLOADING") ?? "UNLOADING");
     setItems(v.items.map((i) => ({
+      key: crypto.randomUUID(),
       transportUnitId: i.transportUnitId,
       quantity: i.quantity,
       goodsWeightKg: i.goodsWeightKg != null ? String(i.goodsWeightKg) : "",
       description: i.description ?? "",
     })));
     setAdvices(v.advices.map((a) => ({
+      key: crypto.randomUUID(),
       adviceNumber: a.adviceNumber,
       quantity: a.quantity,
       note: a.note ?? "",
@@ -244,7 +250,7 @@ export function ReservationEditDialog({
     setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   }
 
-  function addAdvice() { setAdvices((prev) => [...prev, { adviceNumber: "", quantity: 1, note: "" }]); }
+  function addAdvice() { setAdvices((prev) => [...prev, { key: crypto.randomUUID(), adviceNumber: "", quantity: 1, note: "" }]); }
   function removeAdvice(i: number) { setAdvices((prev) => prev.filter((_, idx) => idx !== i)); }
   function updateAdvice(i: number, field: keyof AdviceRow, value: string | number) {
     setAdvices((prev) => prev.map((a, idx) => idx === i ? { ...a, [field]: value } : a));
@@ -335,7 +341,7 @@ export function ReservationEditDialog({
                 </thead>
                 <tbody>
                   {items.map((item, i) => (
-                    <tr key={i} className="border-t">
+                    <tr key={item.key} className="border-t">
                       <td className="px-2 py-1">
                         <Select value={item.transportUnitId} onValueChange={(v) => updateItem(i, "transportUnitId", v)}>
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -407,7 +413,7 @@ export function ReservationEditDialog({
                   </thead>
                   <tbody>
                     {advices.map((advice, i) => (
-                      <tr key={i} className="border-t">
+                      <tr key={advice.key} className="border-t">
                         <td className="px-2 py-1">
                           <Input
                             className="h-7 text-xs"

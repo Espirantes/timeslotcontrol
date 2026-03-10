@@ -56,7 +56,7 @@ export async function getCalendarData(
 
   // Fetch gates for the warehouse
   const gates = await prisma.gates.findMany({
-    where: { warehouseId, isActive: true },
+    where: { warehouseId, isActive: true, deletedAt: null },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
@@ -68,7 +68,7 @@ export async function getCalendarData(
       where: {
         gateId: { in: gateIds },
         status: { notIn: ["CANCELLED"] },
-        confirmedVersion: { startTime: { gte: dateFrom, lte: dateTo } },
+        confirmedVersion: { startTime: { lt: dateTo } },
       },
       include: {
         confirmedVersion: { include: { items: true } },
@@ -82,7 +82,7 @@ export async function getCalendarData(
         gateId: { in: gateIds },
         status: "REQUESTED",
         confirmedVersionId: null,
-        pendingVersion: { startTime: { gte: dateFrom, lte: dateTo } },
+        pendingVersion: { startTime: { lt: dateTo } },
       },
       include: { pendingVersion: true, supplier: true, client: true },
     }),
@@ -115,6 +115,8 @@ export async function getCalendarData(
     if (!v) continue;
 
     const endTime = new Date(v.startTime.getTime() + v.durationMinutes * 60 * 1000);
+    // M6: Skip reservations that end at or before dateFrom (overlap check)
+    if (endTime <= dateFrom) continue;
 
     let canSeeDetail = false;
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
@@ -147,6 +149,8 @@ export async function getCalendarData(
     const v = r.pendingVersion;
     if (!v) continue;
     const endTime = new Date(v.startTime.getTime() + v.durationMinutes * 60 * 1000);
+    // M6: Skip reservations that end at or before dateFrom (overlap check)
+    if (endTime <= dateFrom) continue;
 
     let canSeeDetail = false;
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
@@ -213,7 +217,7 @@ export async function getCalendarData(
         gateId: { in: gates.map((g) => g.id) },
         status: { notIn: ["CANCELLED"] },
         recurringReservationId: { not: null },
-        confirmedVersion: { startTime: { gte: dateFrom, lte: dateTo } },
+        confirmedVersion: { startTime: { lt: dateTo } },
         id: { notIn: reservations.map((r) => r.id) },
       },
       include: {
@@ -227,6 +231,7 @@ export async function getCalendarData(
       const v = r.confirmedVersion;
       if (!v) continue;
       const endTime = new Date(v.startTime.getTime() + v.durationMinutes * 60 * 1000);
+      if (endTime <= dateFrom) continue;
       let canSeeDetail = false;
       if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
       else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
@@ -292,13 +297,13 @@ export async function getWarehouses() {
 
   if (role === "WAREHOUSE_WORKER") {
     return prisma.warehouse.findMany({
-      where: { id: { in: warehouseIds }, isActive: true },
+      where: { id: { in: warehouseIds }, isActive: true, deletedAt: null },
       orderBy: { name: "asc" },
     });
   }
 
   return prisma.warehouse.findMany({
-    where: { isActive: true },
+    where: { isActive: true, deletedAt: null },
     orderBy: { name: "asc" },
   });
 }

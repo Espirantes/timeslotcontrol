@@ -5,8 +5,9 @@ import { cachedAuth as auth } from "@/auth";
 import { auditLog } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import type { VehicleType, RecurrenceType } from "@/generated/prisma/client";
-import { isSlotFree, isGateOpen } from "@/lib/actions/reservations";
+import { isSlotFree, isGateOpen } from "@/lib/reservation-helpers";
 import { checkHoliday } from "@/lib/holidays";
+import { CreateRecurringSchema } from "@/lib/schemas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -276,17 +277,9 @@ export async function generateInstances(
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
-export async function createRecurringReservation(input: CreateRecurringReservationInput) {
+export async function createRecurringReservation(rawInput: CreateRecurringReservationInput) {
+  const input = CreateRecurringSchema.parse(rawInput);
   const user = await requireAdminOrWorker();
-
-  // Validate
-  if (input.durationMinutes % 15 !== 0) throw new Error("Duration must be a multiple of 15");
-  if (input.recurrenceType === "WEEKLY" && (!input.weekDays || input.weekDays.length === 0)) {
-    throw new Error("Weekly recurrence requires at least one day");
-  }
-  if (input.recurrenceType === "MONTHLY" && (!input.dayOfMonth || input.dayOfMonth < 1 || input.dayOfMonth > 31)) {
-    throw new Error("Monthly recurrence requires a valid day (1-31)");
-  }
 
   // Resolve supplier — same pattern as createReservation
   const firstSupplier = await prisma.clientSupplier.findFirst({

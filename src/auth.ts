@@ -77,8 +77,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
           if (!dbUser || !dbUser.isActive) {
-            // Force sign-out by returning empty token
-            return { ...token, role: undefined };
+            // Force sign-out by returning null (invalidates the session)
+            return null;
           }
           token.role = dbUser.role;
           token.warehouseIds = dbUser.warehouses.map((w) => w.warehouseId);

@@ -14,6 +14,8 @@ import {
 } from "@/lib/email";
 import { createNotificationsForEvent } from "@/lib/actions/notifications";
 import { getLocale, getTranslations } from "next-intl/server";
+import { isSlotFree, isGateOpen } from "@/lib/reservation-helpers";
+import { CreateReservationSchema, EditReservationSchema, UpdateReservationStatusSchema } from "@/lib/schemas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,58 +142,10 @@ export async function getGateBlocksForDate(
   }));
 }
 
-/** Check if a gate slot is free (no confirmed reservation overlapping).
- *  Uses findMany with proper two-sided overlap condition to avoid
- *  the findFirst single-row bug (C1). */
-export async function isSlotFree(
-  gateId: string,
-  startTime: Date,
-  endTime: Date,
-  excludeReservationId?: string,
-) {
-  // Fetch ALL versions that start before the requested end time
-  const candidates = await prisma.reservationVersion.findMany({
-    where: {
-      confirmedByReservation: {
-        gateId,
-        status: { in: ["CONFIRMED", "UNLOADING_STARTED"] },
-        ...(excludeReservationId ? { id: { not: excludeReservationId } } : {}),
-      },
-      startTime: { lt: endTime },
-    },
-    select: { startTime: true, durationMinutes: true },
-  });
-
-  // Check the second half of the overlap condition in JS
-  return !candidates.some((c) => {
-    const conflEnd = new Date(c.startTime.getTime() + c.durationMinutes * 60 * 1000);
-    return conflEnd > startTime;
-  });
-}
-
-/** Check if gate is open at the given time */
-export async function isGateOpen(gateId: string, startTime: Date, endTime: Date) {
-  const dayOfWeek = startTime.getDay();
-  const hours = await prisma.gateOpeningHours.findUnique({
-    where: { gateId_dayOfWeek: { gateId, dayOfWeek } },
-  });
-
-  if (!hours || !hours.isOpen) return false;
-
-  const [openH, openM] = hours.openTime.split(":").map(Number);
-  const [closeH, closeM] = hours.closeTime.split(":").map(Number);
-
-  const gateOpen = new Date(startTime);
-  gateOpen.setHours(openH, openM, 0, 0);
-  const gateClose = new Date(startTime);
-  gateClose.setHours(closeH, closeM, 0, 0);
-
-  return startTime >= gateOpen && endTime <= gateClose;
-}
-
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-export async function createReservation(input: CreateReservationInput) {
+export async function createReservation(rawInput: CreateReservationInput) {
+  const input = CreateReservationSchema.parse(rawInput);
   const user = await requireSession();
   const { role, supplierId } = user;
 
@@ -449,6 +403,7 @@ export async function approveReservation(reservationId: string) {
   });
 
   revalidatePath("/calendar");
+  revalidatePath("/reservations");
   revalidatePath(`/reservations/${reservationId}`);
 
   // H12: Side effects after response
@@ -536,6 +491,7 @@ export async function rejectReservation(reservationId: string) {
   });
 
   revalidatePath("/calendar");
+  revalidatePath("/reservations");
   revalidatePath(`/reservations/${reservationId}`);
 
   // H12: Side effects after response
@@ -587,6 +543,7 @@ export async function updateReservationStatus(
   reservationId: string,
   newStatus: "UNLOADING_STARTED" | "UNLOADING_COMPLETED" | "CLOSED" | "CANCELLED"
 ) {
+  UpdateReservationStatusSchema.parse({ reservationId, status: newStatus });
   const user = await requireSession();
   if (user.role !== "ADMIN" && user.role !== "WAREHOUSE_WORKER") {
     throw new Error("Only workers can change reservation status");
@@ -948,14 +905,14 @@ export async function getFormData(warehouseId: string) {
       const client = await prisma.client.findUnique({ where: { id: clientId } });
       return client ? [{ id: client.id, name: client.name }] : [];
     } else if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
-      return prisma.client.findMany({ orderBy: { name: "asc" } });
+      return prisma.client.findMany({ where: { deletedAt: null }, orderBy: { name: "asc" } });
     }
     return [] as { id: string; name: string }[];
   })();
 
   const [gates, clients, transportUnits] = await Promise.all([
     prisma.gates.findMany({
-      where: { warehouseId, isActive: true },
+      where: { warehouseId, isActive: true, deletedAt: null },
       include: { openingHours: true },
       orderBy: { name: "asc" },
     }),
@@ -1032,7 +989,8 @@ function hasCriticalChanges(
   return false;
 }
 
-export async function editReservation(input: EditReservationInput) {
+export async function editReservation(rawInput: EditReservationInput) {
+  const input = EditReservationSchema.parse(rawInput);
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 

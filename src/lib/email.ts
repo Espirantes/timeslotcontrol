@@ -31,7 +31,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
 
   if (!res.ok) {
     const body = await res.text();
-    console.error("[email] Failed to send:", res.status, body);
+    throw new Error(`[email] Failed to send (${res.status}): ${body}`);
   }
 }
 

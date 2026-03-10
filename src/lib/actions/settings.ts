@@ -5,6 +5,7 @@ import { cachedAuth as auth } from "@/auth";
 import { auditLog } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
+import { UpdateProfileNameSchema, ChangePasswordSchema } from "@/lib/schemas";
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
@@ -74,20 +75,19 @@ export async function getProfileData(): Promise<ProfileData> {
 // ─── Update name ──────────────────────────────────────────────────────────────
 
 export async function updateProfileName(name: string) {
+  const { name: validName } = UpdateProfileNameSchema.parse({ name });
   const dbUser = await getUserBySession();
-  const trimmed = name.trim();
-  if (!trimmed) throw new Error("Name is required");
 
   await prisma.user.update({
     where: { id: dbUser.id },
-    data: { name: trimmed },
+    data: { name: validName },
   });
 
   await auditLog({
     entityType: "user",
     entityId: dbUser.id,
     action: "profile_updated",
-    newData: { name: trimmed },
+    newData: { name: validName },
     userId: dbUser.id,
   });
 
@@ -98,9 +98,8 @@ export async function updateProfileName(name: string) {
 // ─── Change password ──────────────────────────────────────────────────────────
 
 export async function changePassword(currentPassword: string, newPassword: string) {
+  ChangePasswordSchema.parse({ currentPassword, newPassword });
   const dbUser = await getUserBySession();
-
-  if (newPassword.length < 8) throw new Error("PASSWORD_TOO_SHORT");
 
   const valid = await bcrypt.compare(currentPassword, dbUser.password);
   if (!valid) throw new Error("WRONG_PASSWORD");

@@ -131,11 +131,11 @@ export function SettingsClient({ profile }: Props) {
                 onChange={(e) => setName(e.target.value)}
                 className="max-w-xs"
               />
-              {nameChanged && (
+              {nameChanged ? (
                 <Button size="sm" onClick={handleSaveName} disabled={isPending}>
                   {tCommon("save")}
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -202,9 +202,9 @@ export function SettingsClient({ profile }: Props) {
               />
             </div>
           </div>
-          {passwordError && (
+          {passwordError ? (
             <p className="text-sm text-destructive">{passwordError}</p>
-          )}
+          ) : null}
           <div>
             <Button
               onClick={handleChangePassword}

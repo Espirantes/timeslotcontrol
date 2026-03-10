@@ -24,6 +24,7 @@ const DURATIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180, 210, 240, 300, 360];
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ItemRow = {
+  key: string;
   transportUnitId: string;
   quantity: number;
   goodsWeightKg: string;
@@ -31,6 +32,7 @@ type ItemRow = {
 };
 
 type AdviceRow = {
+  key: string;
   adviceNumber: string;
   quantity: number;
   note: string;
@@ -151,7 +153,7 @@ export function ReservationFormDialog({
   const [gateBlocks, setGateBlocks] = useState<Array<{ startTime: string; endTime: string; reason: string }>>([]);
 
   function defaultItem(): ItemRow {
-    return { transportUnitId: transportUnits[0]?.id ?? "", quantity: 1, goodsWeightKg: "", description: "" };
+    return { key: crypto.randomUUID(), transportUnitId: transportUnits[0]?.id ?? "", quantity: 1, goodsWeightKg: "", description: "" };
   }
 
   // Load form data when dialog opens
@@ -165,7 +167,7 @@ export function ReservationFormDialog({
       if (!gateId && data.gates.length > 0) setGateId(data.gates[0].id);
       if (!clientId && data.clients.length > 0) setClientId(data.clients[0].id);
       if (items.length === 0 && data.transportUnits.length > 0) {
-        setItems([{ transportUnitId: data.transportUnits[0].id, quantity: 1, goodsWeightKg: "", description: "" }]);
+        setItems([{ key: crypto.randomUUID(), transportUnitId: data.transportUnits[0].id, quantity: 1, goodsWeightKg: "", description: "" }]);
       }
     });
   }, [open, warehouseId]);
@@ -241,7 +243,7 @@ export function ReservationFormDialog({
     setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
   }
 
-  function addAdvice() { setAdvices((prev) => [...prev, { adviceNumber: "", quantity: 1, note: "" }]); }
+  function addAdvice() { setAdvices((prev) => [...prev, { key: crypto.randomUUID(), adviceNumber: "", quantity: 1, note: "" }]); }
   function removeAdvice(i: number) { setAdvices((prev) => prev.filter((_, idx) => idx !== i)); }
   function updateAdvice(i: number, field: keyof AdviceRow, value: string | number) {
     setAdvices((prev) => prev.map((a, idx) => idx === i ? { ...a, [field]: value } : a));
@@ -343,7 +345,7 @@ export function ReservationFormDialog({
                 </thead>
                 <tbody>
                   {items.map((item, i) => (
-                    <tr key={i} className="border-t">
+                    <tr key={item.key} className="border-t">
                       <td className="px-2 py-1">
                         <Select value={item.transportUnitId} onValueChange={(v) => updateItem(i, "transportUnitId", v)}>
                           <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -415,7 +417,7 @@ export function ReservationFormDialog({
                   </thead>
                   <tbody>
                     {advices.map((advice, i) => (
-                      <tr key={i} className="border-t">
+                      <tr key={advice.key} className="border-t">
                         <td className="px-2 py-1">
                           <Input
                             className="h-7 text-xs"

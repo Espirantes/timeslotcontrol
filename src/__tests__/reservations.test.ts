@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockFindFirst = vi.fn();
+const mockFindMany = vi.fn();
 const mockFindUnique = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     reservationVersion: {
-      findFirst: (...args: unknown[]) => mockFindFirst(...args),
+      findMany: (...args: unknown[]) => mockFindMany(...args),
     },
     gateOpeningHours: {
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
@@ -14,23 +14,15 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/auth", () => ({
-  auth: vi.fn(),
-}));
-
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-}));
-
-import { isSlotFree, isGateOpen } from "@/lib/actions/reservations";
+import { isSlotFree, isGateOpen } from "@/lib/reservation-helpers";
 
 describe("isSlotFree", () => {
   beforeEach(() => {
-    mockFindFirst.mockReset();
+    mockFindMany.mockReset();
   });
 
   it("returns true when no conflicting reservation", async () => {
-    mockFindFirst.mockResolvedValue(null);
+    mockFindMany.mockResolvedValue([]);
 
     const result = await isSlotFree(
       "gate-01",
@@ -42,10 +34,10 @@ describe("isSlotFree", () => {
   });
 
   it("returns false when conflicting reservation overlaps", async () => {
-    mockFindFirst.mockResolvedValue({
+    mockFindMany.mockResolvedValue([{
       startTime: new Date("2025-06-02T07:30:00Z"),
       durationMinutes: 90,
-    });
+    }]);
 
     const result = await isSlotFree(
       "gate-01",
@@ -56,11 +48,11 @@ describe("isSlotFree", () => {
     expect(result).toBe(false);
   });
 
-  it("returns true when conflicting reservation ends before slot starts", async () => {
-    mockFindFirst.mockResolvedValue({
+  it("returns true when candidate ends before slot starts", async () => {
+    mockFindMany.mockResolvedValue([{
       startTime: new Date("2025-06-02T06:00:00Z"),
-      durationMinutes: 60,
-    });
+      durationMinutes: 60, // ends at 07:00, before slot start 08:00
+    }]);
 
     const result = await isSlotFree(
       "gate-01",
@@ -71,11 +63,11 @@ describe("isSlotFree", () => {
     expect(result).toBe(true);
   });
 
-  it("returns true when conflicting reservation ends exactly at slot start", async () => {
-    mockFindFirst.mockResolvedValue({
+  it("returns true when candidate ends exactly at slot start", async () => {
+    mockFindMany.mockResolvedValue([{
       startTime: new Date("2025-06-02T07:00:00Z"),
       durationMinutes: 60, // ends exactly at 08:00
-    });
+    }]);
 
     const result = await isSlotFree(
       "gate-01",
@@ -87,7 +79,7 @@ describe("isSlotFree", () => {
   });
 
   it("passes excludeReservationId to query", async () => {
-    mockFindFirst.mockResolvedValue(null);
+    mockFindMany.mockResolvedValue([]);
 
     await isSlotFree(
       "gate-01",
@@ -96,7 +88,7 @@ describe("isSlotFree", () => {
       "exclude-res-1"
     );
 
-    const queryArg = mockFindFirst.mock.calls[0][0];
+    const queryArg = mockFindMany.mock.calls[0][0];
     expect(queryArg.where.confirmedByReservation.id.not).toBe("exclude-res-1");
   });
 });
