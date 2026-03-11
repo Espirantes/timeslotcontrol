@@ -180,6 +180,7 @@ export function CalendarView({ gates, events, blocks, currentDate, onDateChange,
       <div className={`border rounded-lg overflow-hidden bg-background transition-opacity ${loading ? "opacity-50 pointer-events-none" : ""}`}>
         <FullCalendar
           ref={calendarRef}
+          schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
           plugins={[resourceTimeGridPlugin, interactionPlugin, scrollGridPlugin]}
           initialView="resourceTimeGridDay"
           initialDate={currentDate}
