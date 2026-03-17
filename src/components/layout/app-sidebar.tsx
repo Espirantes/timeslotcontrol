@@ -17,6 +17,7 @@ import {
   BookOpen,
   Handshake,
   Repeat2,
+  GraduationCap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -70,19 +71,19 @@ export function AppSidebar({ user, pendingUsersCount = 0 }: Props) {
   const isClient = user.role === "CLIENT";
 
   const mainItems = [
-    { href: "/calendar", label: t("calendar"), icon: CalendarDays },
-    { href: "/reservations", label: t("reservations"), icon: ClipboardList },
+    { href: "/calendar", label: t("calendar"), icon: CalendarDays, tourId: "nav-calendar" },
+    { href: "/reservations", label: t("reservations"), icon: ClipboardList, tourId: "nav-reservations" },
     ...((isAdmin || isWorker)
       ? [{ href: "/recurring-reservations", label: t("recurringReservations"), icon: Repeat2 }]
       : []),
   ];
 
   const adminItems = [
-    { href: "/warehouses", label: t("warehouses"), icon: Building2 },
-    { href: "/gates", label: t("gates"), icon: DoorOpen },
-    { href: "/clients", label: t("clients"), icon: Users },
-    { href: "/suppliers", label: t("suppliers"), icon: Truck },
-    { href: "/users", label: t("users"), icon: UserCircle, badge: pendingUsersCount },
+    { href: "/warehouses", label: t("warehouses"), icon: Building2, tourId: "nav-warehouses" },
+    { href: "/gates", label: t("gates"), icon: DoorOpen, tourId: "nav-gates" },
+    { href: "/clients", label: t("clients"), icon: Users, tourId: "nav-clients" },
+    { href: "/suppliers", label: t("suppliers"), icon: Truck, tourId: "nav-suppliers" },
+    { href: "/users", label: t("users"), icon: UserCircle, badge: pendingUsersCount, tourId: "nav-users" },
     { href: "/transport-units", label: t("transportUnits"), icon: Package },
   ];
 
@@ -105,7 +106,7 @@ export function AppSidebar({ user, pendingUsersCount = 0 }: Props) {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={active}>
-                      <Link href={item.href} className="flex items-center gap-3">
+                      <Link href={item.href} className="flex items-center gap-3" {...("tourId" in item && item.tourId ? { "data-tour": item.tourId } : {})}>
                         <item.icon
                           className={`size-[18px] shrink-0 ${active ? "text-brand-red" : "text-brand-muted"}`}
                         />
@@ -131,7 +132,7 @@ export function AppSidebar({ user, pendingUsersCount = 0 }: Props) {
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={active}>
-                        <Link href={item.href} className="flex items-center gap-3">
+                        <Link href={item.href} className="flex items-center gap-3" {...("tourId" in item && item.tourId ? { "data-tour": item.tourId } : {})}>
                           <item.icon
                             className={`size-[18px] shrink-0 ${active ? "text-brand-red" : "text-brand-muted"}`}
                           />
@@ -197,6 +198,15 @@ export function AppSidebar({ user, pendingUsersCount = 0 }: Props) {
                     />
                     <span>{t("guide")}</span>
                   </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-wizard"))}
+                  className="flex items-center gap-3 cursor-pointer"
+                >
+                  <GraduationCap className="size-[18px] shrink-0 text-brand-muted" />
+                  <span>{t("wizard")}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {isAdmin && (

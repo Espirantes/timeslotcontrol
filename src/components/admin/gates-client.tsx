@@ -244,7 +244,7 @@ export function GatesClient({ items, warehouses }: Props) {
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" onClick={openCreate} data-tour="gates-create">
           <Plus className="size-4 mr-1" />
           {t("new")}
         </Button>

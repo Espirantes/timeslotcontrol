@@ -429,6 +429,8 @@ model User {
   notifyInApp         Boolean   @default(true)
   notifyBrowser Boolean   @default(false)
   notifyEmail   Boolean   @default(true)
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

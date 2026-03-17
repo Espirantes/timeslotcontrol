@@ -179,6 +179,18 @@ export async function createReservation(rawInput: CreateReservationInput) {
     });
     if (!firstSupplier) throw new Error("No supplier found for client");
     resolvedSupplierId = firstSupplier.supplierId;
+  } else if (role === "CLIENT" && user.canManageSuppliers && user.clientId) {
+    // CLIENT with canManageSuppliers can create reservations on behalf of their suppliers
+    if (!rawInput.supplierId) throw new Error("Supplier must be selected");
+    // Ensure input clientId matches session (client can only book for themselves)
+    if (input.clientId !== user.clientId) throw new Error("Client mismatch");
+    const link = await prisma.clientSupplier.findUnique({
+      where: {
+        clientId_supplierId: { clientId: user.clientId, supplierId: rawInput.supplierId },
+      },
+    });
+    if (!link) throw new Error("Supplier not linked to this client");
+    resolvedSupplierId = rawInput.supplierId;
   } else {
     throw new Error("Clients cannot create reservations directly");
   }
@@ -644,6 +656,7 @@ export type ReservationListItem = {
   reservationType: string;
   gateName: string;
   warehouseId: string;
+  warehouseName: string;
   clientName: string;
   supplierName: string;
   startTime: string; // ISO
@@ -702,6 +715,7 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
       reservationType: r.type,
       gateName: r.gate.name,
       warehouseId: r.gate.warehouseId,
+      warehouseName: r.gate.warehouse.name,
       clientName: r.client.name,
       supplierName: r.supplier.name,
       startTime: displayVersion?.startTime.toISOString() ?? "",

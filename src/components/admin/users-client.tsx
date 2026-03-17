@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check, CheckCircle2, X, MessageSquare } from "lucide-react";
+import { ImportCSVDialog } from "@/components/admin/import-csv-dialog";
+import { ExportCSVButton } from "@/components/admin/export-csv-button";
+import { bulkImportUsers } from "@/lib/actions/import";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -233,10 +236,29 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="size-4 mr-1" />
-          {t("new")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportCSVButton
+            filename="uzivatele.csv"
+            rows={[
+              ["name", "email", "role", "client", "supplier"],
+              ...items.map((u) => [
+                u.name,
+                u.email,
+                u.role,
+                u.client?.name ?? "",
+                u.supplier?.name ?? "",
+              ]),
+            ]}
+          />
+          <ImportCSVDialog
+            entityType="user"
+            onImport={(rows) => bulkImportUsers(rows as Parameters<typeof bulkImportUsers>[0])}
+          />
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4 mr-1" />
+            {t("new")}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}

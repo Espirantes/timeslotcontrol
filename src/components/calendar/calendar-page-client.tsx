@@ -189,7 +189,7 @@ export function CalendarPageClient({ warehouses, defaultWarehouseId, userRole }:
         ) : (
           <div />
         )}
-        <Button size="sm" onClick={handleNewReservation}>
+        <Button size="sm" onClick={handleNewReservation} data-tour="calendar-new-reservation">
           <Plus className="size-4 mr-1" /> {t("form.createTitle")}
         </Button>
       </div>

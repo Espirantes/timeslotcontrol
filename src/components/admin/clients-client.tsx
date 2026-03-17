@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check, ShieldCheck, ShieldOff } from "lucide-react";
+import { ImportCSVDialog } from "@/components/admin/import-csv-dialog";
+import { ExportCSVButton } from "@/components/admin/export-csv-button";
+import { bulkImportClients } from "@/lib/actions/import";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +123,17 @@ export function ClientsClient({ items }: Props) {
               <><ShieldCheck className="size-4 mr-1" />{t("enableAllSupplierMgmt")}</>
             )}
           </Button>
+          <ExportCSVButton
+            filename="klienti.csv"
+            rows={[
+              ["name", "contactEmail", "canManageSuppliers"],
+              ...items.map((c) => [c.name, c.contactEmail ?? "", c.canManageSuppliers ? "ano" : "ne"]),
+            ]}
+          />
+          <ImportCSVDialog
+            entityType="client"
+            onImport={(rows) => bulkImportClients(rows as Parameters<typeof bulkImportClients>[0])}
+          />
           <Button size="sm" onClick={openCreate}>
             <Plus className="size-4 mr-1" />
             {t("new")}

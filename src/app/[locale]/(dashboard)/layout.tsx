@@ -8,6 +8,7 @@ import { PendingApprovalBanner } from "@/components/layout/pending-approval-bann
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Separator } from "@/components/ui/separator";
+import { TourManager } from "@/components/wizard/tour-manager";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -26,25 +27,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={session.user} pendingUsersCount={pendingUsersCount} />
-      <SidebarInset>
-        <header className="shrink-0">
-          <div className="h-1 bg-brand-red" />
-          <div className="flex h-13 items-center gap-2 border-b border-border bg-white px-4">
-            <SidebarTrigger className="-ml-1 text-foreground hover:text-brand-navy" />
-            <Separator orientation="vertical" className="h-4 bg-slate-200" />
-            <HeaderLogo />
-            <div className="ml-auto flex items-center gap-1">
-              <NotificationBell notifyBrowser={dbUser?.notifyBrowser ?? false} />
-              <LanguageSwitcher />
+    <>
+      <SidebarProvider>
+        <AppSidebar user={session.user} pendingUsersCount={pendingUsersCount} />
+        <SidebarInset>
+          <header className="shrink-0">
+            <div className="h-1 bg-brand-red" />
+            <div className="flex h-13 items-center gap-2 border-b border-border bg-white px-4">
+              <SidebarTrigger className="-ml-1 text-foreground hover:text-brand-navy" />
+              <Separator orientation="vertical" className="h-4 bg-slate-200" />
+              <HeaderLogo />
+              <div className="ml-auto flex items-center gap-1">
+                <NotificationBell notifyBrowser={dbUser?.notifyBrowser ?? false} />
+                <LanguageSwitcher />
+              </div>
             </div>
-          </div>
-        </header>
-        {!session.user.isVerified && <PendingApprovalBanner />}
-        <main className="flex-1 p-6">{children}</main>
-      </SidebarInset>
-      <Toaster richColors />
-    </SidebarProvider>
+          </header>
+          {!session.user.isVerified && <PendingApprovalBanner />}
+          <main className="flex-1 p-6">{children}</main>
+        </SidebarInset>
+        <Toaster richColors />
+      </SidebarProvider>
+      <TourManager userId={session.user.id} role={session.user.role} />
+    </>
   );
 }

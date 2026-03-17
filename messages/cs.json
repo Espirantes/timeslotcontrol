@@ -53,7 +53,20 @@
     "alreadyHaveAccount": "Máte už účet?",
     "noAccount": "Nemáte účet?",
     "registerLink": "Zaregistrujte se",
-    "pendingApproval": "Váš účet čeká na schválení administrátorem. Dokud nebude schválen, nemůžete vytvářet rezervace."
+    "pendingApproval": "Váš účet čeká na schválení administrátorem. Dokud nebude schválen, nemůžete vytvářet rezervace.",
+    "forgotLink": "Zapomenuté heslo?",
+    "forgotTitle": "Obnova hesla",
+    "forgotSubtitle": "Zadejte e-mail a zašleme vám odkaz pro obnovu hesla.",
+    "forgotButton": "Odeslat odkaz",
+    "forgotSent": "Pokud je e-mail registrován, byl odeslán odkaz pro obnovu hesla. Odkaz je platný 2 hodiny.",
+    "resetTitle": "Nové heslo",
+    "resetSubtitle": "Zadejte nové heslo pro váš účet.",
+    "resetButton": "Uložit heslo",
+    "resetSuccess": "Heslo bylo úspěšně změněno. Nyní se můžete přihlásit.",
+    "resetError": "Nepodařilo se změnit heslo.",
+    "resetExpiredTitle": "Odkaz expiroval",
+    "resetExpiredBody": "Platnost odkazu vypršela nebo je neplatný. Vyžádejte si nový.",
+    "resetRequestNew": "Vyžádat nový odkaz"
   },
   "nav": {
     "calendar": "Kalendář",
@@ -73,7 +86,8 @@
     "guide": "Příručka",
     "mySuppliers": "Moji dodavatelé",
     "groupClient": "Klient",
-    "recurringReservations": "Opakované závozy"
+    "recurringReservations": "Opakované závozy",
+    "wizard": "Průvodce nastavením"
   },
   "reservation": {
     "title": "Rezervace",
@@ -176,7 +190,12 @@
       "colStatus": "Stav",
       "colGateClient": "Rampa / Klient",
       "colTime": "Čas",
-      "colSupplier": "Dopravce"
+      "colSupplier": "Dopravce",
+      "colWarehouse": "Sklad",
+      "filterWarehouse": "Sklad...",
+      "filterStatus": "Stav...",
+      "filterAll": "Vše",
+      "filterClear": "Zrušit filtry"
     },
     "form": {
       "requiredFields": "Vyplňte všechna povinná pole",
@@ -552,7 +571,23 @@
         "title": "Audit log",
         "desc": "Kompletní záznam všech změn v systému — kdo, kdy a co změnil. Slouží pro kontrolu a dohledatelnost.",
         "tip": "Příklad: Chcete zjistit, kdo zamítl rezervaci #42? Otevřete audit log a filtrujte podle entity 'Rezervace'."
+      },
+      "bulkImport": {
+        "title": "Hromadný import a export",
+        "desc": "Pro rychlé naplnění systému lze hromadně importovat klienty, dodavatele a uživatele z CSV souboru. Stávající data lze exportovat do CSV pro úpravu nebo zálohu.",
+        "point1": "Na stránkách Klienti, Dodavatelé a Uživatelé klikněte na tlačítko \"Import CSV\" — stáhněte šablonu, vyplňte data a nahrajte soubor.",
+        "point2": "Dodavatelský import podporuje přiřazení klientů (sloupec clients, hodnoty oddělené středníkem).",
+        "point3": "Uživatelský import vytvoří účet s vámi zadaným heslem; pokud heslo nevyplníte, vygeneruje se náhodné — zobrazí se po importu a uložte si jej.",
+        "tip": "Příklad: chcete nahrát 200 dodavatelů? Stáhněte šablonu, vyplňte v Excelu a nahrajte. Import zpracuje každý řádek samostatně a zobrazí přehled úspěšných zápisů i chyb."
       }
+    },
+    "passwordReset": {
+      "title": "Obnova zapomenutého hesla",
+      "desc": "Zapomněli jste heslo? Systém umožňuje bezpečnou obnovu hesla pomocí odkazu zaslaného na váš e-mail.",
+      "point1": "Na přihlašovací stránce klikněte na odkaz \"Zapomenuté heslo?\" vedle pole pro heslo.",
+      "point2": "Zadejte svůj registrovaný e-mail a klikněte na \"Odeslat odkaz\".",
+      "point3": "Otevřete e-mail s odkazem (platný 2 hodiny), zadejte nové heslo a uložte.",
+      "tip": "Pokud e-mail nepřijde do několika minut, zkontrolujte složku Nevyžádaná pošta. Každý nový požadavek zneplatní předchozí odkaz."
     }
   },
   "gateBlock": {
@@ -619,5 +654,156 @@
       "empty": "Žádné opakované závozy"
     },
     "badge": "Opakovaný závoz"
+  },
+  "wizard": {
+    "title": "Průvodce aplikací",
+    "creating": "Vytváříme ukázková data...",
+    "next": "Dál",
+    "prev": "Zpět",
+    "finish": "Hotovo",
+    "skip": "Přeskočit průvodce",
+    "reopenBtn": "Průvodce",
+    "admin": {
+      "s1Title": "Vítejte v TimeslotControl",
+      "s1Body": "Projdeme vás základním nastavením. Vytvoříme ukázková data, abyste viděli, jak aplikace funguje v praxi.",
+      "s2Title": "Sklad",
+      "s2Body": "Sklad je vaše fyzické centrum distribuce. Ukázkový sklad byl vytvořen. Přidejte vlastní v sekci Sklady.",
+      "s3Title": "Rampa",
+      "s3Body": "Rampa je konkrétní nakládací nebo vykládací místo ve skladu. Každá rampa má vlastní otevírací dobu a lze ji blokovat.",
+      "s4Title": "Klient",
+      "s4Body": "Klient je firma, jejíž zboží prochází vaším skladem. Ukázkový klient byl přidán.",
+      "s5Title": "Dodavatel",
+      "s5Body": "Dodavatel zajišťuje přepravu. Ukázkový dodavatel byl propojen s klientem. Až po propojení může dodavatel vytvořit rezervace.",
+      "s6Title": "Průvodce je hotov",
+      "s6Body": "Nyní smažeme ukázková data, aby nezůstal nepořádek. Vaše reálná data zůstanou nedotčena. Nebo je můžete zachovat.",
+      "cleanupWarning": "Bude smazáno: ukázkový sklad, rampa, klient a dodavatel.",
+      "keepData": "Zachovat ukázková data",
+      "deleteData": "Dokončit a smazat ukázku"
+    },
+    "worker": {
+      "s1Title": "Vítejte v TimeslotControl",
+      "s1Body": "Jste přihlášeni jako pracovník skladu. Spravujete obsazenost ramp a schvalujete příjezdy dodavatelů.",
+      "s2Title": "Kalendář ramp",
+      "s2Body": "Kalendář zobrazuje obsazenost každé rampy v reálném čase. Kliknutím na rezervaci zobrazíte detail.",
+      "s3Title": "Správa rezervací",
+      "s3Body": "Dodavatelé žádají o časové sloty a vy je schvalujete nebo zamítáte. Před schválením můžete rezervaci také upravit – opravit čas, délku nebo typ vozidla.",
+      "s4Title": "Vše připraveno",
+      "s4Body": "Přehled rezervací ke schválení najdete v sekci Rezervace. Hodně zdaru!"
+    },
+    "supplier": {
+      "s1Title": "Vítejte v TimeslotControl",
+      "s1Body": "Zajišťujete přepravu a potřebujete zarezervovat slot na rampě? Správné místo.",
+      "s2Title": "Vytvoření rezervace",
+      "s2Body": "V sekci Rezervace nebo z Kalendáře vytvořte nový slot. Rezervace čeká na schválení pracovníkem skladu.",
+      "s3Title": "Úpravy ze strany skladu",
+      "s3Body": "Pracovník skladu může vaši rezervaci před schválením upravit. O každé takové změně vás informujeme notifikací v aplikaci i e-mailem.",
+      "s4Title": "Sledování stavu",
+      "s4Body": "Stav sledujte v sekci Rezervace: Zažádána → Potvrzena → Vykládka zahájena → Dokončena → Uzavřena."
+    },
+    "client": {
+      "s1Title": "Vítejte v TimeslotControl",
+      "s1Body": "Jako klient máte přehled o všech rezervacích pro vaše zboží napříč všemi vašimi dodavateli.",
+      "s2Title": "Rezervace za dodavatele",
+      "s2Body": "Pokud váš dodavatel nemůže rezervaci zadat sám, můžete ji vytvořit vy. Klikněte na Nová rezervace a vyberte správného dodavatele.",
+      "s3Title": "Vše připraveno",
+      "s3Body": "Přehled rezervací najdete v sekci Rezervace. Sledujte stavy a mějte vždy přehled o pohybu zboží."
+    }
+  },
+  "tour": {
+    "next": "Dál",
+    "prev": "Zpět",
+    "finish": "Hotovo",
+    "done": {
+      "title": "Hotovo!",
+      "body": "Znáte základy. Průvodce spustíte kdykoli znovu z postranního menu."
+    },
+    "admin": {
+      "s0": {
+        "title": "Vítejte v TimeslotControl",
+        "body": "Provedeme vás nastavením přímo v aplikaci. Klikněte Dál a začneme."
+      },
+      "s1": {
+        "title": "Sklady",
+        "body": "Zde spravujete fyzická skladová místa. Začněte vytvořením prvního skladu."
+      },
+      "s2": {
+        "title": "Vytvořit sklad",
+        "body": "Klikněte na toto tlačítko a zadejte název a adresu vašeho skladu."
+      },
+      "s3": {
+        "title": "Rampy",
+        "body": "Každý sklad má rampy – konkrétní nakládací místa. Spravujte je zde."
+      },
+      "s4": {
+        "title": "Přidat rampu",
+        "body": "Přidejte rampu ke skladu a nastavte otevírací dobu."
+      },
+      "s5": {
+        "title": "Klienti",
+        "body": "Klienti jsou firmy, jejichž zboží prochází vaším skladem."
+      },
+      "s6": {
+        "title": "Dodavatelé",
+        "body": "Dodavatelé zajišťují přepravu. Propojte je s klienty, aby mohli tvořit rezervace."
+      },
+      "s7": {
+        "title": "Uživatelé",
+        "body": "Spravujte přístupy. Noví uživatelé čekají na vaše schválení."
+      },
+      "s8": {
+        "title": "Kalendář je připraven",
+        "body": "Systém je nastaven! Rezervace vytvoříte tímto tlačítkem nebo kliknutím na volný slot."
+      }
+    },
+    "worker": {
+      "s0": {
+        "title": "Vítejte v TimeslotControl",
+        "body": "Jste pracovník skladu. Provedeme vás základy správy rezervací."
+      },
+      "s1": {
+        "title": "Kalendář ramp",
+        "body": "Hlavní přehled – vidíte obsazenost všech ramp v reálném čase."
+      },
+      "s2": {
+        "title": "Nová rezervace",
+        "body": "Rezervaci vytvoříte ručně tímto tlačítkem nebo kliknutím na slot. Před schválením ji lze také upravit."
+      },
+      "s3": {
+        "title": "Seznam rezervací",
+        "body": "Přehled všech rezervací. Zde schvalujete nebo zamítáte žádosti dodavatelů."
+      }
+    },
+    "supplier": {
+      "s0": {
+        "title": "Vítejte v TimeslotControl",
+        "body": "Jako dodavatel si zde rezervujete časy příjezdu na rampu."
+      },
+      "s1": {
+        "title": "Kalendář",
+        "body": "Prohlížejte dostupné termíny na všech rampách skladu."
+      },
+      "s2": {
+        "title": "Nová rezervace",
+        "body": "Zvolte volný slot a vytvořte rezervaci. Čeká na schválení. Pracovník ji může upravit – dostanete notifikaci."
+      },
+      "s3": {
+        "title": "Vaše rezervace",
+        "body": "Přehled vašich rezervací a stavů: Zažádána → Potvrzena → Dokončena."
+      }
+    },
+    "client": {
+      "s0": {
+        "title": "Vítejte v TimeslotControl",
+        "body": "Sledujete rezervace svých dodavatelů a v případě potřeby je vytváříte za ně."
+      },
+      "s1": {
+        "title": "Kalendář",
+        "body": "Přehled všech rezervací vašich dodavatelů v reálném čase."
+      },
+      "s2": {
+        "title": "Rezervace za dodavatele",
+        "body": "Při vytváření rezervace vyberte dodavatele – hodí se, když dodavatel není technicky zdatný."
+      }
+    }
   }
 }

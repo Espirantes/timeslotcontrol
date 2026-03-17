@@ -53,7 +53,20 @@
     "alreadyHaveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
     "registerLink": "Register",
-    "pendingApproval": "Your account is awaiting administrator approval. Until approved, you cannot create reservations."
+    "pendingApproval": "Your account is awaiting administrator approval. Until approved, you cannot create reservations.",
+    "forgotLink": "Forgot password?",
+    "forgotTitle": "Password reset",
+    "forgotSubtitle": "Enter your email and we will send you a reset link.",
+    "forgotButton": "Send link",
+    "forgotSent": "If the email is registered, a reset link has been sent. The link is valid for 2 hours.",
+    "resetTitle": "New password",
+    "resetSubtitle": "Enter a new password for your account.",
+    "resetButton": "Save password",
+    "resetSuccess": "Password changed successfully. You can now sign in.",
+    "resetError": "Failed to change password.",
+    "resetExpiredTitle": "Link expired",
+    "resetExpiredBody": "The link has expired or is invalid. Please request a new one.",
+    "resetRequestNew": "Request new link"
   },
   "nav": {
     "calendar": "Calendar",
@@ -73,7 +86,8 @@
     "guide": "Guide",
     "mySuppliers": "My Suppliers",
     "groupClient": "Client",
-    "recurringReservations": "Recurring Reservations"
+    "recurringReservations": "Recurring Reservations",
+    "wizard": "Setup guide"
   },
   "reservation": {
     "title": "Reservations",
@@ -176,7 +190,12 @@
       "colStatus": "Status",
       "colGateClient": "Gate / Client",
       "colTime": "Time",
-      "colSupplier": "Carrier"
+      "colSupplier": "Carrier",
+      "colWarehouse": "Warehouse",
+      "filterWarehouse": "Warehouse...",
+      "filterStatus": "Status...",
+      "filterAll": "All",
+      "filterClear": "Clear filters"
     },
     "form": {
       "requiredFields": "Please fill in all required fields",
@@ -552,7 +571,23 @@
         "title": "Audit log",
         "desc": "A complete record of all system changes — who changed what and when. Used for compliance and traceability.",
         "tip": "Example: Want to find out who rejected reservation #42? Open the audit log and filter by entity \"Reservation\"."
+      },
+      "bulkImport": {
+        "title": "Bulk import and export",
+        "desc": "To quickly populate the system you can bulk import clients, suppliers and users from a CSV file. Existing data can be exported to CSV for editing or backup.",
+        "point1": "On the Clients, Suppliers and Users pages click \"Import CSV\" — download the template, fill in the data and upload the file.",
+        "point2": "Supplier import supports assigning clients (clients column, values separated by semicolons).",
+        "point3": "User import creates an account with the password you specify; if left blank a random password is generated and shown after import — save it.",
+        "tip": "Example: want to upload 200 suppliers? Download the template, fill it in Excel and upload. The import processes each row individually and shows a summary of successes and errors."
       }
+    },
+    "passwordReset": {
+      "title": "Forgot password recovery",
+      "desc": "Forgot your password? The system allows secure password recovery via a link sent to your email.",
+      "point1": "On the login page, click \"Forgot password?\" next to the password field.",
+      "point2": "Enter your registered email and click \"Send link\".",
+      "point3": "Open the email with the link (valid for 2 hours), enter a new password and save.",
+      "tip": "If the email does not arrive within a few minutes, check your Spam folder. Each new request invalidates the previous link."
     }
   },
   "gateBlock": {
@@ -619,5 +654,156 @@
       "empty": "No recurring reservations"
     },
     "badge": "Recurring"
+  },
+  "wizard": {
+    "title": "App guide",
+    "creating": "Creating demo data...",
+    "next": "Next",
+    "prev": "Back",
+    "finish": "Done",
+    "skip": "Skip guide",
+    "reopenBtn": "Guide",
+    "admin": {
+      "s1Title": "Welcome to TimeslotControl",
+      "s1Body": "We'll walk you through the basic setup by creating demo data so you can see how the app works in practice.",
+      "s2Title": "Warehouse",
+      "s2Body": "A warehouse is your physical distribution center. The demo warehouse has been created. Add your own in the Warehouses section.",
+      "s3Title": "Gate / Ramp",
+      "s3Body": "A gate is a specific loading or unloading dock in the warehouse. The demo gate is ready. Each gate has its own opening hours and can be blocked.",
+      "s4Title": "Client",
+      "s4Body": "A client is the company whose goods pass through your warehouse. The demo client has been added.",
+      "s5Title": "Supplier",
+      "s5Body": "A supplier handles transport. The demo supplier has been linked to the client. Only linked suppliers can create reservations for a client.",
+      "s6Title": "Guide complete",
+      "s6Body": "We'll now delete the demo data to keep things tidy. Your real data will remain untouched. Or keep it to explore.",
+      "cleanupWarning": "Will be deleted: demo warehouse, gate, client and supplier (including their link).",
+      "keepData": "Keep demo data",
+      "deleteData": "Finish & delete demo"
+    },
+    "worker": {
+      "s1Title": "Welcome to TimeslotControl",
+      "s1Body": "You're logged in as a warehouse worker. You manage gate availability and approve supplier arrivals.",
+      "s2Title": "Gate calendar",
+      "s2Body": "The calendar shows real-time occupancy for each gate. Click a reservation to see who's arriving, when, and with what goods.",
+      "s3Title": "Managing reservations",
+      "s3Body": "Suppliers request time slots and you approve or reject them. Before approving you can also edit the reservation: fix the time, duration or vehicle type if the supplier entered incorrect details.",
+      "s4Title": "All set",
+      "s4Body": "Find reservations awaiting approval in the Reservations section, Pending tab. Good luck!"
+    },
+    "supplier": {
+      "s1Title": "Welcome to TimeslotControl",
+      "s1Body": "You handle transport and need to book a dock slot? You're in the right place.",
+      "s2Title": "Creating a reservation",
+      "s2Body": "In the Reservations section or from the Calendar, create a new slot. The reservation awaits approval from a warehouse worker.",
+      "s3Title": "Edits by the warehouse",
+      "s3Body": "A warehouse worker may edit your reservation before approving it. We'll notify you immediately via in-app notification and email.",
+      "s4Title": "Tracking status",
+      "s4Body": "Track status in Reservations: Requested - Confirmed - Unloading started - Completed - Closed. All set!"
+    },
+    "client": {
+      "s1Title": "Welcome to TimeslotControl",
+      "s1Body": "As a client you have a complete overview of all reservations for your goods across all your suppliers.",
+      "s2Title": "Reservations on behalf of suppliers",
+      "s2Body": "If your supplier cannot book a slot themselves, you can do it for them. Click New reservation and select the right supplier from the list.",
+      "s3Title": "All set",
+      "s3Body": "Find reservations in the Reservations section. Track statuses and always know where your goods are."
+    }
+  },
+  "tour": {
+    "next": "Next",
+    "prev": "Back",
+    "finish": "Finish",
+    "done": {
+      "title": "All done!",
+      "body": "You know the basics. You can reopen this guide anytime from the sidebar."
+    },
+    "admin": {
+      "s0": {
+        "title": "Welcome to TimeslotControl",
+        "body": "We'll guide you through setup right inside the app. Click Next to begin."
+      },
+      "s1": {
+        "title": "Warehouses",
+        "body": "Manage your physical warehouse locations here. Start by creating your first warehouse."
+      },
+      "s2": {
+        "title": "Create a warehouse",
+        "body": "Click this button to add a new warehouse with its name and address."
+      },
+      "s3": {
+        "title": "Gates",
+        "body": "Each warehouse has gates – specific loading docks. Manage them here."
+      },
+      "s4": {
+        "title": "Add a gate",
+        "body": "Add a gate to your warehouse and set its opening hours."
+      },
+      "s5": {
+        "title": "Clients",
+        "body": "Clients are companies whose goods pass through your warehouse."
+      },
+      "s6": {
+        "title": "Suppliers",
+        "body": "Suppliers handle transport. Link them to clients so they can create reservations."
+      },
+      "s7": {
+        "title": "Users",
+        "body": "Manage access. New users wait for your approval and supplier assignment."
+      },
+      "s8": {
+        "title": "Calendar is ready",
+        "body": "System is set up! Create reservations with this button or by clicking a free slot."
+      }
+    },
+    "worker": {
+      "s0": {
+        "title": "Welcome to TimeslotControl",
+        "body": "You're a warehouse worker. We'll walk you through the basics of managing reservations."
+      },
+      "s1": {
+        "title": "Gate calendar",
+        "body": "Your main view – see all gate occupancy in real time."
+      },
+      "s2": {
+        "title": "New reservation",
+        "body": "Create a reservation manually here or by clicking a slot. You can also edit a supplier's reservation before approving it."
+      },
+      "s3": {
+        "title": "Reservations list",
+        "body": "Overview of all reservations. Approve or reject supplier requests here."
+      }
+    },
+    "supplier": {
+      "s0": {
+        "title": "Welcome to TimeslotControl",
+        "body": "As a supplier, you book arrival time slots at the warehouse loading dock."
+      },
+      "s1": {
+        "title": "Calendar",
+        "body": "Browse available slots across all warehouse gates."
+      },
+      "s2": {
+        "title": "New reservation",
+        "body": "Choose a free slot and submit. The warehouse worker confirms it. They may adjust the time – you'll get a notification."
+      },
+      "s3": {
+        "title": "Your reservations",
+        "body": "Overview of your reservations and statuses: Requested → Confirmed → Completed."
+      }
+    },
+    "client": {
+      "s0": {
+        "title": "Welcome to TimeslotControl",
+        "body": "As a client, you monitor your suppliers' reservations and can create them on their behalf."
+      },
+      "s1": {
+        "title": "Calendar",
+        "body": "Real-time overview of all your suppliers' reservations."
+      },
+      "s2": {
+        "title": "Reservation on behalf of supplier",
+        "body": "When creating a reservation, select the supplier – useful when they're not tech-savvy."
+      }
+    }
   }
 }

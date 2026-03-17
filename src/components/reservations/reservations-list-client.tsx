@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import { format, type Locale } from "date-fns";
@@ -10,9 +10,11 @@ import { it } from "date-fns/locale";
 import { useTranslations, useLocale } from "next-intl";
 
 const DATE_LOCALES: Record<string, Locale> = { cs, en: enUS, it };
-import { Check, X, ChevronRight, Clock, AlertCircle } from "lucide-react";
+import { Check, X, ChevronRight, Clock, AlertCircle, Filter, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { approveReservation, rejectReservation } from "@/lib/actions/reservations";
 import type { ReservationListItem } from "@/lib/actions/reservations";
 import type { UserRole } from "@/generated/prisma/client";
@@ -104,6 +106,12 @@ function ReservationRow({
         <div className="text-muted-foreground text-xs">{r.clientName}</div>
       </td>
       <td className="px-4 py-3 text-sm">
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Building2 className="size-3.5 shrink-0" />
+          <span>{r.warehouseName}</span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-sm">
         <div className="flex items-center gap-1">
           <Clock className="size-3.5 text-muted-foreground" />
           {displayTime}
@@ -137,15 +145,118 @@ function ReservationRow({
   );
 }
 
+// ─── Filters ───────────────────────────────────────────────────────────────────
+
+type Filters = {
+  warehouse: string;
+  status: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+function FilterBar({
+  filters,
+  onChange,
+  warehouses,
+  statuses,
+}: {
+  filters: Filters;
+  onChange: (f: Filters) => void;
+  warehouses: { id: string; name: string }[];
+  statuses: string[];
+}) {
+  const t = useTranslations("reservation");
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 border rounded-lg">
+      <Filter className="size-4 text-muted-foreground shrink-0" />
+      {warehouses.length > 1 && (
+        <Select value={filters.warehouse} onValueChange={(v) => onChange({ ...filters, warehouse: v })}>
+          <SelectTrigger className="h-8 w-44 text-xs">
+            <SelectValue placeholder={t("list.filterWarehouse")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("list.filterAll")}</SelectItem>
+            {warehouses.map((w) => (
+              <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      <Select value={filters.status} onValueChange={(v) => onChange({ ...filters, status: v })}>
+        <SelectTrigger className="h-8 w-44 text-xs">
+          <SelectValue placeholder={t("list.filterStatus")} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{t("list.filterAll")}</SelectItem>
+          {statuses.map((s) => (
+            <SelectItem key={s} value={s}>{t(`status.${s}`)}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input
+        type="date"
+        className="h-8 w-36 text-xs"
+        value={filters.dateFrom}
+        onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })}
+      />
+      <span className="text-muted-foreground text-xs">—</span>
+      <Input
+        type="date"
+        className="h-8 w-36 text-xs"
+        value={filters.dateTo}
+        onChange={(e) => onChange({ ...filters, dateTo: e.target.value })}
+      />
+      {(filters.warehouse !== "all" || filters.status !== "all" || filters.dateFrom || filters.dateTo) && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 text-xs text-muted-foreground"
+          onClick={() => onChange({ warehouse: "all", status: "all", dateFrom: "", dateTo: "" })}
+        >
+          <X className="size-3.5 mr-1" />
+          {t("list.filterClear")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function ReservationsListClient({ reservations, role }: Props) {
   const [tab, setTab] = useState<"pending" | "all">("pending");
+  const [filters, setFilters] = useState<Filters>({ warehouse: "all", status: "all", dateFrom: "", dateTo: "" });
   const t = useTranslations("reservation");
 
   const canApprove = role === "ADMIN" || role === "WAREHOUSE_WORKER";
   const pending = reservations.filter((r) => r.hasPendingVersion);
-  const displayed = tab === "pending" ? pending : reservations;
+
+  const warehouses = useMemo(() => {
+    const map = new Map<string, string>();
+    reservations.forEach((r) => map.set(r.warehouseId, r.warehouseName));
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [reservations]);
+
+  const statuses = useMemo(() => [...new Set(reservations.map((r) => r.status))], [reservations]);
+
+  const filtered = useMemo(() => {
+    const base = tab === "pending" ? pending : reservations;
+    return base.filter((r) => {
+      if (filters.warehouse !== "all" && r.warehouseId !== filters.warehouse) return false;
+      if (filters.status !== "all" && r.status !== filters.status) return false;
+      if (filters.dateFrom) {
+        const from = new Date(filters.dateFrom);
+        if (new Date(r.startTime) < from) return false;
+      }
+      if (filters.dateTo) {
+        const to = new Date(filters.dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (new Date(r.startTime) > to) return false;
+      }
+      return true;
+    });
+  }, [reservations, pending, tab, filters]);
 
   const router = useRouter();
   function handleActionDone() {
@@ -174,7 +285,14 @@ export function ReservationsListClient({ reservations, role }: Props) {
         </div>
       )}
 
-      {displayed.length === 0 ? (
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        warehouses={warehouses}
+        statuses={statuses}
+      />
+
+      {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
           {tab === "pending" ? t("list.noPending") : t("list.noReservations")}
         </div>
@@ -185,13 +303,14 @@ export function ReservationsListClient({ reservations, role }: Props) {
               <tr>
                 <th className="text-left px-4 py-2.5 font-medium">{t("list.colStatus")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("list.colGateClient")}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{t("list.colWarehouse")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("list.colTime")}</th>
                 <th className="text-left px-4 py-2.5 font-medium">{t("list.colSupplier")}</th>
                 <th className="w-40"></th>
               </tr>
             </thead>
             <tbody>
-              {displayed.map((r) => (
+              {filtered.map((r) => (
                 <ReservationRow
                   key={r.id}
                   r={r}

@@ -19,6 +19,8 @@ import {
   RefreshCw,
   FileText,
   Ban,
+  UploadCloud,
+  KeyRound,
 } from "lucide-react";
 import {
   Card,
@@ -183,6 +185,26 @@ export function GuideClient({ role }: Props) {
             <li>{t("registration.point3")}</li>
           </ol>
           <Tip>{t("registration.tip")}</Tip>
+        </CardContent>
+      </Card>
+
+      {/* Password reset */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <KeyRound className="size-[18px] text-brand-red" />
+            {t("passwordReset.title")}
+          </CardTitle>
+          <RoleBadges roles={[t("roles.all")]} />
+        </CardHeader>
+        <CardContent className="text-sm text-brand-navy space-y-2">
+          <p>{t("passwordReset.desc")}</p>
+          <ol className="list-decimal list-inside space-y-1 text-brand-muted">
+            <li>{t("passwordReset.point1")}</li>
+            <li>{t("passwordReset.point2")}</li>
+            <li>{t("passwordReset.point3")}</li>
+          </ol>
+          <Tip>{t("passwordReset.tip")}</Tip>
         </CardContent>
       </Card>
 
@@ -423,6 +445,26 @@ export function GuideClient({ role }: Props) {
             <CardContent className="text-sm text-brand-navy space-y-2">
               <p>{t("admin.users.desc")}</p>
               <Tip>{t("admin.users.tip")}</Tip>
+            </CardContent>
+          </Card>
+
+          {/* Bulk import / export */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <UploadCloud className="size-[18px] text-brand-red" />
+                {t("admin.bulkImport.title")}
+              </CardTitle>
+              <RoleBadges roles={[t("roles.admin")]} />
+            </CardHeader>
+            <CardContent className="text-sm text-brand-navy space-y-2">
+              <p>{t("admin.bulkImport.desc")}</p>
+              <ul className="list-disc list-inside space-y-1 text-brand-muted">
+                <li>{t("admin.bulkImport.point1")}</li>
+                <li>{t("admin.bulkImport.point2")}</li>
+                <li>{t("admin.bulkImport.point3")}</li>
+              </ul>
+              <Tip>{t("admin.bulkImport.tip")}</Tip>
             </CardContent>
           </Card>
 

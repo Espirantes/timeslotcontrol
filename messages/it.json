@@ -53,7 +53,20 @@
     "alreadyHaveAccount": "Hai già un account?",
     "noAccount": "Non hai un account?",
     "registerLink": "Registrati",
-    "pendingApproval": "Il tuo account è in attesa di approvazione da parte dell'amministratore. Fino all'approvazione, non puoi creare prenotazioni."
+    "pendingApproval": "Il tuo account è in attesa di approvazione da parte dell'amministratore. Fino all'approvazione, non puoi creare prenotazioni.",
+    "forgotLink": "Password dimenticata?",
+    "forgotTitle": "Recupero password",
+    "forgotSubtitle": "Inserisci la tua email e ti invieremo un link di recupero.",
+    "forgotButton": "Invia link",
+    "forgotSent": "Se l’email è registrata, è stato inviato un link di recupero. Il link è valido per 2 ore.",
+    "resetTitle": "Nuova password",
+    "resetSubtitle": "Inserisci una nuova password per il tuo account.",
+    "resetButton": "Salva password",
+    "resetSuccess": "Password modificata con successo. Ora puoi accedere.",
+    "resetError": "Impossibile modificare la password.",
+    "resetExpiredTitle": "Link scaduto",
+    "resetExpiredBody": "Il link è scaduto o non valido. Richiedine uno nuovo.",
+    "resetRequestNew": "Richiedi nuovo link"
   },
   "nav": {
     "calendar": "Calendario",
@@ -73,7 +86,8 @@
     "guide": "Guida",
     "mySuppliers": "I miei fornitori",
     "groupClient": "Cliente",
-    "recurringReservations": "Prenotazioni ricorrenti"
+    "recurringReservations": "Prenotazioni ricorrenti",
+    "wizard": "Guida configurazione"
   },
   "reservation": {
     "title": "Prenotazioni",
@@ -176,7 +190,12 @@
       "colStatus": "Stato",
       "colGateClient": "Banchina / Cliente",
       "colTime": "Orario",
-      "colSupplier": "Vettore"
+      "colSupplier": "Vettore",
+      "colWarehouse": "Magazzino",
+      "filterWarehouse": "Magazzino...",
+      "filterStatus": "Stato...",
+      "filterAll": "Tutti",
+      "filterClear": "Cancella filtri"
     },
     "form": {
       "requiredFields": "Compila tutti i campi obbligatori",
@@ -552,7 +571,23 @@
         "title": "Audit log",
         "desc": "Un registro completo di tutte le modifiche nel sistema — chi ha cambiato cosa e quando. Utilizzato per conformità e tracciabilità.",
         "tip": "Esempio: Vuoi scoprire chi ha rifiutato la prenotazione #42? Apri l'audit log e filtra per entità \"Prenotazione\"."
+      },
+      "bulkImport": {
+        "title": "Importazione ed esportazione in blocco",
+        "desc": "Per popolare rapidamente il sistema è possibile importare in blocco clienti, fornitori e utenti da un file CSV. I dati esistenti possono essere esportati in CSV per la modifica o il backup.",
+        "point1": "Nelle pagine Clienti, Fornitori e Utenti clicca su \"Import CSV\" — scarica il modello, compila i dati e carica il file.",
+        "point2": "L’importazione fornitori supporta l’assegnazione di clienti (colonna clients, valori separati da punto e virgola).",
+        "point3": "L’importazione utenti crea un account con la password specificata; se lasciata vuota viene generata una password casuale — viene mostrata dopo l’importazione, salvala.",
+        "tip": "Esempio: vuoi caricare 200 fornitori? Scarica il modello, compilalo in Excel e caricalo. L’importazione elabora ogni riga singolarmente e mostra un riepilogo di successi ed errori."
       }
+    },
+    "passwordReset": {
+      "title": "Recupero password dimenticata",
+      "desc": "Hai dimenticato la password? Il sistema consente il recupero sicuro della password tramite un link inviato alla tua email.",
+      "point1": "Nella pagina di accesso, clicca su \"Password dimenticata?\" accanto al campo password.",
+      "point2": "Inserisci la tua email registrata e clicca su \"Invia link\".",
+      "point3": "Apri l’email con il link (valido 2 ore), inserisci una nuova password e salva.",
+      "tip": "Se l’email non arriva entro qualche minuto, controlla la cartella Spam. Ogni nuova richiesta invalida il link precedente."
     }
   },
   "gateBlock": {
@@ -619,5 +654,156 @@
       "empty": "Nessuna prenotazione ricorrente"
     },
     "badge": "Ricorrente"
+  },
+  "wizard": {
+    "title": "Guida all'app",
+    "creating": "Creazione dati demo...",
+    "next": "Avanti",
+    "prev": "Indietro",
+    "finish": "Fine",
+    "skip": "Salta guida",
+    "reopenBtn": "Guida",
+    "admin": {
+      "s1Title": "Benvenuto in TimeslotControl",
+      "s1Body": "Ti guideremo attraverso la configurazione di base creando dati demo per mostrarti come funziona l'app.",
+      "s2Title": "Magazzino",
+      "s2Body": "Un magazzino e il tuo centro di distribuzione fisico. Il magazzino demo e stato creato.",
+      "s3Title": "Banchina",
+      "s3Body": "Una banchina e un punto specifico di carico o scarico nel magazzino. La banchina demo e pronta.",
+      "s4Title": "Cliente",
+      "s4Body": "Un cliente e l'azienda le cui merci transitano nel tuo magazzino. Il cliente demo e stato aggiunto.",
+      "s5Title": "Fornitore",
+      "s5Body": "Un fornitore gestisce il trasporto. Il fornitore demo e stato collegato al cliente.",
+      "s6Title": "Guida completata",
+      "s6Body": "Elimineremo ora i dati demo per mantenere tutto in ordine. I tuoi dati reali rimarranno intatti.",
+      "cleanupWarning": "Verranno eliminati: magazzino, banchina, cliente e fornitore demo.",
+      "keepData": "Mantieni dati demo",
+      "deleteData": "Termina ed elimina demo"
+    },
+    "worker": {
+      "s1Title": "Benvenuto in TimeslotControl",
+      "s1Body": "Sei connesso come operatore di magazzino. Gestisci la disponibilita delle banchine e approvi gli arrivi.",
+      "s2Title": "Calendario banchine",
+      "s2Body": "Il calendario mostra l'occupazione in tempo reale di ogni banchina. Clicca su una prenotazione per vedere i dettagli.",
+      "s3Title": "Gestione prenotazioni",
+      "s3Body": "I fornitori richiedono slot temporali e tu approvi o rifiuti. Prima di approvare puoi anche modificare la prenotazione: orario, durata o tipo di veicolo.",
+      "s4Title": "Tutto pronto",
+      "s4Body": "Trova le prenotazioni in attesa nella sezione Prenotazioni. Buon lavoro!"
+    },
+    "supplier": {
+      "s1Title": "Benvenuto in TimeslotControl",
+      "s1Body": "Gestisci il trasporto e devi prenotare uno slot alla banchina? Sei nel posto giusto.",
+      "s2Title": "Creazione prenotazione",
+      "s2Body": "Nella sezione Prenotazioni o dal Calendario, crea un nuovo slot. La prenotazione attende l'approvazione dell'operatore.",
+      "s3Title": "Modifiche da parte del magazzino",
+      "s3Body": "Un operatore puo modificare la tua prenotazione prima di approvarla. Ti notificheremo immediatamente.",
+      "s4Title": "Monitoraggio stato",
+      "s4Body": "Monitora lo stato in Prenotazioni: Richiesta - Confermata - Scarico iniziato - Completata - Chiusa."
+    },
+    "client": {
+      "s1Title": "Benvenuto in TimeslotControl",
+      "s1Body": "Come cliente hai una panoramica completa di tutte le prenotazioni per le tue merci.",
+      "s2Title": "Prenotazioni per conto dei fornitori",
+      "s2Body": "Se il tuo fornitore non puo prenotare da solo, puoi farlo tu. Clicca su Nuova prenotazione e seleziona il fornitore.",
+      "s3Title": "Tutto pronto",
+      "s3Body": "Trova le prenotazioni nella sezione Prenotazioni. Monitora gli stati e tieni sempre traccia delle tue merci."
+    }
+  },
+  "tour": {
+    "next": "Avanti",
+    "prev": "Indietro",
+    "finish": "Fine",
+    "done": {
+      "title": "Completato!",
+      "body": "Conosci le basi. Puoi riaprire questa guida in qualsiasi momento dalla barra laterale."
+    },
+    "admin": {
+      "s0": {
+        "title": "Benvenuto in TimeslotControl",
+        "body": "Ti guideremo nella configurazione direttamente nell'app. Clicca Avanti per iniziare."
+      },
+      "s1": {
+        "title": "Magazzini",
+        "body": "Gestisci qui i tuoi magazzini fisici. Inizia creando il primo magazzino."
+      },
+      "s2": {
+        "title": "Crea magazzino",
+        "body": "Clicca questo pulsante per aggiungere un nuovo magazzino con nome e indirizzo."
+      },
+      "s3": {
+        "title": "Banchine",
+        "body": "Ogni magazzino ha banchine di carico. Gestiscile qui."
+      },
+      "s4": {
+        "title": "Aggiungi banchina",
+        "body": "Aggiungi una banchina al magazzino e imposta gli orari di apertura."
+      },
+      "s5": {
+        "title": "Clienti",
+        "body": "I clienti sono le aziende le cui merci transitano nel tuo magazzino."
+      },
+      "s6": {
+        "title": "Fornitori",
+        "body": "I fornitori gestiscono il trasporto. Collegali ai clienti per permettere le prenotazioni."
+      },
+      "s7": {
+        "title": "Utenti",
+        "body": "Gestisci gli accessi. I nuovi utenti attendono la tua approvazione."
+      },
+      "s8": {
+        "title": "Calendario pronto",
+        "body": "Il sistema e configurato! Crea prenotazioni con questo pulsante o cliccando uno slot libero."
+      }
+    },
+    "worker": {
+      "s0": {
+        "title": "Benvenuto in TimeslotControl",
+        "body": "Sei un operatore di magazzino. Ti guideremo nelle basi della gestione prenotazioni."
+      },
+      "s1": {
+        "title": "Calendario banchine",
+        "body": "La tua vista principale – vedi l'occupazione di tutte le banchine in tempo reale."
+      },
+      "s2": {
+        "title": "Nuova prenotazione",
+        "body": "Crea una prenotazione manualmente o cliccando uno slot. Puoi anche modificare una prenotazione fornitore prima di approvarla."
+      },
+      "s3": {
+        "title": "Lista prenotazioni",
+        "body": "Panoramica di tutte le prenotazioni. Approva o rifiuta le richieste dei fornitori."
+      }
+    },
+    "supplier": {
+      "s0": {
+        "title": "Benvenuto in TimeslotControl",
+        "body": "Come fornitore, prenoti gli slot di arrivo alla banchina del magazzino."
+      },
+      "s1": {
+        "title": "Calendario",
+        "body": "Sfoglia gli slot disponibili su tutte le banchine del magazzino."
+      },
+      "s2": {
+        "title": "Nuova prenotazione",
+        "body": "Scegli uno slot libero e invia. L'operatore lo conferma. Puo modificare l'orario – riceverai una notifica."
+      },
+      "s3": {
+        "title": "Le tue prenotazioni",
+        "body": "Panoramica delle tue prenotazioni: Richiesta → Confermata → Completata."
+      }
+    },
+    "client": {
+      "s0": {
+        "title": "Benvenuto in TimeslotControl",
+        "body": "Come cliente, monitori le prenotazioni dei tuoi fornitori e puoi crearle per loro."
+      },
+      "s1": {
+        "title": "Calendario",
+        "body": "Panoramica in tempo reale di tutte le prenotazioni dei tuoi fornitori."
+      },
+      "s2": {
+        "title": "Prenotazione per il fornitore",
+        "body": "Quando crei una prenotazione, seleziona il fornitore – utile se non sono pratici con la tecnologia."
+      }
+    }
   }
 }
