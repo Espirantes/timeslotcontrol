@@ -10,6 +10,7 @@ import {
   Users,
   UserCircle,
   Truck,
+  Container,
   LogOut,
   Settings,
   Package,
@@ -83,6 +84,7 @@ export function AppSidebar({ user, pendingUsersCount = 0 }: Props) {
     { href: "/gates", label: t("gates"), icon: DoorOpen, tourId: "nav-gates" },
     { href: "/clients", label: t("clients"), icon: Users, tourId: "nav-clients" },
     { href: "/suppliers", label: t("suppliers"), icon: Truck, tourId: "nav-suppliers" },
+    { href: "/carriers", label: t("carriers"), icon: Container, tourId: "nav-carriers" },
     { href: "/users", label: t("users"), icon: UserCircle, badge: pendingUsersCount, tourId: "nav-users" },
     { href: "/transport-units", label: t("transportUnits"), icon: Package },
   ];

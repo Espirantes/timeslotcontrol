@@ -22,7 +22,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${inter.variable} ${inter.className} antialiased`}>
         {children}
       </body>
     </html>

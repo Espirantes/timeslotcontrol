@@ -15,7 +15,7 @@ export default async function UsersPage() {
   if (!session) redirect("/login");
   if (session.user.role !== "ADMIN") redirect("/calendar");
 
-  const [users, warehouses, clients, suppliers] = await Promise.all([
+  const [users, warehouses, clients, suppliers, carriers] = await Promise.all([
     prisma.user.findMany({
       select: {
         id: true,
@@ -27,10 +27,12 @@ export default async function UsersPage() {
         registrationMessage: true,
         clientId: true,
         supplierId: true,
+        carrierId: true,
         createdAt: true,
         warehouses: { include: { warehouse: true } },
         client: { select: { id: true, name: true } },
         supplier: { select: { id: true, name: true } },
+        carrier: { select: { id: true, name: true } },
       },
       orderBy: { name: "asc" },
     }),
@@ -52,6 +54,11 @@ export default async function UsersPage() {
       },
       orderBy: { name: "asc" },
     }),
+    prisma.carrier.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (
@@ -61,6 +68,7 @@ export default async function UsersPage() {
         warehouses={warehouses}
         clients={clients}
         suppliers={suppliers}
+        carriers={carriers}
       />
     </div>
   );

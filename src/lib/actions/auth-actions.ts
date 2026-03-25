@@ -58,3 +58,53 @@ export async function registerSupplier(data: {
 
   return { success: true };
 }
+
+export async function registerCarrier(data: {
+  name: string;
+  email: string;
+  password: string;
+  message?: string;
+}) {
+  if (!data.name.trim() || !data.email.trim() || !data.password) {
+    throw new Error("Missing required fields");
+  }
+  if (data.password.length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
+  if (existing) {
+    throw new Error("EMAIL_EXISTS");
+  }
+
+  const hashedPassword = await bcrypt.hash(data.password, 12);
+
+  const user = await prisma.user.create({
+    data: {
+      email: data.email,
+      name: data.name,
+      password: hashedPassword,
+      role: "CARRIER",
+      isVerified: false,
+      registrationMessage: data.message?.trim() || null,
+    },
+  });
+
+  await auditLog({
+    entityType: "user",
+    entityId: user.id,
+    action: "registered",
+    newData: { email: data.email, role: "CARRIER", message: data.message },
+  });
+
+  createRegistrationNotification(user.id, user.name, user.email).catch(console.error);
+  notifyNewRegistration({
+    userName: user.name,
+    userEmail: user.email,
+    message: data.message,
+  }).catch(console.error);
+
+  return { success: true };
+}

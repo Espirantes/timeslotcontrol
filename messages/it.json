@@ -66,7 +66,10 @@
     "resetError": "Impossibile modificare la password.",
     "resetExpiredTitle": "Link scaduto",
     "resetExpiredBody": "Il link è scaduto o non valido. Richiedine uno nuovo.",
-    "resetRequestNew": "Richiedi nuovo link"
+    "resetRequestNew": "Richiedi nuovo link",
+    "registerAs": "Registrati come",
+    "registerAsSupplier": "Fornitore",
+    "registerAsCarrier": "Vettore"
   },
   "nav": {
     "calendar": "Calendario",
@@ -87,7 +90,8 @@
     "mySuppliers": "I miei fornitori",
     "groupClient": "Cliente",
     "recurringReservations": "Prenotazioni ricorrenti",
-    "wizard": "Guida configurazione"
+    "wizard": "Guida configurazione",
+    "carriers": "Vettori"
   },
   "reservation": {
     "title": "Prenotazioni",
@@ -137,7 +141,8 @@
       "notes": "Note",
       "status": "Stato",
       "createdAt": "Creato",
-      "updatedAt": "Aggiornato"
+      "updatedAt": "Aggiornato",
+      "carrier": "Vettore"
     },
     "items": {
       "title": "Unità di trasporto",
@@ -290,7 +295,7 @@
     "disableAllSupplierMgmt": "Disabilita tutti"
   },
   "supplier": {
-    "title": "Fornitori / Vettori",
+    "title": "Fornitori",
     "new": "Nuovo fornitore",
     "fields": {
       "name": "Nome",
@@ -305,7 +310,8 @@
       "ADMIN": "Amministratore",
       "WAREHOUSE_WORKER": "Operatore magazzino",
       "CLIENT": "Cliente",
-      "SUPPLIER": "Fornitore / Vettore"
+      "SUPPLIER": "Fornitore / Vettore",
+      "CARRIER": "Vettore"
     },
     "fields": {
       "name": "Nome",
@@ -318,7 +324,8 @@
       "isActive": "Attivo",
       "password": "Password",
       "passwordPlaceholder": "Inserisci password (min. 8 caratteri)",
-      "passwordHelp": "Lascia vuoto per mantenere la password attuale"
+      "passwordHelp": "Lascia vuoto per mantenere la password attuale",
+      "carrier": "Vettore"
     },
     "tabAll": "Tutti",
     "tabPending": "In attesa",
@@ -445,7 +452,8 @@
       "admin": "Amministratore",
       "worker": "Operatore magazzino",
       "client": "Cliente",
-      "supplier": "Fornitore"
+      "supplier": "Fornitore",
+      "carrier": "Vettore"
     },
     "intro": {
       "title": "Informazioni sull'app",
@@ -457,7 +465,9 @@
       "roleClient": "Cliente",
       "roleClientDesc": "Visualizza le prenotazioni dirette alla propria organizzazione, può richiedere modifiche.",
       "roleSupplier": "Fornitore / Vettore",
-      "roleSupplierDesc": "Crea prenotazioni, inserisce i dati del veicolo, dell'autista e della merce."
+      "roleSupplierDesc": "Crea prenotazioni, inserisce i dati del veicolo, dell'autista e della merce.",
+      "roleCarrier": "Vettore",
+      "roleCarrierDesc": "Riceve i trasporti assegnati, vede solo le proprie prenotazioni e inserisce i dettagli del veicolo e dell’autista."
     },
     "registration": {
       "title": "Registrazione account",
@@ -476,7 +486,8 @@
       "tip": "Esempio: Vuoi verificare se la Banchina A è libera giovedì pomeriggio? Apri il calendario, seleziona il magazzino e guarda la colonna della Banchina A.",
       "tipWorker": "Clicca su una prenotazione nel calendario e cambia subito il suo stato — avvia o completa lo scarico.",
       "tipSupplier": "Nel calendario vedi solo le tue prenotazioni. Verifica se la fascia oraria desiderata alla banchina è disponibile.",
-      "tipClient": "Nel calendario puoi monitorare tutte le consegne in arrivo dai tuoi fornitori in un unico posto."
+      "tipClient": "Nel calendario puoi monitorare tutte le consegne in arrivo dai tuoi fornitori in un unico posto.",
+      "tipCarrier": "Nel calendario vedi solo le prenotazioni in cui sei assegnato come vettore. Controlla gli orari e le rampe."
     },
     "reservations": {
       "title": "Prenotazioni",
@@ -498,7 +509,9 @@
       "descClient": "Come cliente, visualizzi tutte le prenotazioni dirette alla tua organizzazione e puoi monitorarne lo stato.",
       "tipWorker": "All'arrivo del camion, apri la prenotazione e cambia lo stato in \"Scarico iniziato\". Al termine, clicca \"Scarico completato\".",
       "tipSupplier": "Inserisci targa e nome autista il prima possibile — faciliterai il processo di ricezione.",
-      "tipClient": "Monitora lo stato delle prenotazioni dei tuoi fornitori. Attiva le notifiche per essere informato sui cambiamenti."
+      "tipClient": "Monitora lo stato delle prenotazioni dei tuoi fornitori. Attiva le notifiche per essere informato sui cambiamenti.",
+      "descCarrier": "Come vettore vedi una panoramica delle prenotazioni assegnate alla tua azienda di trasporto. Puoi inserire i dettagli del veicolo e dell’autista.",
+      "tipCarrier": "Inserisci la targa e il nome dell’autista il prima possibile — facilita il processo di ricevimento."
     },
     "reservationDetail": {
       "title": "Dettaglio prenotazione",
@@ -804,6 +817,33 @@
         "title": "Prenotazione per il fornitore",
         "body": "Quando crei una prenotazione, seleziona il fornitore – utile se non sono pratici con la tecnologia."
       }
+    },
+    "carrier": {
+      "s0": {
+        "title": "Benvenuto, vettore!",
+        "body": "Questa guida vi mostrerà come navigare nel sistema TimeSlotControl."
+      },
+      "s1": {
+        "title": "Calendario",
+        "body": "Qui vedete una panoramica delle vostre prenotazioni assegnate alle rampe."
+      },
+      "s2": {
+        "title": "Nuova prenotazione",
+        "body": "Cliccate questo pulsante per creare una nuova prenotazione — compilate cliente, rampa, orario e dettagli del veicolo."
+      },
+      "s3": {
+        "title": "Elenco prenotazioni",
+        "body": "Panoramica di tutte le vostre prenotazioni con filtri e stato."
+      }
+    }
+  },
+  "carrier": {
+    "title": "Vettori",
+    "new": "Nuovo vettore",
+    "fields": {
+      "name": "Nome",
+      "contactEmail": "Email di contatto",
+      "reservations": "Prenotazioni"
     }
   }
 }

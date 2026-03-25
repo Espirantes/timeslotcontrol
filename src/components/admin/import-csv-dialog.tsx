@@ -65,7 +65,7 @@ function CopyBtn({ text }: { text: string }) {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-type EntityType = "client" | "supplier" | "user";
+type EntityType = "client" | "supplier" | "carrier" | "user";
 
 type ColDef = { key: string; label: string };
 
@@ -108,14 +108,30 @@ const CONFIG: Record<EntityType, EntityConfig> = {
     ],
     hint: "clients: názvy klientů oddělené středníkem (;). Klienti musí v systému existovat. Dodavatel bude s nimi automaticky propojen.",
   },
+  carrier: {
+    label: "dopravců",
+    templateRows: [
+      ["name", "contactEmail", "suppliers"],
+      ["Dopravce ABC", "info@dopravce.cz", "Dodavatel ABC"],
+      ["Dopravce XYZ", "", "Dodavatel ABC;Dodavatel XYZ"],
+    ],
+    templateFile: "import-dopravci.csv",
+    previewCols: [
+      { key: "name", label: "Název" },
+      { key: "contactemail", label: "Kontaktní e-mail" },
+      { key: "suppliers", label: "Dodavatelé (středník)" },
+    ],
+    hint: "suppliers: názvy dodavatelů oddělené středníkem (;). Dodavatelé musí v systému existovat. Dopravce bude s nimi automaticky propojen.",
+  },
   user: {
     label: "uživatelů",
     templateRows: [
-      ["name", "email", "role", "client", "supplier", "password"],
-      ["Jan Novák", "jan@firma.cz", "WAREHOUSE_WORKER", "", "", ""],
-      ["Petr Rychlý", "petr@abc.cz", "SUPPLIER", "", "Dodavatel ABC", ""],
-      ["Eva Malá", "eva@firma.cz", "CLIENT", "Firma ABC s.r.o.", "", ""],
-      ["Admin Test", "admin@tsc.cz", "ADMIN", "", "", "MojeHeslo123"],
+      ["name", "email", "role", "client", "supplier", "carrier", "password"],
+      ["Jan Novák", "jan@firma.cz", "WAREHOUSE_WORKER", "", "", "", ""],
+      ["Petr Rychlý", "petr@abc.cz", "SUPPLIER", "", "Dodavatel ABC", "", ""],
+      ["Eva Malá", "eva@firma.cz", "CLIENT", "Firma ABC s.r.o.", "", "", ""],
+      ["Karel Řidič", "karel@dopravce.cz", "CARRIER", "", "", "Dopravce ABC", ""],
+      ["Admin Test", "admin@tsc.cz", "ADMIN", "", "", "", "MojeHeslo123"],
     ],
     templateFile: "import-uzivatele.csv",
     previewCols: [
@@ -124,9 +140,10 @@ const CONFIG: Record<EntityType, EntityConfig> = {
       { key: "role", label: "Role" },
       { key: "client", label: "Klient" },
       { key: "supplier", label: "Dodavatel" },
+      { key: "carrier", label: "Dopravce" },
       { key: "password", label: "Heslo" },
     ],
-    hint: "role: ADMIN | WAREHOUSE_WORKER | SUPPLIER | CLIENT. client/supplier: přesný název z DB. password: pokud prázdné, vygeneruje se náhodné.",
+    hint: "role: ADMIN | WAREHOUSE_WORKER | SUPPLIER | CLIENT | CARRIER. client/supplier/carrier: přesný název z DB. password: pokud prázdné, vygeneruje se náhodné.",
   },
 };
 

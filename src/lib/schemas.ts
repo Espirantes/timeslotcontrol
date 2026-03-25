@@ -59,9 +59,17 @@ export const SupplierSchema = z.object({
   clientIds: z.array(cuid()).optional(),
 });
 
+// ─── Carrier ─────────────────────────────────────────────────────────────────
+
+export const CarrierSchema = z.object({
+  name: z.string().min(1).max(100),
+  contactEmail: optEmail,
+  supplierIds: z.array(cuid()).optional(),
+});
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
-export const UserRoleSchema = z.enum(["ADMIN", "WAREHOUSE_WORKER", "CLIENT", "SUPPLIER"]);
+export const UserRoleSchema = z.enum(["ADMIN", "WAREHOUSE_WORKER", "CLIENT", "SUPPLIER", "CARRIER"]);
 
 export const CreateUserSchema = z.object({
   email: z.string().email().max(255),
@@ -71,6 +79,7 @@ export const CreateUserSchema = z.object({
   warehouseIds: z.array(cuid()).optional(),
   clientId: cuid().optional(),
   supplierId: cuid().optional(),
+  carrierId: cuid().optional(),
 });
 
 export const UpdateUserSchema = CreateUserSchema.extend({
@@ -110,6 +119,7 @@ export const ReservationAdviceSchema = z.object({
 export const CreateReservationSchema = z.object({
   gateId: cuid(),
   clientId: cuid(),
+  carrierId: cuid().optional(),
   startTime: z.string().datetime(),
   durationMinutes: z.number().int().min(15).multipleOf(15),
   vehicleType: VehicleTypeSchema,
@@ -168,6 +178,7 @@ export const RecurringItemSchema = z.object({
 export const CreateRecurringSchema = z.object({
   gateId: cuid(),
   clientId: cuid(),
+  carrierId: cuid().optional(),
   recurrenceType: RecurrenceTypeSchema,
   startDate: dateStr,
   endDate: dateStr.optional(),

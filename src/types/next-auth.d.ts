@@ -11,6 +11,7 @@ declare module "next-auth" {
       warehouseIds: string[];
       clientId: string | null;
       supplierId: string | null;
+      carrierId: string | null;
       isVerified: boolean;
       canManageSuppliers: boolean;
     };
@@ -23,6 +24,7 @@ declare module "next-auth/jwt" {
     warehouseIds: string[];
     clientId: string | null;
     supplierId: string | null;
+    carrierId: string | null;
     isVerified: boolean;
     canManageSuppliers: boolean;
   }

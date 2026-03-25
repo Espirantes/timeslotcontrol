@@ -195,6 +195,7 @@
   color: oklch(0.30 0.05 240);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  text-shadow: none;
 }
 .driver-popover.tsc-tour-popover .driver-popover-navigation-btns button:hover {
   background: oklch(0.97 0.005 240);

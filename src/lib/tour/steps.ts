@@ -60,6 +60,14 @@ export function buildTourSteps(
         { page: "/calendar", element: "[data-tour='calendar-new-reservation']", popover: { title: t("client.s2.title"), description: t("client.s2.body"), side: "bottom" } },
         { page: null, popover: { title: t("done.title"), description: t("done.body"), side: "over" } },
       ];
+    case "CARRIER":
+      return [
+        { page: null, popover: { title: t("carrier.s0.title"), description: t("carrier.s0.body"), side: "over" } },
+        { page: "/calendar", element: "[data-tour='nav-calendar']", popover: { title: t("carrier.s1.title"), description: t("carrier.s1.body"), side: "right" } },
+        { page: "/calendar", element: "[data-tour='calendar-new-reservation']", popover: { title: t("carrier.s2.title"), description: t("carrier.s2.body"), side: "bottom" } },
+        { page: "/reservations", element: "[data-tour='nav-reservations']", popover: { title: t("carrier.s3.title"), description: t("carrier.s3.body"), side: "right" } },
+        { page: null, popover: { title: t("done.title"), description: t("done.body"), side: "over" } },
+      ];
     default:
       return [];
   }

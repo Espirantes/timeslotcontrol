@@ -17,6 +17,7 @@ export default async function GatesPage() {
 
   const [gates, warehouses] = await Promise.all([
     prisma.gates.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         warehouseId: true,

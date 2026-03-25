@@ -82,6 +82,7 @@ const ROLE_KEY_MAP: Record<UserRole, string> = {
   WAREHOUSE_WORKER: "worker",
   CLIENT: "client",
   SUPPLIER: "supplier",
+  CARRIER: "carrier",
 };
 
 const INTRO_ROLES: { key: string; roleEnum: UserRole }[] = [
@@ -89,6 +90,7 @@ const INTRO_ROLES: { key: string; roleEnum: UserRole }[] = [
   { key: "Worker", roleEnum: "WAREHOUSE_WORKER" },
   { key: "Client", roleEnum: "CLIENT" },
   { key: "Supplier", roleEnum: "SUPPLIER" },
+  { key: "Carrier", roleEnum: "CARRIER" },
 ];
 
 export function GuideClient({ role }: Props) {
@@ -96,12 +98,13 @@ export function GuideClient({ role }: Props) {
   const isAdmin = role === "ADMIN";
   const isClient = role === "CLIENT";
   const isWorkerOrAdmin = role === "ADMIN" || role === "WAREHOUSE_WORKER";
-  const canCreate = role === "ADMIN" || role === "SUPPLIER";
+  const canCreate = role === "ADMIN" || role === "SUPPLIER" || role === "CARRIER";
 
   // Role-specific tip key for calendar
   function calendarTip() {
     if (role === "WAREHOUSE_WORKER") return t("calendar.tipWorker");
     if (role === "SUPPLIER") return t("calendar.tipSupplier");
+    if (role === "CARRIER") return t("calendar.tipCarrier");
     if (role === "CLIENT") return t("calendar.tipClient");
     return t("calendar.tip");
   }
@@ -110,6 +113,7 @@ export function GuideClient({ role }: Props) {
   function reservationDesc() {
     if (role === "WAREHOUSE_WORKER") return t("reservations.descWorker");
     if (role === "SUPPLIER") return t("reservations.descSupplier");
+    if (role === "CARRIER") return t("reservations.descCarrier");
     if (role === "CLIENT") return t("reservations.descClient");
     return t("reservations.desc");
   }
@@ -117,6 +121,7 @@ export function GuideClient({ role }: Props) {
   function reservationTip() {
     if (role === "WAREHOUSE_WORKER") return t("reservations.tipWorker");
     if (role === "SUPPLIER") return t("reservations.tipSupplier");
+    if (role === "CARRIER") return t("reservations.tipCarrier");
     if (role === "CLIENT") return t("reservations.tipClient");
     return t("reservations.tip");
   }

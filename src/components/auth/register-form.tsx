@@ -8,14 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
 import { Link } from "@/i18n/navigation";
-import { registerSupplier } from "@/lib/actions/auth-actions";
+import { registerSupplier, registerCarrier } from "@/lib/actions/auth-actions";
 import { CheckCircle2 } from "lucide-react";
+
+type RegisterRole = "SUPPLIER" | "CARRIER";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [registerRole, setRegisterRole] = useState<RegisterRole>("SUPPLIER");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,7 +41,8 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      await registerSupplier({
+      const registerFn = registerRole === "CARRIER" ? registerCarrier : registerSupplier;
+      await registerFn({
         name: form.get("name") as string,
         email: form.get("email") as string,
         password,
@@ -89,6 +93,33 @@ export function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label>{t("registerAs")}</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRegisterRole("SUPPLIER")}
+                className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  registerRole === "SUPPLIER"
+                    ? "border-brand-red bg-red-50 text-brand-red"
+                    : "border-border text-brand-muted hover:bg-muted/50"
+                }`}
+              >
+                {t("registerAsSupplier")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegisterRole("CARRIER")}
+                className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                  registerRole === "CARRIER"
+                    ? "border-brand-red bg-red-50 text-brand-red"
+                    : "border-border text-brand-muted hover:bg-muted/50"
+                }`}
+              >
+                {t("registerAsCarrier")}
+              </button>
+            </div>
+          </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">{t("name")}</Label>
             <Input id="name" name="name" required autoFocus />

@@ -13,6 +13,7 @@ export type CalendarGate = {
 export type CalendarEvent = {
   id: string;
   resourceId: string; // gate id
+  reservationNumber?: number;
   start: string; // ISO
   end: string; // ISO
   title: string;
@@ -21,6 +22,9 @@ export type CalendarEvent = {
   // detail (only if isOwn = true)
   supplierName?: string;
   clientName?: string;
+  carrierName?: string | null;
+  itemsCount?: number;
+  adviceCount?: number;
   vehicleType?: string;
   driverName?: string | null;
   licensePlate?: string | null;
@@ -52,7 +56,7 @@ export async function getCalendarData(
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, clientId, supplierId } = session.user;
+  const { role, clientId, supplierId, carrierId } = session.user;
 
   // Fetch gates for the warehouse
   const gates = await prisma.gates.findMany({
@@ -75,6 +79,7 @@ export async function getCalendarData(
         pendingVersion: true,
         supplier: true,
         client: true,
+        carrier: true,
       },
     }),
     prisma.reservation.findMany({
@@ -84,7 +89,7 @@ export async function getCalendarData(
         confirmedVersionId: null,
         pendingVersion: { startTime: { lt: dateTo } },
       },
-      include: { pendingVersion: true, supplier: true, client: true },
+      include: { pendingVersion: true, supplier: true, client: true, carrier: true },
     }),
     prisma.warehouse.findUnique({
       where: { id: warehouseId },
@@ -122,12 +127,14 @@ export async function getCalendarData(
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
     else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
     else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
+    else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
 
     const hasPendingChange = r.pendingVersionId !== null && r.pendingVersionId !== r.confirmedVersionId;
 
     events.push({
       id: r.id,
       resourceId: r.gateId,
+      reservationNumber: canSeeDetail ? r.reservationNumber : undefined,
       start: v.startTime.toISOString(),
       end: endTime.toISOString(),
       status: r.status,
@@ -135,6 +142,8 @@ export async function getCalendarData(
       title: canSeeDetail ? r.supplier.name : "",
       supplierName: canSeeDetail ? r.supplier.name : undefined,
       clientName: canSeeDetail ? r.client.name : undefined,
+      carrierName: canSeeDetail ? (r.carrier?.name ?? null) : undefined,
+      itemsCount: canSeeDetail ? v.items.reduce((sum, i) => sum + i.quantity, 0) : undefined,
       vehicleType: canSeeDetail ? v.vehicleType : undefined,
       driverName: canSeeDetail ? v.driverName : undefined,
       licensePlate: canSeeDetail ? v.licensePlate : undefined,
@@ -156,6 +165,7 @@ export async function getCalendarData(
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
     else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
     else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
+    else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
 
     events.push({
       id: `pending-${r.id}`,
@@ -167,11 +177,14 @@ export async function getCalendarData(
       title: canSeeDetail ? r.supplier.name : "",
       supplierName: canSeeDetail ? r.supplier.name : undefined,
       clientName: canSeeDetail ? r.client.name : undefined,
+      carrierName: canSeeDetail ? (r.carrier?.name ?? null) : undefined,
       durationMinutes: canSeeDetail ? v.durationMinutes : undefined,
       notes: canSeeDetail ? v.notes : undefined,
       reservationType: canSeeDetail ? r.type : undefined,
     });
   }
+
+  // Pending events don't have items, so no itemsCount
 
   // Build holidays from warehouse country
   let holidays: CalendarHoliday[] = [];
@@ -225,6 +238,7 @@ export async function getCalendarData(
         pendingVersion: true,
         supplier: true,
         client: true,
+        carrier: true,
       },
     });
     for (const r of newReservations) {
@@ -236,9 +250,11 @@ export async function getCalendarData(
       if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
       else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
       else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
+    else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
       events.push({
         id: r.id,
         resourceId: r.gateId,
+        reservationNumber: canSeeDetail ? r.reservationNumber : undefined,
         start: v.startTime.toISOString(),
         end: endTime.toISOString(),
         status: r.status,
@@ -246,6 +262,8 @@ export async function getCalendarData(
         title: canSeeDetail ? r.supplier.name : "",
         supplierName: canSeeDetail ? r.supplier.name : undefined,
         clientName: canSeeDetail ? r.client.name : undefined,
+        carrierName: canSeeDetail ? (r.carrier?.name ?? null) : undefined,
+        itemsCount: canSeeDetail && v ? v.items.reduce((sum: number, i: { quantity: number }) => sum + i.quantity, 0) : undefined,
         vehicleType: canSeeDetail ? v.vehicleType : undefined,
         driverName: canSeeDetail ? v.driverName : undefined,
         licensePlate: canSeeDetail ? v.licensePlate : undefined,
@@ -288,12 +306,13 @@ export async function getWarehouses() {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, warehouseIds, clientId, supplierId } = session.user;
+  const { role, warehouseIds, clientId, supplierId, carrierId } = session.user;
 
   // C4: Fail closed — scoped roles with missing scope values must not fall through
   if (role === "WAREHOUSE_WORKER" && warehouseIds.length === 0) throw new Error("INVALID_SESSION");
   if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
   if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+  if (role === "CARRIER" && !carrierId) throw new Error("INVALID_SESSION");
 
   if (role === "WAREHOUSE_WORKER") {
     return prisma.warehouse.findMany({

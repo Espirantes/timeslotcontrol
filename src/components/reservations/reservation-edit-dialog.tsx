@@ -102,6 +102,7 @@ export function ReservationEditDialog({
 
   // Form data from server
   const [gates, setGates] = useState<Gate[]>([]);
+  const [carriers, setCarriers] = useState<{ id: string; name: string; supplierId: string }[]>([]);
   const [userRole, setUserRole] = useState<UserRole>("CLIENT");
   const [transportUnits, setTransportUnits] = useState<TransportUnitOption[]>([]);
 
@@ -109,6 +110,7 @@ export function ReservationEditDialog({
   const initDate = format(new Date(version.startTime), "yyyy-MM-dd");
   const initTime = format(new Date(version.startTime), "HH:mm");
 
+  const [gateId, setGateId] = useState(reservation.gateId);
   const [date, setDate] = useState(initDate);
   const [startTime, setStartTime] = useState(initTime);
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
@@ -150,6 +152,7 @@ export function ReservationEditDialog({
     if (!open) return;
     getFormData(warehouseId).then((data) => {
       setGates(data.gates);
+      setCarriers(data.carriers);
       setUserRole(data.userRole as UserRole);
       setTransportUnits(data.transportUnits);
     });
@@ -162,6 +165,7 @@ export function ReservationEditDialog({
     if (!v) return;
     const d = format(new Date(v.startTime), "yyyy-MM-dd");
     const tm = format(new Date(v.startTime), "HH:mm");
+    setGateId(reservation.gateId);
     setDate(d);
     setStartTime(tm);
     setDurationOverride(null); // reset so autoDuration takes effect
@@ -189,18 +193,18 @@ export function ReservationEditDialog({
 
   // Load holidays when date month changes
   useEffect(() => {
-    if (!reservation.gateId || !date) { setHolidays(new Map()); return; }
+    if (!gateId || !date) { setHolidays(new Map()); return; }
     const d = new Date(date + "T12:00:00");
-    getGateHolidays(reservation.gateId, d.getFullYear(), d.getMonth()).then((list) => {
+    getGateHolidays(gateId, d.getFullYear(), d.getMonth()).then((list) => {
       setHolidays(new Map(list.map((h) => [h.date, h.name])));
     });
-  }, [reservation.gateId, date.slice(0, 7)]);
+  }, [gateId, date.slice(0, 7)]);
 
   // Load gate blocks when date changes
   useEffect(() => {
-    if (!reservation.gateId || !date) { setGateBlocks([]); return; }
-    getGateBlocksForDate(reservation.gateId, date).then(setGateBlocks);
-  }, [reservation.gateId, date]);
+    if (!gateId || !date) { setGateBlocks([]); return; }
+    getGateBlocksForDate(gateId, date).then(setGateBlocks);
+  }, [gateId, date]);
 
   // M15: Derive duration from items during render — no extra render cycle via useEffect
   const autoDuration = useMemo(() => {
@@ -214,7 +218,7 @@ export function ReservationEditDialog({
   const duration = durationOverride ?? (autoDuration || version.durationMinutes);
 
   const isAdmin = userRole === "ADMIN";
-  const gateForSlots = gates.find((g) => g.name === reservation.gateName);
+  const gateForSlots = gates.find((g) => g.id === gateId);
   const parsedDate = new Date(date + "T12:00:00");
   const holidayName = holidays.get(date) ?? null;
   const rawTimeSlots = (!isAdmin && holidayName) ? [] : getAvailableSlots(gateForSlots, parsedDate, isAdmin);
@@ -268,6 +272,7 @@ export function ReservationEditDialog({
       try {
         const result = await editReservation({
           reservationId: reservation.id,
+          gateId: gateId !== reservation.gateId ? gateId : undefined,
           startTime: startISO,
           durationMinutes: duration,
           vehicleType,
@@ -307,17 +312,42 @@ export function ReservationEditDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Gate + Client — readonly */}
+          {/* Gate + Client */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.gate")}</label>
-              <p className="text-sm px-3 py-2 border rounded-md bg-muted/50">{reservation.gateName}</p>
+              {isAdmin && gates.length > 0 ? (
+                <Select value={gateId} onValueChange={setGateId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {gates.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm px-3 py-2 border rounded-md bg-muted/50">{reservation.gateName}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.client")}</label>
               <p className="text-sm px-3 py-2 border rounded-md bg-muted/50">{reservation.clientName}</p>
             </div>
           </div>
+
+          {/* Carrier — optional, shown when supplier has linked carriers */}
+          {(() => {
+            const supplierCarriers = carriers.filter((c) => c.supplierId === reservation.supplierId);
+            if (supplierCarriers.length === 0) return null;
+            return (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">{t("fields.carrier")}</label>
+                <p className="text-sm px-3 py-2 border rounded-md bg-muted/50">
+                  {reservation.carrierName ?? "—"}
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Transport items */}
           <div className="flex flex-col gap-2">

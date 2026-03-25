@@ -55,6 +55,7 @@ type GateHours = {
 type Gate = { id: string; name: string; openingHours: GateHours[] };
 type Client = { id: string; name: string };
 type Supplier = { id: string; name: string; clientId: string };
+type CarrierOption = { id: string; name: string; supplierId: string };
 
 type Props = {
   open: boolean;
@@ -133,6 +134,7 @@ export function ReservationFormDialog({
   const [gates, setGates] = useState<Gate[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [carriers, setCarriers] = useState<CarrierOption[]>([]);
   const [userRole, setUserRole] = useState<UserRole>("SUPPLIER");
   const [transportUnits, setTransportUnits] = useState<TransportUnitOption[]>([]);
 
@@ -140,6 +142,7 @@ export function ReservationFormDialog({
   const [gateId, setGateId] = useState(preselectedGateId ?? "");
   const [clientId, setClientId] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [carrierId, setCarrierId] = useState("");
   const [date, setDate] = useState(preselectedDate ? format(preselectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(preselectedStartTime ?? "");
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
@@ -166,6 +169,7 @@ export function ReservationFormDialog({
       setGates(data.gates);
       setClients(data.clients);
       setSuppliers(data.suppliers);
+      setCarriers(data.carriers);
       setUserRole(data.userRole as UserRole);
       setTransportUnits(data.transportUnits);
       if (!gateId && data.gates.length > 0) setGateId(data.gates[0].id);
@@ -222,6 +226,7 @@ export function ReservationFormDialog({
   const isAdmin = userRole === "ADMIN";
   const isWorkerOrAdmin = userRole === "ADMIN" || userRole === "WAREHOUSE_WORKER";
   const clientSuppliers = suppliers.filter((s) => s.clientId === clientId);
+  const supplierCarriers = carriers.filter((c) => c.supplierId === supplierId);
   const selectedGate = gates.find((g) => g.id === gateId);
   const parsedDate = new Date(date + "T12:00:00");
   const holidayName = holidays.get(date) ?? null;
@@ -279,6 +284,7 @@ export function ReservationFormDialog({
           gateId,
           clientId,
           supplierId: supplierId || undefined,
+          carrierId: carrierId || undefined,
           startTime: startISO,
           durationMinutes: duration,
           vehicleType,
@@ -349,6 +355,22 @@ export function ReservationFormDialog({
                 <SelectContent>
                   {clientSuppliers.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Carrier — optional, shown when supplier has linked carriers */}
+          {supplierCarriers.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("fields.carrier")}</label>
+              <Select value={carrierId} onValueChange={(v) => setCarrierId(v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {supplierCarriers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

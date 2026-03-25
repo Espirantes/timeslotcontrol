@@ -55,6 +55,7 @@ type TransportUnitOption = {
 type Gate = { id: string; name: string; openingHours: { dayOfWeek: number; openTime: string; closeTime: string; isOpen: boolean }[] };
 type Client = { id: string; name: string };
 type Supplier = { id: string; name: string; clientId: string };
+type CarrierOption = { id: string; name: string; supplierId: string };
 
 type Props = {
   open: boolean;
@@ -73,6 +74,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
   const [gates, setGates] = useState<Gate[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [carriers, setCarriers] = useState<CarrierOption[]>([]);
   const [transportUnits, setTransportUnits] = useState<TransportUnitOption[]>([]);
 
   // Recurrence
@@ -87,6 +89,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
   const [gateId, setGateId] = useState("");
   const [clientId, setClientId] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [carrierId, setCarrierId] = useState("");
   const [timeOfDay, setTimeOfDay] = useState("08:00");
   const [duration, setDuration] = useState(60);
   const [vehicleType, setVehicleType] = useState<VehicleType>("TRUCK");
@@ -107,6 +110,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
       setGates(data.gates);
       setClients(data.clients);
       setSuppliers(data.suppliers);
+      setCarriers(data.carriers);
       setTransportUnits(data.transportUnits);
       if (!gateId && data.gates.length > 0) setGateId(data.gates[0].id);
       if (!clientId && data.clients.length > 0) {
@@ -167,6 +171,7 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
           gateId,
           clientId,
           supplierId: supplierId || undefined,
+          carrierId: carrierId || undefined,
           recurrenceType,
           startDate,
           endDate: noEndDate ? undefined : endDate || undefined,
@@ -239,6 +244,22 @@ export function RecurringFormDialog({ open, onClose, warehouseId, onCreated }: P
                   <SelectContent>
                     {suppliers.filter((s) => s.clientId === clientId).map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Carrier — optional, shown when supplier has linked carriers */}
+            {carriers.filter((c) => c.supplierId === supplierId).length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">{tRes("fields.carrier")}</label>
+                <Select value={carrierId} onValueChange={(v) => setCarrierId(v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {carriers.filter((c) => c.supplierId === supplierId).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -130,12 +130,67 @@ export async function bulkImportSuppliers(
   return { created, failed: errors.length, errors };
 }
 
+// ─── Carriers ───────────────────────────────────────────────────────────────
+
+export async function bulkImportCarriers(
+  rows: { name: string; contactemail?: string; suppliers?: string }[]
+): Promise<ImportResult> {
+  await requireAdmin();
+
+  let created = 0;
+  const errors: ImportRowError[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const name = row.name?.trim();
+    if (!name) {
+      errors.push({ row: i + 1, message: "Název nesmí být prázdný" });
+      continue;
+    }
+
+    const supplierNames = splitList(row.suppliers);
+    let supplierIds: string[] = [];
+
+    if (supplierNames.length > 0) {
+      const found = await prisma.supplier.findMany({
+        where: { name: { in: supplierNames }, deletedAt: null },
+        select: { id: true, name: true },
+      });
+      const notFound = supplierNames.filter((n) => !found.find((s) => s.name === n));
+      if (notFound.length > 0) {
+        errors.push({ row: i + 1, message: `Dodavatelé nenalezeni: ${notFound.join(", ")}` });
+        continue;
+      }
+      supplierIds = found.map((s) => s.id);
+    }
+
+    try {
+      await prisma.carrier.create({
+        data: {
+          name,
+          contactEmail: row.contactemail?.trim() || null,
+          suppliers: supplierIds.length
+            ? { create: supplierIds.map((supplierId) => ({ supplierId })) }
+            : undefined,
+        },
+      });
+      created++;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push({ row: i + 1, message: msg.includes("Unique") ? `Dopravce "${name}" již existuje` : msg });
+    }
+  }
+
+  revalidatePath("/carriers");
+  return { created, failed: errors.length, errors };
+}
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 
-const VALID_ROLES: UserRole[] = ["ADMIN", "WAREHOUSE_WORKER", "SUPPLIER", "CLIENT"];
+const VALID_ROLES: UserRole[] = ["ADMIN", "WAREHOUSE_WORKER", "SUPPLIER", "CLIENT", "CARRIER"];
 
 export async function bulkImportUsers(
-  rows: { name: string; email: string; role: string; client?: string; supplier?: string; password?: string }[]
+  rows: { name: string; email: string; role: string; client?: string; supplier?: string; carrier?: string; password?: string }[]
 ): Promise<UserImportResult> {
   await requireAdmin();
 
@@ -186,6 +241,21 @@ export async function bulkImportUsers(
       supplierId = supplier.id;
     }
 
+    // Resolve carrier
+    let carrierId: string | null = null;
+    const carrierName = row.carrier?.trim();
+    if (carrierName) {
+      const carrier = await prisma.carrier.findFirst({
+        where: { name: carrierName, deletedAt: null },
+        select: { id: true },
+      });
+      if (!carrier) {
+        errors.push({ row: i + 1, message: `Dopravce "${carrierName}" nenalezen` });
+        continue;
+      }
+      carrierId = carrier.id;
+    }
+
     const rawPassword = row.password?.trim() || "";
     const generated = !rawPassword;
     const password = rawPassword || randomPassword();
@@ -199,6 +269,7 @@ export async function bulkImportUsers(
           role: upperRole,
           clientId,
           supplierId,
+          carrierId,
           isVerified: true,
           isActive: true,
         },

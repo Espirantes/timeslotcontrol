@@ -120,8 +120,11 @@ function ReservationRow({
       </td>
       <td className="px-4 py-3 text-sm">
         <div>{r.supplierName}</div>
+        {r.carrierName && (
+          <div className="text-muted-foreground text-xs">{r.carrierName}</div>
+        )}
         {r.licensePlate && (
-          <div className="text-muted-foreground text-xs">{r.licensePlate}</div>
+          <div className="text-muted-foreground text-xs font-mono">{r.licensePlate}</div>
         )}
       </td>
       <td className="px-4 py-3">

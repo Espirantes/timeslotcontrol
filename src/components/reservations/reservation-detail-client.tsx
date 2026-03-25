@@ -145,7 +145,9 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{t("title")} — {tCommon("detail")}</h1>
+          <h1 className="text-2xl font-semibold">
+            {t("title")} #{r.reservationNumber}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {r.warehouseName} · {r.gateName}
           </p>
@@ -220,6 +222,12 @@ export function ReservationDetailClient({ reservation: r, role }: Props) {
               <span className="text-muted-foreground">{t("fields.supplier")}</span>
               <p className="font-medium">{r.supplierName}</p>
             </div>
+            {r.carrierName && (
+              <div>
+                <span className="text-muted-foreground">{t("fields.carrier")}</span>
+                <p className="font-medium">{r.carrierName}</p>
+              </div>
+            )}
             <div>
               <span className="text-muted-foreground">{t("fields.createdAt")}</span>
               <p className="font-medium">{format(new Date(r.createdAt), "d. M. yyyy HH:mm", { locale: dateLocale })}</p>

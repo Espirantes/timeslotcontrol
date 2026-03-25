@@ -145,14 +145,13 @@ export function TourManager({ userId, role }: Props) {
         },
         onCloseClick: () => {
           saveState(storageKey, { step: 0, active: false });
+          driverRef.current = null;
           driverObj.destroy();
         },
         onDestroyStarted: () => {
-          // Called when user clicks backdrop; treat as skip
-          const state = readState(storageKey);
-          if (state?.active) {
-            saveState(storageKey, { step: 0, active: false });
-          }
+          // Called when user clicks backdrop or dialog opens over tour.
+          // Don't reset — just destroy driver so it can resume from the same step.
+          driverRef.current = null;
           driverObj.destroy();
         },
       });
@@ -178,6 +177,29 @@ export function TourManager({ userId, role }: Props) {
     return () => {
       driverRef.current?.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // ─── Resume tour after dialog closes ───────────────────────────────────────
+
+  useEffect(() => {
+    function handleResume() {
+      // When focus returns (e.g. dialog closed), check if tour should resume
+      const state = readState(storageKey);
+      if (state?.active && !driverRef.current) {
+        // Small delay to let dialog close animation finish
+        setTimeout(() => initTour(state.step), 300);
+      }
+    }
+
+    // MutationObserver to detect when dialog is removed from DOM
+    const observer = new MutationObserver(() => {
+      const hasDialog = document.querySelector("[role='dialog']");
+      if (!hasDialog) handleResume();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 

@@ -45,9 +45,11 @@ type UserWithRelations = {
   isVerified: boolean;
   registrationMessage: string | null;
   createdAt: Date;
+  carrierId: string | null;
   warehouses: { userId: string; warehouseId: string; warehouse: { id: string; name: string } }[];
   client: { id: string; name: string } | null;
   supplier: { id: string; name: string } | null;
+  carrier: { id: string; name: string } | null;
 };
 
 type ClientWithRelations = {
@@ -64,11 +66,17 @@ type SupplierWithRelations = {
   _count: { reservations: number };
 };
 
+type CarrierItem = {
+  id: string;
+  name: string;
+};
+
 type Props = {
   items: UserWithRelations[];
   warehouses: WarehouseItem[];
   clients: ClientWithRelations[];
   suppliers: SupplierWithRelations[];
+  carriers: CarrierItem[];
 };
 
 type FormData = {
@@ -79,16 +87,18 @@ type FormData = {
   warehouseIds: string[];
   clientId: string;
   supplierId: string;
+  carrierId: string;
   isActive: boolean;
 };
 
-const ROLES: UserRole[] = ["ADMIN", "WAREHOUSE_WORKER", "CLIENT", "SUPPLIER"];
+const ROLES: UserRole[] = ["ADMIN", "WAREHOUSE_WORKER", "CLIENT", "SUPPLIER", "CARRIER"];
 
 const ROLE_VARIANT: Record<UserRole, "default" | "secondary" | "outline"> = {
   ADMIN: "default",
   WAREHOUSE_WORKER: "secondary",
   CLIENT: "outline",
   SUPPLIER: "outline",
+  CARRIER: "outline",
 };
 
 const emptyForm: FormData = {
@@ -99,10 +109,11 @@ const emptyForm: FormData = {
   warehouseIds: [],
   clientId: "",
   supplierId: "",
+  carrierId: "",
   isActive: true,
 };
 
-export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
+export function UsersClient({ items, warehouses, clients, suppliers, carriers }: Props) {
   const t = useTranslations("user");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -117,6 +128,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approvingUser, setApprovingUser] = useState<UserWithRelations | null>(null);
   const [approveSupplierId, setApproveSupplierId] = useState("");
+  const [approveCarrierId, setApproveCarrierId] = useState("");
 
   const pendingUsers = items.filter((u) => !u.isVerified && u.isActive);
   const verifiedUsers = items.filter((u) => u.isVerified);
@@ -137,6 +149,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
       warehouseIds: u.warehouses.map((w) => w.warehouseId),
       clientId: u.clientId ?? "",
       supplierId: u.supplierId ?? "",
+      carrierId: u.carrierId ?? "",
       isActive: u.isActive,
     });
     setDialogOpen(true);
@@ -166,6 +179,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
             warehouseIds: form.role !== "ADMIN" ? form.warehouseIds : [],
             clientId: form.role === "CLIENT" ? form.clientId || undefined : undefined,
             supplierId: form.role === "SUPPLIER" ? form.supplierId || undefined : undefined,
+            carrierId: form.role === "CARRIER" ? form.carrierId || undefined : undefined,
             isActive: form.isActive,
           });
         } else {
@@ -177,6 +191,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
             warehouseIds: form.role !== "ADMIN" ? form.warehouseIds : [],
             clientId: form.role === "CLIENT" ? form.clientId || undefined : undefined,
             supplierId: form.role === "SUPPLIER" ? form.supplierId || undefined : undefined,
+            carrierId: form.role === "CARRIER" ? form.carrierId || undefined : undefined,
           });
         }
         toast.success(tc("success"));
@@ -203,14 +218,23 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
   function openApprove(u: UserWithRelations) {
     setApprovingUser(u);
     setApproveSupplierId("");
+    setApproveCarrierId("");
     setApproveDialogOpen(true);
   }
 
+  const isApprovingCarrier = approvingUser?.role === "CARRIER";
+
   function handleApprove() {
-    if (!approvingUser || !approveSupplierId) return;
+    if (!approvingUser) return;
+    if (isApprovingCarrier && !approveCarrierId) return;
+    if (!isApprovingCarrier && !approveSupplierId) return;
     startTransition(async () => {
       try {
-        await approveUser(approvingUser.id, approveSupplierId);
+        await approveUser(
+          approvingUser.id,
+          isApprovingCarrier ? "" : approveSupplierId,
+          isApprovingCarrier ? approveCarrierId : undefined,
+        );
         toast.success(tc("success"));
         setApproveDialogOpen(false);
         router.refresh();
@@ -240,13 +264,14 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
           <ExportCSVButton
             filename="uzivatele.csv"
             rows={[
-              ["name", "email", "role", "client", "supplier"],
+              ["name", "email", "role", "client", "supplier", "carrier"],
               ...items.map((u) => [
                 u.name,
                 u.email,
                 u.role,
                 u.client?.name ?? "",
                 u.supplier?.name ?? "",
+                u.carrier?.name ?? "",
               ]),
             ]}
           />
@@ -403,7 +428,7 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t("fields.role")}</label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as UserRole, warehouseIds: [], clientId: "", supplierId: "" })}>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as UserRole, warehouseIds: [], clientId: "", supplierId: "", carrierId: "" })}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -475,6 +500,22 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
               </div>
             )}
 
+            {form.role === "CARRIER" && carriers.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">{t("fields.carrier")}</label>
+                <Select value={form.carrierId} onValueChange={(v) => setForm({ ...form, carrierId: v })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {carriers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {editingId && (
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -513,24 +554,40 @@ export function UsersClient({ items, warehouses, clients, suppliers }: Props) {
                   </div>
                 )}
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">{t("fields.supplier")}</label>
-                <Select value={approveSupplierId} onValueChange={setApproveSupplierId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {isApprovingCarrier ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">{t("fields.carrier")}</label>
+                  <Select value={approveCarrierId} onValueChange={setApproveCarrierId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {carriers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">{t("fields.supplier")}</label>
+                  <Select value={approveSupplierId} onValueChange={setApproveSupplierId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>{tc("cancel")}</Button>
-            <Button onClick={handleApprove} disabled={isPending || !approveSupplierId}>
+            <Button onClick={handleApprove} disabled={isPending || (isApprovingCarrier ? !approveCarrierId : !approveSupplierId)}>
               {isPending ? tc("loading") : t("approve")}
             </Button>
           </DialogFooter>

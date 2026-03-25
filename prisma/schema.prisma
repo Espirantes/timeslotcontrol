@@ -16,6 +16,7 @@ enum UserRole {
   WAREHOUSE_WORKER
   CLIENT
   SUPPLIER
+  CARRIER
 
   @@map("user_role")
 }
@@ -135,6 +136,7 @@ model RecurringReservation {
   gateId            String
   clientId          String
   supplierId        String
+  carrierId         String?
   type              ReservationType @default(UNLOADING)
   recurrenceType    RecurrenceType
   startDate         DateTime
@@ -158,6 +160,7 @@ model RecurringReservation {
   gate      Gates    @relation(fields: [gateId], references: [id], onDelete: Restrict)
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
   supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  carrier   Carrier? @relation(fields: [carrierId], references: [id], onDelete: SetNull)
   createdBy User     @relation("RecurringCreatedBy", fields: [createdById], references: [id])
   instances Reservation[]
 
@@ -229,6 +232,7 @@ model Supplier {
   deletedAt    DateTime?
 
   clients               ClientSupplier[]
+  carriers              SupplierCarrier[]
   reservations          Reservation[]
   recurringReservations RecurringReservation[]
   users                 User[]
@@ -248,14 +252,47 @@ model ClientSupplier {
 }
 
 // ─────────────────────────────────────────
+// Carrier (Dopravce) — optional transport company linked to suppliers
+// ─────────────────────────────────────────
+
+model Carrier {
+  id           String    @id @default(cuid())
+  name         String
+  contactEmail String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  suppliers    SupplierCarrier[]
+  reservations Reservation[]
+  recurringReservations RecurringReservation[]
+  users        User[]
+
+  @@map("carrier")
+}
+
+model SupplierCarrier {
+  supplierId String
+  carrierId  String
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  carrier  Carrier  @relation(fields: [carrierId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, carrierId])
+  @@map("supplier_carrier")
+}
+
+// ─────────────────────────────────────────
 // Reservation (with versioning)
 // ─────────────────────────────────────────
 
 model Reservation {
   id                       String            @id @default(cuid())
+  reservationNumber        Int               @unique @default(autoincrement())
   gateId                   String
   clientId                 String
   supplierId               String
+  carrierId                String?
   type                     ReservationType   @default(UNLOADING)
   status                   ReservationStatus @default(REQUESTED)
   confirmedVersionId       String?           @unique
@@ -268,6 +305,7 @@ model Reservation {
   gate                   Gates                  @relation(fields: [gateId], references: [id], onDelete: Restrict)
   client                 Client                 @relation(fields: [clientId], references: [id], onDelete: Restrict)
   supplier               Supplier               @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  carrier                Carrier?               @relation(fields: [carrierId], references: [id], onDelete: SetNull)
   createdBy              User                   @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   confirmedVersion       ReservationVersion?    @relation("ConfirmedVersion", fields: [confirmedVersionId], references: [id], onDelete: SetNull)
   pendingVersion         ReservationVersion?    @relation("PendingVersion", fields: [pendingVersionId], references: [id], onDelete: SetNull)
@@ -280,6 +318,7 @@ model Reservation {
   @@index([gateId])
   @@index([clientId])
   @@index([supplierId])
+  @@index([carrierId])
   @@index([status])
   @@index([recurringReservationId])
   @@map("reservation")
@@ -423,6 +462,7 @@ model User {
   role        UserRole
   clientId    String? // only for CLIENT
   supplierId  String? // only for SUPPLIER
+  carrierId   String? // only for CARRIER
   isActive            Boolean   @default(true)
   isVerified          Boolean   @default(true)
   registrationMessage String?
@@ -437,6 +477,7 @@ model User {
   warehouses UserWarehouse[]
   client     Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
   supplier   Supplier?  @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  carrier    Carrier?   @relation(fields: [carrierId], references: [id], onDelete: SetNull)
 
   reservationsCreated          Reservation[]              @relation("ReservationCreatedBy")
   versionsCreated              ReservationVersion[]       @relation("VersionCreatedBy")

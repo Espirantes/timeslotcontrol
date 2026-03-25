@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import type { CalendarEvent } from "@/lib/actions/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, ExternalLink, Check, XCircle, Repeat2 } from "lucide-react";
+import { useState } from "react";
+import { X, ExternalLink, Check, XCircle, Repeat2, Building2, Truck, Container, Copy, CheckCheck } from "lucide-react";
 import { statusKey } from "@/lib/reservation-utils";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -44,6 +45,8 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail, userR
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
+  const [copied, setCopied] = useState(false);
+
   const canApprove = (userRole === "ADMIN" || userRole === "WAREHOUSE_WORKER")
     && event.status === "REQUESTED"
     && event.isOwn;
@@ -52,22 +55,64 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail, userR
   const startTime = format(new Date(event.start), "H:mm");
   const endTime = format(new Date(event.end), "H:mm");
 
+  function copyInfo() {
+    const lines = [
+      event.reservationNumber ? `#${event.reservationNumber}` : "",
+      event.clientName ? `${t("fields.client")}: ${event.clientName}` : "",
+      event.supplierName ? `${t("fields.supplier")}: ${event.supplierName}` : "",
+      event.carrierName ? `${t("fields.carrier")}: ${event.carrierName}` : "",
+      `${startTime} – ${endTime}${event.durationMinutes ? ` (${event.durationMinutes} min)` : ""}`,
+      event.licensePlate ? `${t("fields.licensePlate")}: ${event.licensePlate}` : "",
+      event.driverName ? `${t("fields.driverName")}: ${event.driverName}` : "",
+    ].filter(Boolean).join("\n");
+    navigator.clipboard.writeText(lines);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
     <div
       ref={ref}
       className="fixed z-50 bg-popover border rounded-lg shadow-lg p-4 w-80"
-      style={{ left: Math.min(anchor.x, window.innerWidth - 340), top: anchor.y + 8 }}
+      style={{
+        left: Math.min(anchor.x, window.innerWidth - 340),
+        top: Math.min(anchor.y + 8, window.innerHeight - 320),
+      }}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{event.supplierName ?? event.title}</p>
+          {event.reservationNumber && (
+            <span className="text-[10px] font-mono text-muted-foreground">#{event.reservationNumber}</span>
+          )}
           {event.clientName && (
-            <p className="text-sm text-muted-foreground truncate">{event.clientName}</p>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Building2 className="size-3 shrink-0" />
+              <span className="truncate">{event.clientName}</span>
+            </div>
+          )}
+          {event.supplierName && (
+            <div className="flex items-center gap-1.5 font-semibold">
+              <Truck className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">{event.supplierName}</span>
+            </div>
+          )}
+          {event.carrierName && (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Container className="size-3 shrink-0" />
+              <span className="truncate">{event.carrierName}</span>
+            </div>
           )}
         </div>
-        <button onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground">
-          <X className="size-4" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {event.isOwn && (
+            <button onClick={copyInfo} className="text-muted-foreground hover:text-foreground" title="Kopírovat">
+              {copied ? <CheckCheck className="size-4 text-green-600" /> : <Copy className="size-4" />}
+            </button>
+          )}
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -109,6 +154,18 @@ export function ReservationPopover({ event, anchor, onClose, onOpenDetail, userR
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("fields.driverName")}</span>
               <span className="font-medium">{event.driverName}</span>
+            </div>
+          )}
+          {event.itemsCount != null && event.itemsCount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("items.title")}</span>
+              <span className="font-medium">{event.itemsCount} ks</span>
+            </div>
+          )}
+          {event.adviceCount != null && event.adviceCount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("advices.title")}</span>
+              <span className="font-medium">{event.adviceCount}</span>
             </div>
           )}
           {event.notes && (

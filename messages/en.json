@@ -66,7 +66,10 @@
     "resetError": "Failed to change password.",
     "resetExpiredTitle": "Link expired",
     "resetExpiredBody": "The link has expired or is invalid. Please request a new one.",
-    "resetRequestNew": "Request new link"
+    "resetRequestNew": "Request new link",
+    "registerAs": "Register as",
+    "registerAsSupplier": "Supplier",
+    "registerAsCarrier": "Carrier"
   },
   "nav": {
     "calendar": "Calendar",
@@ -87,7 +90,8 @@
     "mySuppliers": "My Suppliers",
     "groupClient": "Client",
     "recurringReservations": "Recurring Reservations",
-    "wizard": "Setup guide"
+    "wizard": "Setup guide",
+    "carriers": "Carriers"
   },
   "reservation": {
     "title": "Reservations",
@@ -137,7 +141,8 @@
       "notes": "Notes",
       "status": "Status",
       "createdAt": "Created",
-      "updatedAt": "Updated"
+      "updatedAt": "Updated",
+      "carrier": "Carrier"
     },
     "items": {
       "title": "Transport units",
@@ -290,7 +295,7 @@
     "disableAllSupplierMgmt": "Disable all"
   },
   "supplier": {
-    "title": "Suppliers / Carriers",
+    "title": "Suppliers",
     "new": "New supplier",
     "fields": {
       "name": "Name",
@@ -305,7 +310,8 @@
       "ADMIN": "Administrator",
       "WAREHOUSE_WORKER": "Warehouse worker",
       "CLIENT": "Client",
-      "SUPPLIER": "Supplier / Carrier"
+      "SUPPLIER": "Supplier / Carrier",
+      "CARRIER": "Carrier"
     },
     "fields": {
       "name": "Name",
@@ -318,7 +324,8 @@
       "isActive": "Active",
       "password": "Password",
       "passwordPlaceholder": "Enter password (min. 8 chars)",
-      "passwordHelp": "Leave blank to keep current password"
+      "passwordHelp": "Leave blank to keep current password",
+      "carrier": "Carrier"
     },
     "tabAll": "All",
     "tabPending": "Pending approval",
@@ -445,7 +452,8 @@
       "admin": "Administrator",
       "worker": "Warehouse worker",
       "client": "Client",
-      "supplier": "Supplier"
+      "supplier": "Supplier",
+      "carrier": "Carrier"
     },
     "intro": {
       "title": "About the app",
@@ -457,7 +465,9 @@
       "roleClient": "Client",
       "roleClientDesc": "Views reservations directed to their organization, can request changes.",
       "roleSupplier": "Supplier / Carrier",
-      "roleSupplierDesc": "Creates reservations, enters vehicle, driver and goods details."
+      "roleSupplierDesc": "Creates reservations, enters vehicle, driver and goods details.",
+      "roleCarrier": "Carrier",
+      "roleCarrierDesc": "Receives assigned transports, sees only their own reservations and fills in vehicle and driver details."
     },
     "registration": {
       "title": "Account Registration",
@@ -476,7 +486,8 @@
       "tip": "Example: Want to check if Gate A is free on Thursday afternoon? Open the calendar, select the warehouse and look at the Gate A column.",
       "tipWorker": "Click a reservation in the calendar and change its status right away — start or complete unloading.",
       "tipSupplier": "The calendar shows only your reservations. Check whether your preferred time slot at the gate is available.",
-      "tipClient": "Track all incoming deliveries from your suppliers in one place using the calendar."
+      "tipClient": "Track all incoming deliveries from your suppliers in one place using the calendar.",
+      "tipCarrier": "In the calendar you only see reservations where you are assigned as the carrier. Check your times and gates."
     },
     "reservations": {
       "title": "Reservations",
@@ -498,7 +509,9 @@
       "descClient": "As a client, you see an overview of all reservations directed to your organization and can track their status.",
       "tipWorker": "When the truck arrives, open the reservation and change the status to \"Unloading started\". After completion, click \"Unloading completed\".",
       "tipSupplier": "Fill in the license plate and driver name as soon as possible — it makes the receiving process smoother.",
-      "tipClient": "Track your suppliers' reservation statuses. Enable notifications to stay informed about changes."
+      "tipClient": "Track your suppliers' reservation statuses. Enable notifications to stay informed about changes.",
+      "descCarrier": "As a carrier you see an overview of reservations assigned to your transport company. You can fill in vehicle and driver details.",
+      "tipCarrier": "Fill in the license plate and driver name as soon as possible — it makes the receiving process smoother."
     },
     "reservationDetail": {
       "title": "Reservation Detail",
@@ -804,6 +817,33 @@
         "title": "Reservation on behalf of supplier",
         "body": "When creating a reservation, select the supplier – useful when they're not tech-savvy."
       }
+    },
+    "carrier": {
+      "s0": {
+        "title": "Welcome, carrier!",
+        "body": "This guide will show you how to navigate the TimeSlotControl system."
+      },
+      "s1": {
+        "title": "Calendar",
+        "body": "Here you see an overview of your assigned reservations at the gates."
+      },
+      "s2": {
+        "title": "New reservation",
+        "body": "Click this button to create a new reservation — fill in client, gate, time and vehicle details."
+      },
+      "s3": {
+        "title": "Reservation list",
+        "body": "Overview of all your reservations with filters and status."
+      }
+    }
+  },
+  "carrier": {
+    "title": "Carriers",
+    "new": "New carrier",
+    "fields": {
+      "name": "Name",
+      "contactEmail": "Contact email",
+      "reservations": "Reservations"
     }
   }
 }

@@ -107,7 +107,10 @@ export function RecurringListClient({ items: initialItems, warehouses }: Props) 
                 <tr key={item.id} className={`${isPending ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3">
                     <div className="font-medium">{item.gateName}</div>
-                    <div className="text-xs text-muted-foreground">{item.clientName} → {item.supplierName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.clientName} → {item.supplierName}
+                      {item.carrierName && ` → ${item.carrierName}`}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs">{item.recurrenceSummary}</span>

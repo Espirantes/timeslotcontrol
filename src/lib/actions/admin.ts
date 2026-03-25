@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs";
 import type { UserRole } from "@/generated/prisma/client";
 import {
   WarehouseSchema, GateSchema, GateUpdateSchema, GateOpeningHoursRowSchema, GateBlockSchema,
-  ClientSchema, SupplierSchema, CreateUserSchema, UpdateUserSchema, TransportUnitSchema,
+  ClientSchema, SupplierSchema, CarrierSchema, CreateUserSchema, UpdateUserSchema, TransportUnitSchema,
 } from "@/lib/schemas";
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
@@ -288,6 +288,65 @@ export async function deleteSupplier(id: string) {
   revalidatePath("/suppliers");
 }
 
+// ─── Carriers ─────────────────────────────────────────────────────────────────
+
+export async function getCarriers() {
+  await requireAdmin();
+  return prisma.carrier.findMany({
+    where: { deletedAt: null },
+    include: { suppliers: { include: { supplier: true } }, _count: { select: { reservations: true } } },
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function createCarrier(data: { name: string; contactEmail?: string; supplierIds?: string[] }) {
+  const user = await requireAdmin();
+  const d = CarrierSchema.parse(data);
+  const carrier = await prisma.carrier.create({
+    data: {
+      name: d.name,
+      contactEmail: d.contactEmail || null,
+      suppliers: d.supplierIds?.length
+        ? { create: d.supplierIds.map((supplierId) => ({ supplierId })) }
+        : undefined,
+    },
+  });
+  await auditLog({ entityType: "carrier", entityId: carrier.id, action: "created", newData: d, userId: user.id });
+  revalidatePath("/carriers");
+  return carrier;
+}
+
+export async function updateCarrier(id: string, data: { name: string; contactEmail?: string; supplierIds?: string[] }) {
+  const user = await requireAdmin();
+  const d = CarrierSchema.parse(data);
+  const old = await prisma.carrier.findUniqueOrThrow({ where: { id } });
+
+  await prisma.carrier.update({
+    where: { id },
+    data: { name: d.name, contactEmail: d.contactEmail || null },
+  });
+
+  if (d.supplierIds !== undefined) {
+    await prisma.supplierCarrier.deleteMany({ where: { carrierId: id } });
+    if (d.supplierIds.length > 0) {
+      await prisma.supplierCarrier.createMany({
+        data: d.supplierIds.map((supplierId) => ({ supplierId, carrierId: id })),
+      });
+    }
+  }
+
+  await auditLog({ entityType: "carrier", entityId: id, action: "updated", oldData: { name: old.name }, newData: d, userId: user.id });
+  revalidatePath("/carriers");
+}
+
+export async function deleteCarrier(id: string) {
+  const user = await requireAdmin();
+  const old = await prisma.carrier.findUniqueOrThrow({ where: { id }, select: { name: true, contactEmail: true } });
+  await prisma.carrier.update({ where: { id }, data: { deletedAt: new Date() } });
+  await auditLog({ entityType: "carrier", entityId: id, action: "deleted", oldData: old, userId: user.id });
+  revalidatePath("/carriers");
+}
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function getUsers() {
@@ -303,10 +362,12 @@ export async function getUsers() {
       registrationMessage: true,
       clientId: true,
       supplierId: true,
+      carrierId: true,
       createdAt: true,
       warehouses: { include: { warehouse: true } },
       client: { select: { id: true, name: true } },
       supplier: { select: { id: true, name: true } },
+      carrier: { select: { id: true, name: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -317,19 +378,22 @@ export async function getPendingUsersCount() {
   return prisma.user.count({ where: { isVerified: false, isActive: true } });
 }
 
-export async function approveUser(userId: string, supplierId: string) {
+export async function approveUser(userId: string, supplierId: string, carrierId?: string) {
   const admin = await requireAdmin();
 
   await prisma.user.update({
     where: { id: userId },
-    data: { isVerified: true, supplierId },
+    data: {
+      isVerified: true,
+      ...(carrierId ? { carrierId } : { supplierId }),
+    },
   });
 
   await auditLog({
     entityType: "user",
     entityId: userId,
     action: "approved",
-    newData: { isVerified: true, supplierId },
+    newData: { isVerified: true, ...(carrierId ? { carrierId } : { supplierId }) },
     userId: admin.id,
   });
 
@@ -378,6 +442,7 @@ export async function createUser(data: {
   warehouseIds?: string[];
   clientId?: string;
   supplierId?: string;
+  carrierId?: string;
 }) {
   const user = await requireAdmin();
   const d = CreateUserSchema.parse(data);
@@ -390,6 +455,7 @@ export async function createUser(data: {
       role: d.role,
       clientId: d.clientId || null,
       supplierId: d.supplierId || null,
+      carrierId: d.carrierId || null,
       warehouses: d.warehouseIds?.length
         ? { create: d.warehouseIds.map((warehouseId) => ({ warehouseId })) }
         : undefined,
@@ -410,6 +476,7 @@ export async function updateUser(id: string, data: {
   warehouseIds?: string[];
   clientId?: string;
   supplierId?: string;
+  carrierId?: string;
   isActive?: boolean;
 }) {
   const admin = await requireAdmin();
@@ -422,6 +489,7 @@ export async function updateUser(id: string, data: {
     role: d.role,
     clientId: d.clientId || null,
     supplierId: d.supplierId || null,
+    carrierId: d.carrierId || null,
     isActive: d.isActive ?? old.isActive,
   };
 

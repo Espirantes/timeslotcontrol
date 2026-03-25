@@ -42,6 +42,7 @@ export type CreateReservationInput = {
   gateId: string;
   clientId: string;
   supplierId?: string;
+  carrierId?: string;
   startTime: string; // ISO string
   durationMinutes: number;
   vehicleType: VehicleType;
@@ -148,7 +149,7 @@ export async function getGateBlocksForDate(
 export async function createReservation(rawInput: CreateReservationInput) {
   const input = CreateReservationSchema.parse(rawInput);
   const user = await requireSession();
-  const { role, supplierId } = user;
+  const { role, supplierId, carrierId } = user;
 
   // Block unverified users
   if (!user.isVerified) throw new Error("Account not verified");
@@ -191,9 +192,24 @@ export async function createReservation(rawInput: CreateReservationInput) {
     });
     if (!link) throw new Error("Supplier not linked to this client");
     resolvedSupplierId = rawInput.supplierId;
+  } else if (role === "CARRIER") {
+    if (!carrierId) throw new Error("User has no carrier linked");
+    // Find supplier linked to this carrier and client
+    const link = await prisma.supplierCarrier.findFirst({
+      where: { carrierId },
+      include: { supplier: { include: { clients: true } } },
+    });
+    if (!link) throw new Error("Carrier has no supplier linked");
+    // Verify supplier is linked to the requested client
+    const clientLink = link.supplier.clients.find((cs) => cs.clientId === input.clientId);
+    if (!clientLink) throw new Error("Supplier not linked to this client");
+    resolvedSupplierId = link.supplierId;
   } else {
     throw new Error("Clients cannot create reservations directly");
   }
+
+  // Resolve carrierId for reservation
+  const resolvedCarrierId = input.carrierId || (role === "CARRIER" ? carrierId : null);
 
   const startTime = new Date(input.startTime);
   const endTime = new Date(startTime.getTime() + input.durationMinutes * 60 * 1000);
@@ -241,6 +257,7 @@ export async function createReservation(rawInput: CreateReservationInput) {
         gateId: input.gateId,
         clientId: input.clientId,
         supplierId: resolvedSupplierId,
+        carrierId: resolvedCarrierId,
         type: input.reservationType ?? "UNLOADING",
         status: isAdminCreate ? "CONFIRMED" : "REQUESTED",
         createdById: user.id,
@@ -652,6 +669,7 @@ export async function updateReservationStatus(
 
 export type ReservationListItem = {
   id: string;
+  reservationNumber: number;
   status: string;
   reservationType: string;
   gateName: string;
@@ -659,6 +677,7 @@ export type ReservationListItem = {
   warehouseName: string;
   clientName: string;
   supplierName: string;
+  carrierName: string | null;
   startTime: string; // ISO
   durationMinutes: number;
   vehicleType: string;
@@ -676,12 +695,13 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, warehouseIds, clientId, supplierId } = session.user;
+  const { role, warehouseIds, clientId, supplierId, carrierId } = session.user;
 
   // C4: Fail closed — scoped roles with missing scope values must not fall through
   if (role === "WAREHOUSE_WORKER" && warehouseIds.length === 0) throw new Error("INVALID_SESSION");
   if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
   if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+  if (role === "CARRIER" && !carrierId) throw new Error("INVALID_SESSION");
 
   const reservations = await prisma.reservation.findMany({
     where: {
@@ -691,11 +711,13 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
       ...(role === "ADMIN" ? {} : {}),
       ...(role === "CLIENT" ? { clientId: clientId! } : {}),
       ...(role === "SUPPLIER" ? { supplierId: supplierId! } : {}),
+      ...(role === "CARRIER" ? { carrierId: carrierId! } : {}),
     },
     include: {
       gate: { include: { warehouse: true } },
       client: true,
       supplier: true,
+      carrier: true,
       confirmedVersion: true,
       pendingVersion: true,
     },
@@ -711,6 +733,7 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
     const displayVersion = r.confirmedVersion ?? r.pendingVersion;
     return {
       id: r.id,
+      reservationNumber: r.reservationNumber,
       status: r.status,
       reservationType: r.type,
       gateName: r.gate.name,
@@ -718,6 +741,7 @@ export async function getReservationList(): Promise<ReservationListItem[]> {
       warehouseName: r.gate.warehouse.name,
       clientName: r.client.name,
       supplierName: r.supplier.name,
+      carrierName: r.carrier?.name ?? null,
       startTime: displayVersion?.startTime.toISOString() ?? "",
       durationMinutes: displayVersion?.durationMinutes ?? 0,
       vehicleType: displayVersion?.vehicleType ?? "",
@@ -772,6 +796,7 @@ export type StatusChangeItem = {
 
 export type ReservationDetail = {
   id: string;
+  reservationNumber: number;
   status: string;
   reservationType: string;
   gateId: string;
@@ -780,8 +805,10 @@ export type ReservationDetail = {
   warehouseId: string;
   clientId: string;
   supplierId: string;
+  carrierId: string | null;
   clientName: string;
   supplierName: string;
+  carrierName: string | null;
   createdByName: string;
   createdAt: string;
   updatedAt: string;
@@ -839,12 +866,13 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
   const session = await auth();
   if (!session) return null;
 
-  const { role, warehouseIds, clientId, supplierId } = session.user;
+  const { role, warehouseIds, clientId, supplierId, carrierId } = session.user;
 
   // C4: Fail closed — scoped roles with missing scope values must not fall through
   if (role === "WAREHOUSE_WORKER" && warehouseIds.length === 0) throw new Error("INVALID_SESSION");
   if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
   if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+  if (role === "CARRIER" && !carrierId) throw new Error("INVALID_SESSION");
 
   const r = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -852,6 +880,7 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
       gate: { include: { warehouse: true } },
       client: true,
       supplier: true,
+      carrier: true,
       createdBy: true,
       confirmedVersion: { include: { createdBy: true, items: { include: { transportUnit: true } }, advices: true } },
       pendingVersion: { include: { createdBy: true, items: { include: { transportUnit: true } }, advices: true } },
@@ -866,9 +895,11 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
   if (role === "WAREHOUSE_WORKER" && !warehouseIds.includes(r.gate.warehouseId)) return null;
   if (role === "CLIENT" && r.clientId !== clientId) return null;
   if (role === "SUPPLIER" && r.supplierId !== supplierId) return null;
+  if (role === "CARRIER" && r.carrierId !== carrierId) return null;
 
   return {
     id: r.id,
+    reservationNumber: r.reservationNumber,
     status: r.status,
     reservationType: r.type,
     gateId: r.gateId,
@@ -877,8 +908,10 @@ export async function getReservationDetail(reservationId: string): Promise<Reser
     warehouseId: r.gate.warehouseId,
     clientId: r.clientId,
     supplierId: r.supplierId,
+    carrierId: r.carrierId,
     clientName: r.client.name,
     supplierName: r.supplier.name,
+    carrierName: r.carrier?.name ?? null,
     createdByName: r.createdBy.name,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
@@ -937,7 +970,30 @@ export async function getFormData(warehouseId: string) {
     return [] as { id: string; name: string; clientId: string }[];
   })();
 
-  const [gates, clients, transportUnits, suppliers] = await Promise.all([
+  // Load carriers with their supplier linkages
+  const carriersPromise = (async () => {
+    if (role === "ADMIN" || role === "WAREHOUSE_WORKER") {
+      const links = await prisma.supplierCarrier.findMany({
+        include: { carrier: { select: { id: true, name: true } } },
+        where: { carrier: { deletedAt: null } },
+      });
+      return links.map((l) => ({ id: l.carrier.id, name: l.carrier.name, supplierId: l.supplierId }));
+    }
+    if (role === "SUPPLIER" && supplierId) {
+      const links = await prisma.supplierCarrier.findMany({
+        where: { supplierId, carrier: { deletedAt: null } },
+        include: { carrier: { select: { id: true, name: true } } },
+      });
+      return links.map((l) => ({ id: l.carrier.id, name: l.carrier.name, supplierId: l.supplierId }));
+    }
+    if (role === "CARRIER" && session.user.carrierId) {
+      const carrier = await prisma.carrier.findUnique({ where: { id: session.user.carrierId }, select: { id: true, name: true } });
+      return carrier ? [{ id: carrier.id, name: carrier.name, supplierId: "" }] : [];
+    }
+    return [] as { id: string; name: string; supplierId: string }[];
+  })();
+
+  const [gates, clients, transportUnits, suppliers, carriers] = await Promise.all([
     prisma.gates.findMany({
       where: { warehouseId, isActive: true, deletedAt: null },
       include: { openingHours: true },
@@ -950,6 +1006,7 @@ export async function getFormData(warehouseId: string) {
       select: { id: true, name: true, weightKg: true, processingMinutes: true },
     }),
     suppliersPromise,
+    carriersPromise,
   ]);
 
   return {
@@ -960,6 +1017,7 @@ export async function getFormData(warehouseId: string) {
     })),
     clients,
     suppliers,
+    carriers,
     userRole: role,
     transportUnits: transportUnits.map((tu) => ({
       id: tu.id,
@@ -974,6 +1032,7 @@ export async function getFormData(warehouseId: string) {
 
 export type EditReservationInput = {
   reservationId: string;
+  gateId?: string;
   startTime?: string;
   durationMinutes?: number;
   vehicleType?: VehicleType;
@@ -1069,6 +1128,14 @@ export async function editReservation(rawInput: EditReservationInput) {
     const newEnd = new Date(newStart.getTime() + newDuration * 60 * 1000);
     const blockReason = await getBlockingReason(reservation.gateId, newStart, newEnd);
     if (blockReason) throw new Error(`Blocked: ${blockReason}`);
+  }
+
+  // Admin can change the gate
+  if (rawInput.gateId && rawInput.gateId !== reservation.gateId && role === "ADMIN") {
+    await prisma.reservation.update({
+      where: { id: reservation.id },
+      data: { gateId: rawInput.gateId },
+    });
   }
 
   // Update reservation type if provided (lives on Reservation, not version)

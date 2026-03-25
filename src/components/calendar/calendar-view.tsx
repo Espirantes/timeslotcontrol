@@ -15,7 +15,7 @@ import { enUS } from "date-fns/locale";
 import { it } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Trash2, X, Repeat2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, X, Repeat2, ArrowDownToLine, ArrowUpFromLine, Package } from "lucide-react";
 import { ReservationPopover } from "./reservation-popover";
 
 const STATUS_COLORS: Record<ReservationStatus | "REQUESTED_PENDING", { bg: string; border: string; text: string }> = {
@@ -138,14 +138,22 @@ export function CalendarView({ gates, events, blocks, currentDate, onDateChange,
       );
     }
     const ev = props as CalendarEvent;
+    const DirectionIcon = ev.reservationType === "LOADING" ? ArrowUpFromLine : ArrowDownToLine;
     return (
-      <div className="px-1 py-0.5 overflow-hidden h-full flex flex-col">
+      <div className="px-1 py-0.5 overflow-hidden h-full flex flex-col gap-px">
         <span className="font-medium text-xs leading-tight truncate flex items-center gap-0.5">
+          {ev.isOwn && <DirectionIcon className="size-3 shrink-0 opacity-60" />}
           {ev.isRecurring && <Repeat2 className="size-3 shrink-0 opacity-60" />}
           {arg.event.title}
         </span>
-        {ev.licensePlate && (
-          <span className="text-[10px] opacity-75 truncate">{ev.licensePlate}</span>
+        {ev.isOwn && (ev.licensePlate || ev.durationMinutes || ev.itemsCount) && (
+          <span className="text-[10px] opacity-75 truncate flex items-center gap-1">
+            {ev.durationMinutes && <span>{ev.durationMinutes} min</span>}
+            {ev.itemsCount != null && ev.itemsCount > 0 && (
+              <span className="flex items-center gap-px"><Package className="size-2.5" />{ev.itemsCount}</span>
+            )}
+            {ev.licensePlate && <span className="font-mono">{ev.licensePlate}</span>}
+          </span>
         )}
       </div>
     );

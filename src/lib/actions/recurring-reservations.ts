@@ -36,6 +36,7 @@ export type CreateRecurringReservationInput = {
   items: RecurringItemTemplate[];
   reservationType?: "LOADING" | "UNLOADING";
   supplierId?: string;
+  carrierId?: string;
 };
 
 export type SkippedInstance = {
@@ -53,6 +54,7 @@ export type RecurringReservationListItem = {
   gateName: string;
   clientName: string;
   supplierName: string;
+  carrierName: string | null;
   recurrenceType: RecurrenceType;
   recurrenceSummary: string;
   startDate: string;
@@ -221,6 +223,7 @@ export async function generateInstances(
           gateId: recurring.gateId,
           clientId: recurring.clientId,
           supplierId: recurring.supplierId,
+          carrierId: recurring.carrierId,
           type: recurring.type,
           status: "CONFIRMED",
           recurringReservationId: recurring.id,
@@ -300,6 +303,7 @@ export async function createRecurringReservation(rawInput: CreateRecurringReserv
       gateId: input.gateId,
       clientId: input.clientId,
       supplierId: firstSupplier.supplierId,
+      carrierId: rawInput.carrierId || null,
       type: input.reservationType ?? "UNLOADING",
       recurrenceType: input.recurrenceType,
       startDate: new Date(input.startDate + "T00:00:00"),
@@ -413,6 +417,7 @@ export async function getRecurringReservations(warehouseId?: string): Promise<Re
       gate: true,
       client: true,
       supplier: true,
+      carrier: true,
       createdBy: { select: { name: true } },
       _count: { select: { instances: true } },
     },
@@ -424,6 +429,7 @@ export async function getRecurringReservations(warehouseId?: string): Promise<Re
     gateName: r.gate.name,
     clientName: r.client.name,
     supplierName: r.supplier.name,
+    carrierName: r.carrier?.name ?? null,
     recurrenceType: r.recurrenceType,
     recurrenceSummary: buildRecurrenceSummary(r.recurrenceType, r.weekDays, r.dayOfMonth, r.timeOfDay),
     startDate: r.startDate.toISOString().slice(0, 10),

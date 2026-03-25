@@ -39,6 +39,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           warehouseIds: user.warehouses.map((w) => w.warehouseId),
           clientId: user.clientId,
           supplierId: user.supplierId,
+          carrierId: user.carrierId,
           isVerified: user.isVerified,
           canManageSuppliers: user.client?.canManageSuppliers ?? false,
         };
@@ -53,6 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           warehouseIds: string[];
           clientId: string | null;
           supplierId: string | null;
+          carrierId: string | null;
           isVerified: boolean;
           canManageSuppliers: boolean;
         };
@@ -60,6 +62,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.warehouseIds = u.warehouseIds;
         token.clientId = u.clientId;
         token.supplierId = u.supplierId;
+        token.carrierId = u.carrierId;
         token.isVerified = u.isVerified;
         token.canManageSuppliers = u.canManageSuppliers;
         token.lastRefreshed = Date.now();
@@ -84,6 +87,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.warehouseIds = dbUser.warehouses.map((w) => w.warehouseId);
           token.clientId = dbUser.clientId;
           token.supplierId = dbUser.supplierId;
+          token.carrierId = dbUser.carrierId;
           token.isVerified = dbUser.isVerified;
           token.canManageSuppliers = dbUser.client?.canManageSuppliers ?? false;
           token.lastRefreshed = Date.now();
@@ -100,6 +104,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.warehouseIds = (token.warehouseIds as string[]) ?? [];
       session.user.clientId = (token.clientId as string) ?? null;
       session.user.supplierId = (token.supplierId as string) ?? null;
+      session.user.carrierId = (token.carrierId as string) ?? null;
       session.user.isVerified = (token.isVerified as boolean) ?? true;
       session.user.canManageSuppliers = (token.canManageSuppliers as boolean) ?? false;
       return session;
