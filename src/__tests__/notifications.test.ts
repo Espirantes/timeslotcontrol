@@ -43,7 +43,7 @@ describe("createNotificationsForEvent", () => {
     mockFindMany.mockResolvedValue([{ id: "admin-1" }, { id: "worker-1" }]);
     mockCreateMany.mockResolvedValue({ count: 2 });
 
-    const { createNotificationsForEvent } = await import("@/lib/actions/notifications");
+    const { createNotificationsForEvent } = await import("@/lib/notifications-server");
     await createNotificationsForEvent({
       type: "RESERVATION_CREATED",
       reservationId: "res-1",
@@ -64,7 +64,7 @@ describe("createNotificationsForEvent", () => {
   it("skips createMany when no recipients", async () => {
     mockFindMany.mockResolvedValue([]);
 
-    const { createNotificationsForEvent } = await import("@/lib/actions/notifications");
+    const { createNotificationsForEvent } = await import("@/lib/notifications-server");
     await createNotificationsForEvent({
       type: "RESERVATION_CREATED",
       reservationId: "res-1",
@@ -82,7 +82,7 @@ describe("createNotificationsForEvent", () => {
     mockFindMany.mockResolvedValue([{ id: "client-user-1" }]);
     mockCreateMany.mockResolvedValue({ count: 1 });
 
-    const { createNotificationsForEvent } = await import("@/lib/actions/notifications");
+    const { createNotificationsForEvent } = await import("@/lib/notifications-server");
     await createNotificationsForEvent({
       type: "RESERVATION_APPROVED",
       reservationId: "res-1",
