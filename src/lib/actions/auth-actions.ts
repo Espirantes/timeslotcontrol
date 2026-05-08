@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 import { notifyNewRegistration } from "@/lib/email";
-import { createRegistrationNotification } from "@/lib/actions/notifications";
+import { createRegistrationNotification } from "@/lib/notifications-server";
 
 export async function registerSupplier(data: {
   name: string;

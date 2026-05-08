@@ -21,7 +21,7 @@ export async function GET(
     where: { id: attachmentId },
     include: {
       reservation: {
-        select: { clientId: true, supplierId: true, gate: { select: { warehouseId: true } } },
+        select: { clientId: true, supplierId: true, carrierId: true, gate: { select: { warehouseId: true } } },
       },
     },
   });
@@ -36,6 +36,9 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (user.role === "SUPPLIER" && user.supplierId !== r.supplierId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (user.role === "CARRIER" && user.carrierId !== r.carrierId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (user.role === "WAREHOUSE_WORKER" && !user.warehouseIds?.includes(r.gate.warehouseId)) {
@@ -72,6 +75,7 @@ export async function DELETE(
           status: true,
           clientId: true,
           supplierId: true,
+          carrierId: true,
           pendingVersionId: true,
           confirmedVersionId: true,
           gate: { select: { warehouseId: true } },
@@ -91,6 +95,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (user.role === "SUPPLIER" && user.supplierId !== r.supplierId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (user.role === "CARRIER" && user.carrierId !== r.carrierId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (user.role === "WAREHOUSE_WORKER" && !user.warehouseIds?.includes(r.gate.warehouseId)) {

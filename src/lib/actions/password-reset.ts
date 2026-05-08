@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { auditLog } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -118,6 +119,14 @@ export async function resetPassword(
       passwordResetToken: null,
       passwordResetExpiresAt: null,
     },
+  });
+
+  await auditLog({
+    entityType: "user",
+    entityId: user.id,
+    action: "password_changed",
+    newData: { method: "reset_token" },
+    userId: user.id,
   });
 
   return { ok: true };

@@ -39,6 +39,7 @@ export async function POST(
       status: true,
       clientId: true,
       supplierId: true,
+      carrierId: true,
       pendingVersionId: true,
       confirmedVersionId: true,
       gate: { select: { warehouseId: true } },
@@ -54,6 +55,9 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (user.role === "SUPPLIER" && user.supplierId !== reservation.supplierId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (user.role === "CARRIER" && user.carrierId !== reservation.carrierId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (user.role === "WAREHOUSE_WORKER" && !user.warehouseIds?.includes(reservation.gate.warehouseId)) {

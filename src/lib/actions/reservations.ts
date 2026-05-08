@@ -12,7 +12,7 @@ import {
   notifyReservationRejected,
   notifyStatusChanged,
 } from "@/lib/email";
-import { createNotificationsForEvent } from "@/lib/actions/notifications";
+import { createNotificationsForEvent } from "@/lib/notifications-server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { isSlotFree, isGateOpen } from "@/lib/reservation-helpers";
 import { CreateReservationSchema, EditReservationSchema, UpdateReservationStatusSchema } from "@/lib/schemas";
@@ -337,13 +337,18 @@ export async function createReservation(rawInput: CreateReservationInput) {
     const [gate, supplier, workers, locale] = await Promise.all([
       prisma.gates.findUnique({ where: { id: gateId }, include: { warehouse: true } }),
       prisma.supplier.findUnique({ where: { id: sId } }),
+      // Worker recipients are scoped via the gate's warehouse, resolved from
+      // gateId in a single nested query so this stays parallel with `gate`.
       prisma.user.findMany({
         where: {
           isActive: true,
           notifyEmail: true,
           OR: [
             { role: "ADMIN" },
-            { role: "WAREHOUSE_WORKER", warehouses: { some: { warehouseId: gateId } } },
+            {
+              role: "WAREHOUSE_WORKER",
+              warehouses: { some: { warehouse: { gates: { some: { id: gateId } } } } },
+            },
           ],
         },
         select: { email: true },

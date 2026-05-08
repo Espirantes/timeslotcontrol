@@ -398,7 +398,7 @@ export async function approveUser(userId: string, supplierId: string, carrierId?
   });
 
   // Notify user
-  const { createUserApprovalNotification } = await import("@/lib/actions/notifications");
+  const { createUserApprovalNotification } = await import("@/lib/notifications-server");
   const { notifyUserApproved } = await import("@/lib/email");
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
   createUserApprovalNotification(userId, true).catch(console.error);
@@ -426,7 +426,7 @@ export async function rejectUser(userId: string) {
   });
 
   // Notify user
-  const { createUserApprovalNotification } = await import("@/lib/actions/notifications");
+  const { createUserApprovalNotification } = await import("@/lib/notifications-server");
   const { notifyUserRejected } = await import("@/lib/email");
   createUserApprovalNotification(userId, false).catch(console.error);
   if (user) notifyUserRejected({ userEmail: user.email }).catch(console.error);

@@ -77,6 +77,30 @@ async function requireAdminOrWorker() {
   return session.user;
 }
 
+/** Workers may only act on gates inside their assigned warehouses. */
+async function requireWarehouseAccessForGate(gateId: string, warehouseIds: string[]) {
+  const gate = await prisma.gates.findUnique({
+    where: { id: gateId },
+    select: { warehouseId: true },
+  });
+  if (!gate) throw new Error("Gate not found");
+  if (!warehouseIds.includes(gate.warehouseId)) {
+    throw new Error("Gate is not in your assigned warehouse");
+  }
+}
+
+/** Workers may only act on recurring reservations whose gate is in their warehouses. */
+async function requireWarehouseAccessForRecurring(recurringId: string, warehouseIds: string[]) {
+  const recurring = await prisma.recurringReservation.findUnique({
+    where: { id: recurringId },
+    select: { gate: { select: { warehouseId: true } } },
+  });
+  if (!recurring) throw new Error("Recurring reservation not found");
+  if (!warehouseIds.includes(recurring.gate.warehouseId)) {
+    throw new Error("Recurring reservation is not in your assigned warehouse");
+  }
+}
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function getOccurrenceDates(
@@ -285,6 +309,10 @@ export async function createRecurringReservation(rawInput: CreateRecurringReserv
   const input = CreateRecurringSchema.parse(rawInput);
   const user = await requireAdminOrWorker();
 
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccessForGate(input.gateId, user.warehouseIds);
+  }
+
   // Resolve supplier — use provided supplierId or fall back to first supplier of client
   const supplierWhere = rawInput.supplierId
     ? { clientId: input.clientId, supplierId: rawInput.supplierId }
@@ -343,6 +371,10 @@ export async function createRecurringReservation(rawInput: CreateRecurringReserv
 export async function deactivateRecurringReservation(id: string) {
   const user = await requireAdminOrWorker();
 
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccessForRecurring(id, user.warehouseIds);
+  }
+
   await prisma.recurringReservation.update({
     where: { id },
     data: { isActive: false },
@@ -362,6 +394,10 @@ export async function deactivateRecurringReservation(id: string) {
 
 export async function cancelFutureInstances(recurringId: string) {
   const user = await requireAdminOrWorker();
+
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccessForRecurring(recurringId, user.warehouseIds);
+  }
 
   const cancelledCount = await prisma.$transaction(async (tx) => {
     const now = new Date();
@@ -409,10 +445,23 @@ export async function cancelFutureInstances(recurringId: string) {
 }
 
 export async function getRecurringReservations(warehouseId?: string): Promise<RecurringReservationListItem[]> {
-  await requireAdminOrWorker();
+  const user = await requireAdminOrWorker();
+
+  // Workers are constrained to their assigned warehouses regardless of caller
+  // intent. Admins may filter by `warehouseId` or list across tenants.
+  let warehouseFilter: { warehouseId: { in: string[] } | string } | undefined;
+  if (user.role === "WAREHOUSE_WORKER") {
+    if (warehouseId && !user.warehouseIds.includes(warehouseId)) {
+      throw new Error("Warehouse not in your assigned scope");
+    }
+    if (user.warehouseIds.length === 0) return [];
+    warehouseFilter = { warehouseId: warehouseId ? warehouseId : { in: user.warehouseIds } };
+  } else if (warehouseId) {
+    warehouseFilter = { warehouseId };
+  }
 
   const items = await prisma.recurringReservation.findMany({
-    where: warehouseId ? { gate: { warehouseId } } : undefined,
+    where: warehouseFilter ? { gate: warehouseFilter } : undefined,
     include: {
       gate: true,
       client: true,
@@ -443,7 +492,11 @@ export async function getRecurringReservations(warehouseId?: string): Promise<Re
 }
 
 export async function manuallyGenerateInstances(recurringId: string, daysAhead: number = 30) {
-  await requireAdminOrWorker();
+  const user = await requireAdminOrWorker();
+
+  if (user.role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccessForRecurring(recurringId, user.warehouseIds);
+  }
 
   const generateUpTo = new Date();
   generateUpTo.setDate(generateUpTo.getDate() + daysAhead);

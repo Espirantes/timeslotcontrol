@@ -56,7 +56,14 @@ export async function getCalendarData(
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, clientId, supplierId, carrierId } = session.user;
+  const { role, warehouseIds, clientId, supplierId, carrierId } = session.user;
+
+  // Tenant scope: workers may only request calendars for warehouses they are
+  // assigned to. Without this check a worker could pass any warehouseId and
+  // receive full reservation details (`canSeeDetail = true` for workers).
+  if (role === "WAREHOUSE_WORKER" && !warehouseIds.includes(warehouseId)) {
+    throw new Error("Warehouse not in your assigned scope");
+  }
 
   // Fetch gates for the warehouse
   const gates = await prisma.gates.findMany({
@@ -113,6 +120,16 @@ export async function getCalendarData(
     }),
   ]);
 
+  // Pre-fetch linked supplier IDs for CLIENT role so they can see child supplier details
+  let clientSupplierIds: Set<string> | null = null;
+  if (role === "CLIENT" && clientId) {
+    const links = await prisma.clientSupplier.findMany({
+      where: { clientId },
+      select: { supplierId: true },
+    });
+    clientSupplierIds = new Set(links.map((l) => l.supplierId));
+  }
+
   const events: CalendarEvent[] = [];
 
   for (const r of reservations) {
@@ -125,7 +142,7 @@ export async function getCalendarData(
 
     let canSeeDetail = false;
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-    else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
+    else if (role === "CLIENT" && (clientId === r.clientId || clientSupplierIds?.has(r.supplierId))) canSeeDetail = true;
     else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
     else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
 
@@ -163,7 +180,7 @@ export async function getCalendarData(
 
     let canSeeDetail = false;
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-    else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
+    else if (role === "CLIENT" && (clientId === r.clientId || clientSupplierIds?.has(r.supplierId))) canSeeDetail = true;
     else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
     else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
 
@@ -248,9 +265,9 @@ export async function getCalendarData(
       if (endTime <= dateFrom) continue;
       let canSeeDetail = false;
       if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-      else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
+      else if (role === "CLIENT" && (clientId === r.clientId || clientSupplierIds?.has(r.supplierId))) canSeeDetail = true;
       else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
-    else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
+      else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
       events.push({
         id: r.id,
         resourceId: r.gateId,

@@ -11,10 +11,10 @@ export default async function RecurringReservationsPage() {
     redirect("/calendar");
   }
 
+  // Server enforces tenant scope. Workers see all their assigned warehouses;
+  // admins see everything.
   const [items, warehouses] = await Promise.all([
-    getRecurringReservations(
-      session.user.role === "WAREHOUSE_WORKER" ? session.user.warehouseIds?.[0] : undefined
-    ),
+    getRecurringReservations(),
     getWarehouses(),
   ]);
 
