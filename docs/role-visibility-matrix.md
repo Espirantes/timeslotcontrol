@@ -9,7 +9,7 @@ Source of truth for RBAC behaviour. Any deviation is a bug.
 | ------------------ | ------------------------------------------------ |
 | `ADMIN`            | global; all warehouses, all clients, suppliers   |
 | `WAREHOUSE_WORKER` | scoped by `session.user.warehouseIds`            |
-| `CLIENT`           | scoped by `session.user.clientId` + linked suppliers |
+| `CLIENT`           | scoped by `session.user.clientId` only           |
 | `SUPPLIER`         | scoped by `session.user.supplierId`              |
 | `CARRIER`          | scoped by `session.user.carrierId`               |
 
@@ -29,7 +29,7 @@ A `denied` row MUST also reject direct URL or RPC invocation. UI hiding alone is
 
 | Page                       | ADMIN  | WAREHOUSE_WORKER             | CLIENT             | SUPPLIER | CARRIER |
 | -------------------------- | ------ | ---------------------------- | ------------------ | -------- | ------- |
-| `/calendar`                | allowed | scoped to warehouseIds      | scoped (own + linked suppliers as detail; rest partial) | scoped (own as detail; rest partial) | scoped (own as detail; rest partial) |
+| `/calendar`                | allowed | scoped to warehouseIds      | scoped (own clientId as detail; rest partial; warehouse picker limited to own reservations) | scoped (own supplierId as detail; rest partial; warehouse picker limited to own reservations) | scoped (own carrierId as detail; rest partial; warehouse picker limited to own reservations) |
 | `/reservations`            | allowed | scoped to warehouseIds      | scoped (own clientId) | scoped (own supplierId) | scoped (own carrierId) |
 | `/reservations/[id]`       | allowed | scoped (404 if not in warehouse) | scoped (404 if not own client) | scoped (404 if not own supplier) | scoped (404 if not own carrier) |
 | `/settings`                | allowed | allowed                     | allowed            | allowed  | allowed |
@@ -103,8 +103,8 @@ Auth pages `/login`, `/register`, `/forgot-password`, `/reset-password/[token]` 
 
 | Action                            | ADMIN  | WAREHOUSE_WORKER            | CLIENT                                   | SUPPLIER                                 | CARRIER                                  |
 | --------------------------------- | ------ | --------------------------- | ---------------------------------------- | ---------------------------------------- | ---------------------------------------- |
-| `getWarehouses` (for picker)      | allowed | scoped to warehouseIds     | allowed (active list)                    | allowed (active list)                    | allowed (active list)                    |
-| `getCalendarData(warehouseId,…)`  | allowed | scoped (must include warehouseId) | scoped (events partial unless own/linked supplier) | scoped (events partial unless own supplier) | scoped (events partial unless own carrier) |
+| `getWarehouses` (for picker)      | allowed | scoped to warehouseIds     | scoped (warehouses with own clientId reservations only) | scoped (warehouses with own supplierId reservations only) | scoped (warehouses with own carrierId reservations only) |
+| `getCalendarData(warehouseId,…)`  | allowed | scoped (must include warehouseId) | scoped (throws if no own reservations at warehouse; events partial unless own clientId) | scoped (throws if no own reservations at warehouse; events partial unless own supplierId) | scoped (throws if no own reservations at warehouse; events partial unless own carrierId) |
 
 ### `client-actions.ts` — client self-service
 
@@ -204,14 +204,14 @@ admin CRUD (warehouse, gate, gate-block, client, supplier, carrier, user, transp
 | G2  | critical | `createRecurringReservation` does not check `requireWarehouseAccess` for workers                                                     | fixed                |
 | G3  | critical | `deactivateRecurringReservation` / `cancelFutureInstances` / `manuallyGenerateInstances` no warehouse check                          | fixed                |
 | G4  | critical | `getCalendarData(warehouseId)` lets a worker request any warehouse's full data                                                       | fixed                |
-| G5  | medium   | Non-admin requests to `getCalendarData` for unrelated warehouse leak gate names + activity timing (events show as "Occupied")        | follow-up — needs CEO policy call |
+| G5  | medium   | Non-admin requests to `getCalendarData` for unrelated warehouse leak gate names + activity timing (events show as "Occupied")        | fixed — `getCalendarData` throws for CLIENT/SUPPLIER/CARRIER with no reservations at warehouse; `getWarehouses` picker restricted to same set |
 | G6  | critical | Attachment routes (`POST /attachments`, `GET`/`DELETE /attachments/[attachmentId]`) miss the `CARRIER` ownership check               | fixed                |
 | G7  | critical | `notifications.ts` exports `createNotificationsForEvent`, `createRegistrationNotification`, `createUserApprovalNotification` as server-action RPCs without ownership/role guards — any logged-in user can spoof notifications cross-tenant | fixed                |
 | G8  | medium   | `notifyReservationCreated` worker recipient query uses `warehouseId: gateId` instead of the gate's warehouseId — workers never get the email | fixed                |
 | G9  | medium   | `AuditLog` has no explicit `warehouseId`/`tenantId` column                                                                           | follow-up (schema)   |
 | G10 | medium   | `password-reset.ts:resetPassword` does not write an audit log entry on success                                                       | fixed                |
 | G11 | medium   | `import.ts` bulk imports emit no audit log entries                                                                                   | follow-up            |
-| G12 | high     | A `CLIENT` linked to a shared `SUPPLIER` sees details of reservations that supplier booked for *other* clients                       | follow-up — needs CEO policy call |
+| G12 | high     | A `CLIENT` linked to a shared `SUPPLIER` sees details of reservations that supplier booked for *other* clients                       | fixed — `CLIENT` visibility in `getCalendarData` now requires `r.clientId === user.clientId`; supplier linkage no longer widens the visible set |
 | G13 | low      | `updateNotificationPreferences` does not emit audit                                                                                  | follow-up            |
 | G14 | low      | `getGateBlocks(gateId)` and `createGateBlock`/`deleteGateBlock` do not constrain the worker to gates in their own warehouses         | follow-up            |
 | G15 | low      | `getFormData(warehouseId)` does not check that a worker is assigned to that warehouse                                                | follow-up            |
@@ -234,5 +234,7 @@ Risk-weighted automated tests live in `src/__tests__/role-visibility.test.ts`. T
 - client list filter only returns own client's reservations
 - worker list filter only returns own warehouses' reservations
 - non-admin invocation of admin server actions → throws
+- CLIENT-A linked to SUPPLIER-X cannot see CLIENT-B's calendar reservation detail (G12) → isOwn: false
+- CLIENT/SUPPLIER/CARRIER rejected on getCalendarData for warehouse with zero own reservations (G5) → throws
 
 100% of the cells in this matrix are claim-checked at least once (either by code review or automated test). The risk-weighted automated tests cover the highest-impact denial cases. A full E2E sweep is out of scope (see GAT-?? follow-up issue).

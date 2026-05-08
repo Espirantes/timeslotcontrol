@@ -88,6 +88,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     reservation: {
       findMany: (...a: unknown[]) => mockFindMany(...a),
+      findFirst: (...a: unknown[]) => mockFindFirst(...a),
       findUnique: (...a: unknown[]) => mockFindUnique(...a),
       findUniqueOrThrow: (...a: unknown[]) => mockFindUniqueOrThrow(...a),
     },
@@ -165,6 +166,34 @@ const clientASession = {
     carrierId: null,
     isVerified: true,
     canManageSuppliers: true,
+  },
+};
+
+const clientBSession = {
+  user: {
+    id: "u-client-b",
+    email: "cb@x",
+    role: "CLIENT",
+    warehouseIds: [],
+    clientId: "cli-B",
+    supplierId: null,
+    carrierId: null,
+    isVerified: true,
+    canManageSuppliers: false,
+  },
+};
+
+const supplierBSession = {
+  user: {
+    id: "u-supplier-b",
+    email: "sb@x",
+    role: "SUPPLIER",
+    warehouseIds: [],
+    clientId: null,
+    supplierId: "sup-B",
+    carrierId: null,
+    isVerified: true,
+    canManageSuppliers: false,
   },
 };
 
@@ -563,6 +592,161 @@ describe("notifications.ts public surface", () => {
   it("does not export createUserApprovalNotification (would allow approval spoof)", async () => {
     const mod: Record<string, unknown> = await import("@/lib/actions/notifications");
     expect(mod.createUserApprovalNotification).toBeUndefined();
+  });
+});
+
+// ─── G12: CLIENT cannot see another client's reservation via supplier linkage ──
+
+describe("G12: calendar CLIENT visibility — clientId-only rule", () => {
+  it("CLIENT-A does not see detail of CLIENT-B reservation even when booked by shared supplier", async () => {
+    // CLIENT-A (cli-A) is in session. The reservation belongs to cli-B, booked by sup-X.
+    // Before fix: canSeeDetail = true if clientSupplierIds.has("sup-X").
+    // After fix: canSeeDetail = false because r.clientId !== "cli-A".
+    mockAuth.mockResolvedValue(clientASession);
+
+    // gates query
+    mockFindMany.mockResolvedValueOnce([{ id: "gate-1", name: "G1", description: null }]);
+    // G5 scope check: CLIENT-A has its own reservation at this warehouse → pass
+    mockFindFirst.mockResolvedValueOnce({ id: "res-cli-a-own" });
+    // confirmed reservations: CLIENT-B's reservation booked by sup-X
+    const crossClientReservation = {
+      id: "res-cli-b",
+      gateId: "gate-1",
+      reservationNumber: 42,
+      status: "CONFIRMED",
+      type: "UNLOADING",
+      clientId: "cli-B",
+      supplierId: "sup-X",
+      carrierId: null,
+      pendingVersionId: null,
+      confirmedVersionId: "cv-1",
+      recurringReservationId: null,
+      supplier: { name: "Supplier X" },
+      client: { name: "Client B" },
+      carrier: null,
+      confirmedVersion: {
+        id: "cv-1",
+        startTime: new Date("2026-05-15T08:00:00Z"),
+        durationMinutes: 60,
+        vehicleType: "TRUCK",
+        driverName: "John",
+        licensePlate: "1AB2345",
+        notes: "Confidential notes",
+        items: [],
+      },
+      pendingVersion: null,
+    };
+    mockFindMany.mockResolvedValueOnce([crossClientReservation]); // confirmed reservations
+    mockFindMany.mockResolvedValueOnce([]); // pending reservations
+    mockFindUnique.mockResolvedValueOnce({ country: null }); // warehouse
+    mockFindMany.mockResolvedValueOnce([]); // gateBlocks
+    mockFindMany.mockResolvedValueOnce([]); // recurringReservations
+
+    const { getCalendarData } = await import("@/lib/actions/calendar");
+    const result = await getCalendarData("wh-A", new Date("2026-05-01"), new Date("2026-05-31"));
+
+    expect(result.events).toHaveLength(1);
+    const ev = result.events[0];
+    // Must not expose detail — this is CLIENT-B's reservation, not CLIENT-A's
+    expect(ev.isOwn).toBe(false);
+    expect(ev.supplierName).toBeUndefined();
+    expect(ev.licensePlate).toBeUndefined();
+    expect(ev.driverName).toBeUndefined();
+    expect(ev.notes).toBeUndefined();
+  });
+
+  it("CLIENT-A sees detail of their own reservation (same clientId)", async () => {
+    mockAuth.mockResolvedValue(clientASession);
+
+    mockFindMany.mockResolvedValueOnce([{ id: "gate-1", name: "G1", description: null }]);
+    mockFindFirst.mockResolvedValueOnce({ id: "res-cli-a-own" }); // G5 pass
+    const ownReservation = {
+      id: "res-cli-a",
+      gateId: "gate-1",
+      reservationNumber: 10,
+      status: "CONFIRMED",
+      type: "UNLOADING",
+      clientId: "cli-A", // matches session
+      supplierId: "sup-X",
+      carrierId: null,
+      pendingVersionId: null,
+      confirmedVersionId: "cv-2",
+      recurringReservationId: null,
+      supplier: { name: "Supplier X" },
+      client: { name: "Client A" },
+      carrier: null,
+      confirmedVersion: {
+        id: "cv-2",
+        startTime: new Date("2026-05-15T10:00:00Z"),
+        durationMinutes: 60,
+        vehicleType: "TRUCK",
+        driverName: "Jane",
+        licensePlate: "9ZZ9999",
+        notes: "Own notes",
+        items: [],
+      },
+      pendingVersion: null,
+    };
+    mockFindMany.mockResolvedValueOnce([ownReservation]);
+    mockFindMany.mockResolvedValueOnce([]);
+    mockFindUnique.mockResolvedValueOnce({ country: null });
+    mockFindMany.mockResolvedValueOnce([]);
+    mockFindMany.mockResolvedValueOnce([]);
+
+    const { getCalendarData } = await import("@/lib/actions/calendar");
+    const result = await getCalendarData("wh-A", new Date("2026-05-01"), new Date("2026-05-31"));
+
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0].isOwn).toBe(true);
+    expect(result.events[0].supplierName).toBe("Supplier X");
+  });
+});
+
+// ─── G5: External roles rejected for warehouses with no own reservations ──────
+
+describe("G5: getCalendarData rejects external roles with no reservations at warehouse", () => {
+  it("CLIENT is rejected for a warehouse where they have no reservations", async () => {
+    mockAuth.mockResolvedValue(clientASession);
+    // gates exist but no CLIENT-A reservations
+    mockFindMany.mockResolvedValueOnce([{ id: "gate-1", name: "G1", description: null }]);
+    mockFindFirst.mockResolvedValueOnce(null); // no match → scope denied
+
+    const { getCalendarData } = await import("@/lib/actions/calendar");
+    await expect(
+      getCalendarData("wh-unrelated", new Date("2026-05-01"), new Date("2026-05-31")),
+    ).rejects.toThrow(/Warehouse not in your scope/);
+  });
+
+  it("SUPPLIER is rejected for a warehouse where they have no reservations", async () => {
+    mockAuth.mockResolvedValue(supplierASession);
+    mockFindMany.mockResolvedValueOnce([{ id: "gate-1", name: "G1", description: null }]);
+    mockFindFirst.mockResolvedValueOnce(null);
+
+    const { getCalendarData } = await import("@/lib/actions/calendar");
+    await expect(
+      getCalendarData("wh-unrelated", new Date("2026-05-01"), new Date("2026-05-31")),
+    ).rejects.toThrow(/Warehouse not in your scope/);
+  });
+
+  it("CARRIER is rejected for a warehouse where they have no reservations", async () => {
+    mockAuth.mockResolvedValue(carrierASession);
+    mockFindMany.mockResolvedValueOnce([{ id: "gate-1", name: "G1", description: null }]);
+    mockFindFirst.mockResolvedValueOnce(null);
+
+    const { getCalendarData } = await import("@/lib/actions/calendar");
+    await expect(
+      getCalendarData("wh-unrelated", new Date("2026-05-01"), new Date("2026-05-31")),
+    ).rejects.toThrow(/Warehouse not in your scope/);
+  });
+
+  it("CLIENT is rejected even when warehouse exists but has no gates (gateIds empty)", async () => {
+    mockAuth.mockResolvedValue(clientASession);
+    mockFindMany.mockResolvedValueOnce([]); // no gates → gateIds = []
+
+    const { getCalendarData } = await import("@/lib/actions/calendar");
+    await expect(
+      getCalendarData("wh-no-gates", new Date("2026-05-01"), new Date("2026-05-31")),
+    ).rejects.toThrow(/Warehouse not in your scope/);
   });
 });
 
