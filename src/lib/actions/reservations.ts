@@ -945,7 +945,12 @@ export async function getFormData(warehouseId: string) {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  const { role, supplierId, clientId } = session.user;
+  const { role, supplierId, clientId, warehouseIds } = session.user;
+
+  // G15: WAREHOUSE_WORKER may only load form data for their assigned warehouse
+  if (role === "WAREHOUSE_WORKER" && !warehouseIds.includes(warehouseId)) {
+    throw new Error("Warehouse not in your assigned scope");
+  }
 
   // M13: Parallelize independent queries
   const clientsPromise = (async () => {
@@ -1104,12 +1109,20 @@ export async function editReservation(rawInput: EditReservationInput) {
     },
   });
 
-  // Auth: CLIENT sees only their client's reservations, SUPPLIER only their own
+  // Auth: role-scoped ownership checks before any mutation
   if (role === "CLIENT" && reservation.clientId !== clientId) {
     throw new Error("Unauthorized");
   }
   if (role === "SUPPLIER" && reservation.supplierId !== supplierId) {
     throw new Error("Unauthorized");
+  }
+  // G17: CARRIER must own the reservation
+  if (role === "CARRIER" && reservation.carrierId !== user.carrierId) {
+    throw new Error("Unauthorized");
+  }
+  // G16: WAREHOUSE_WORKER must be assigned to the reservation's warehouse
+  if (role === "WAREHOUSE_WORKER") {
+    await requireWarehouseAccess(reservation.gateId, user.warehouseIds);
   }
 
   // Status guard: REQUESTED or CONFIRMED only

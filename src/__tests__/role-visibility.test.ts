@@ -64,6 +64,8 @@ vi.mock("@/lib/prisma", () => ({
     },
     gateBlock: {
       findMany: (...a: unknown[]) => mockFindMany(...a),
+      findUnique: (...a: unknown[]) => mockFindUnique(...a),
+      delete: (...a: unknown[]) => mockDelete(...a),
     },
     client: {
       findMany: (...a: unknown[]) => mockFindMany(...a),
@@ -590,5 +592,101 @@ describe("public registration: role cannot be controlled by caller", () => {
     const createCall = mockCreate.mock.calls[0]?.[0];
     expect(createCall?.data?.role).toBe("CARRIER");
     expect(createCall?.data?.isVerified).toBe(false);
+  });
+});
+
+// ─── G14: gate-block actions must be scoped to worker's warehouses ────────────
+
+describe("admin.getGateBlocks: WAREHOUSE_WORKER scoping (G14)", () => {
+  it("rejects worker for a gate outside their assigned warehouse", async () => {
+    mockAuth.mockResolvedValue(workerASession);
+    mockFindUnique.mockResolvedValue({ warehouseId: "wh-B" });
+    const { getGateBlocks } = await import("@/lib/actions/admin");
+    await expect(getGateBlocks("gate-in-B")).rejects.toThrow(/not in your assigned warehouse/);
+  });
+});
+
+describe("admin.createGateBlock: WAREHOUSE_WORKER scoping (G14)", () => {
+  it("rejects worker for a gate outside their assigned warehouse", async () => {
+    mockAuth.mockResolvedValue(workerASession);
+    mockFindUnique.mockResolvedValue({ warehouseId: "wh-B" });
+    const { createGateBlock } = await import("@/lib/actions/admin");
+    await expect(
+      createGateBlock({
+        gateId: "gate-in-B",
+        startTime: "2026-05-10T08:00:00.000Z",
+        endTime: "2026-05-10T10:00:00.000Z",
+        reason: "maintenance",
+      }),
+    ).rejects.toThrow(/not in your assigned warehouse/);
+  });
+});
+
+describe("admin.deleteGateBlock: WAREHOUSE_WORKER scoping (G14)", () => {
+  it("rejects worker deleting a block on a gate outside their warehouse", async () => {
+    mockAuth.mockResolvedValue(workerASession);
+    // gateBlock.findUnique returns the block → gates.findUnique returns wh-B
+    mockFindUnique
+      .mockResolvedValueOnce({ gateId: "gate-in-B" })
+      .mockResolvedValueOnce({ warehouseId: "wh-B" });
+    const { deleteGateBlock } = await import("@/lib/actions/admin");
+    await expect(deleteGateBlock("block-1")).rejects.toThrow(/not in your assigned warehouse/);
+  });
+});
+
+// ─── G15: getFormData must be scoped to worker's warehouse ───────────────────
+
+describe("reservations.getFormData: WAREHOUSE_WORKER scoping (G15)", () => {
+  it("rejects worker requesting form data for an unassigned warehouse", async () => {
+    mockAuth.mockResolvedValue(workerASession);
+    const { getFormData } = await import("@/lib/actions/reservations");
+    await expect(getFormData("wh-B")).rejects.toThrow(/Warehouse not in your assigned scope/);
+  });
+});
+
+// ─── G16: editReservation must check WAREHOUSE_WORKER warehouse scope ─────────
+
+describe("reservations.editReservation: WAREHOUSE_WORKER scoping (G16)", () => {
+  it("rejects worker editing a reservation in an unassigned warehouse", async () => {
+    mockAuth.mockResolvedValue(workerASession);
+    mockFindUniqueOrThrow.mockResolvedValue({
+      id: "res-worker-test",
+      gateId: "gate-in-B",
+      carrierId: null,
+      clientId: "cli-A",
+      supplierId: "sup-A",
+      status: "REQUESTED",
+      gate: { id: "gate-in-B", warehouseId: "wh-B" },
+      confirmedVersion: null,
+      pendingVersion: { id: "v-1", items: [], advices: [] },
+    });
+    mockFindUnique.mockResolvedValue({ warehouseId: "wh-B" });
+    const { editReservation } = await import("@/lib/actions/reservations");
+    await expect(editReservation({ reservationId: "res-worker-test" })).rejects.toThrow(
+      /not in your assigned warehouse/,
+    );
+  });
+});
+
+// ─── G17: editReservation must check CARRIER ownership ───────────────────────
+
+describe("reservations.editReservation: CARRIER ownership check (G17)", () => {
+  it("rejects carrier editing a reservation belonging to a different carrier", async () => {
+    mockAuth.mockResolvedValue(carrierASession);
+    mockFindUniqueOrThrow.mockResolvedValue({
+      id: "res-carrier-test",
+      gateId: "gate-in-A",
+      carrierId: "car-B",
+      clientId: "cli-A",
+      supplierId: "sup-A",
+      status: "REQUESTED",
+      gate: { id: "gate-in-A", warehouseId: "wh-A" },
+      confirmedVersion: null,
+      pendingVersion: { id: "v-2", items: [], advices: [] },
+    });
+    const { editReservation } = await import("@/lib/actions/reservations");
+    await expect(editReservation({ reservationId: "res-carrier-test" })).rejects.toThrow(
+      /Unauthorized/,
+    );
   });
 });

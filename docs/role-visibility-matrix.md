@@ -65,7 +65,7 @@ Auth pages `/login`, `/register`, `/forgot-password`, `/reset-password/[token]` 
 | ----------------------------------------------------------------- | ------ | ------------------------ | ------- | -------- | ------- |
 | `getWarehouses` / `createWarehouse` / `updateWarehouse` / `deleteWarehouse` | allowed | denied | denied  | denied   | denied |
 | `getGates` / `createGate` / `updateGate` / `updateGateOpeningHours` / `deleteGate` | allowed | denied | denied  | denied   | denied |
-| `getGateBlocks` / `createGateBlock` / `deleteGateBlock`           | allowed | allowed (warehouse-scoped — see gap G14) | denied  | denied   | denied |
+| `getGateBlocks` / `createGateBlock` / `deleteGateBlock`           | allowed | allowed (scoped to worker's warehouses — G14 fixed) | denied  | denied   | denied |
 | `getClients` / `createClient` / `updateClient` / `deleteClient` / `bulkToggleCanManageSuppliers` | allowed | denied | denied  | denied   | denied |
 | `getSuppliers` / `createSupplier` / `updateSupplier` / `deleteSupplier` | allowed | denied | denied  | denied   | denied |
 | `getCarriers` / `createCarrier` / `updateCarrier` / `deleteCarrier` | allowed | denied | denied  | denied   | denied |
@@ -85,8 +85,8 @@ Auth pages `/login`, `/register`, `/forgot-password`, `/reset-password/[token]` 
 | `updateReservationStatus`    | allowed | scoped (warehouse access)                 | denied                      | denied       | denied        |
 | `getReservationList`         | allowed | scoped (warehouseIds filter)              | scoped (clientId)           | scoped (supplierId) | scoped (carrierId) |
 | `getReservationDetail`       | allowed | scoped (returns null if other warehouse)  | scoped (null if other client) | scoped (null if other supplier) | scoped (null if other carrier) |
-| `getFormData(warehouseId)`   | allowed (all clients/suppliers/carriers) | allowed (warehouse scope on gates only — *gap G15*) | scoped (own client + carriers under own suppliers) | scoped (own supplier + linked carriers) | scoped (own carrier) |
-| `editReservation`            | allowed | scoped (no per-row check before edit — *gap G16*) | scoped (own clientId required) | scoped (own supplierId required) | scoped — *gap G17 (no CARRIER ownership check)* |
+| `getFormData(warehouseId)`   | allowed (all clients/suppliers/carriers) | scoped (warehouseId must be in worker's warehouseIds — G15 fixed) | scoped (own client + carriers under own suppliers) | scoped (own supplier + linked carriers) | scoped (own carrier) |
+| `editReservation`            | allowed | scoped (requireWarehouseAccess enforced — G16 fixed) | scoped (own clientId required) | scoped (own supplierId required) | scoped (own carrierId required — G17 fixed) |
 
 ### `recurring-reservations.ts` — recurring schedules
 
@@ -213,10 +213,10 @@ admin CRUD (warehouse, gate, gate-block, client, supplier, carrier, user, transp
 | G11 | medium   | `import.ts` bulk imports emit no audit log entries                                                                                   | follow-up            |
 | G12 | high     | A `CLIENT` linked to a shared `SUPPLIER` sees details of reservations that supplier booked for *other* clients                       | follow-up — needs CEO policy call |
 | G13 | low      | `updateNotificationPreferences` does not emit audit                                                                                  | follow-up            |
-| G14 | low      | `getGateBlocks(gateId)` and `createGateBlock`/`deleteGateBlock` do not constrain the worker to gates in their own warehouses         | follow-up            |
-| G15 | low      | `getFormData(warehouseId)` does not check that a worker is assigned to that warehouse                                                | follow-up            |
-| G16 | medium   | `editReservation` for a `WAREHOUSE_WORKER` does not enforce `requireWarehouseAccess` against the reservation's gate before mutating | follow-up            |
-| G17 | high     | `editReservation` does not check `CARRIER.carrierId` against `reservation.carrierId`                                                 | follow-up            |
+| G14 | low      | `getGateBlocks(gateId)` and `createGateBlock`/`deleteGateBlock` do not constrain the worker to gates in their own warehouses         | fixed (GAT-21)       |
+| G15 | low      | `getFormData(warehouseId)` does not check that a worker is assigned to that warehouse                                                | fixed (GAT-21)       |
+| G16 | medium   | `editReservation` for a `WAREHOUSE_WORKER` does not enforce `requireWarehouseAccess` against the reservation's gate before mutating | fixed (GAT-21)       |
+| G17 | high     | `editReservation` does not check `CARRIER.carrierId` against `reservation.carrierId`                                                 | fixed (GAT-21)       |
 | G18 | low      | (covered by G10)                                                                                                                     | —                    |
 | G19 | low      | (covered by G13)                                                                                                                     | —                    |
 

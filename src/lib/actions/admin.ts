@@ -137,8 +137,17 @@ export async function deleteGate(id: string) {
 
 // ─── Gate Blocks ──────────────────────────────────────────────────────────────
 
+async function requireGateWarehouseAccess(gateId: string, user: Awaited<ReturnType<typeof requireAdminOrWorker>>) {
+  if (user.role !== "WAREHOUSE_WORKER") return;
+  const gate = await prisma.gates.findUnique({ where: { id: gateId }, select: { warehouseId: true } });
+  if (!gate) throw new Error("Gate not found");
+  if (!user.warehouseIds.includes(gate.warehouseId)) throw new Error("Gate is not in your assigned warehouse");
+}
+
 export async function getGateBlocks(gateId: string) {
-  await requireAdminOrWorker();
+  const user = await requireAdminOrWorker();
+  // G14: workers must be assigned to the gate's warehouse
+  await requireGateWarehouseAccess(gateId, user);
   return prisma.gateBlock.findMany({
     where: { gateId, endTime: { gte: new Date() } },
     include: { createdBy: { select: { name: true } } },
@@ -149,6 +158,8 @@ export async function getGateBlocks(gateId: string) {
 export async function createGateBlock(data: { gateId: string; startTime: string; endTime: string; reason: string }) {
   const user = await requireAdminOrWorker();
   const d = GateBlockSchema.parse(data);
+  // G14: workers must be assigned to the gate's warehouse
+  await requireGateWarehouseAccess(d.gateId, user);
   const block = await prisma.gateBlock.create({
     data: {
       gateId: d.gateId,
@@ -166,6 +177,11 @@ export async function createGateBlock(data: { gateId: string; startTime: string;
 
 export async function deleteGateBlock(id: string) {
   const user = await requireAdminOrWorker();
+  // G14: workers must be assigned to the gate's warehouse
+  if (user.role === "WAREHOUSE_WORKER") {
+    const block = await prisma.gateBlock.findUnique({ where: { id }, select: { gateId: true } });
+    if (block) await requireGateWarehouseAccess(block.gateId, user);
+  }
   await prisma.gateBlock.delete({ where: { id } });
   await auditLog({ entityType: "gateBlock", entityId: id, action: "deleted", userId: user.id });
   revalidatePath("/calendar");
