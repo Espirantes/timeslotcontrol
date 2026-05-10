@@ -58,6 +58,11 @@ export async function getCalendarData(
 
   const { role, warehouseIds, clientId, supplierId, carrierId } = session.user;
 
+  // C4: fail closed — scoped roles with missing scope values must not fall through
+  if (role === "CLIENT" && !clientId) throw new Error("INVALID_SESSION");
+  if (role === "SUPPLIER" && !supplierId) throw new Error("INVALID_SESSION");
+  if (role === "CARRIER" && !carrierId) throw new Error("INVALID_SESSION");
+
   // Tenant scope: workers may only request calendars for warehouses they are
   // assigned to. Without this check a worker could pass any warehouseId and
   // receive full reservation details (`canSeeDetail = true` for workers).
@@ -72,6 +77,28 @@ export async function getCalendarData(
   });
 
   const gateIds = gates.map((g) => g.id);
+
+  // G5: External roles may only access warehouses where their org has at least
+  // one non-cancelled reservation. Mirrors the G4 WORKER fix — throw, not silent empty.
+  if (role === "CLIENT" || role === "SUPPLIER" || role === "CARRIER") {
+    if (gateIds.length === 0) throw new Error("Warehouse not in your scope");
+    const hasReservation =
+      role === "CLIENT"
+        ? await prisma.reservation.findFirst({
+            where: { gateId: { in: gateIds }, clientId: clientId!, status: { notIn: ["CANCELLED"] } },
+            select: { id: true },
+          })
+        : role === "SUPPLIER"
+        ? await prisma.reservation.findFirst({
+            where: { gateId: { in: gateIds }, supplierId: supplierId!, status: { notIn: ["CANCELLED"] } },
+            select: { id: true },
+          })
+        : await prisma.reservation.findFirst({
+            where: { gateId: { in: gateIds }, carrierId: carrierId!, status: { notIn: ["CANCELLED"] } },
+            select: { id: true },
+          });
+    if (!hasReservation) throw new Error("Warehouse not in your scope");
+  }
 
   // M13: Parallelize confirmed, pending, warehouse, and block queries
   const [reservations, pendingReservations, warehouse, gateBlocks, activeRecurringRaw] = await Promise.all([
@@ -120,16 +147,6 @@ export async function getCalendarData(
     }),
   ]);
 
-  // Pre-fetch linked supplier IDs for CLIENT role so they can see child supplier details
-  let clientSupplierIds: Set<string> | null = null;
-  if (role === "CLIENT" && clientId) {
-    const links = await prisma.clientSupplier.findMany({
-      where: { clientId },
-      select: { supplierId: true },
-    });
-    clientSupplierIds = new Set(links.map((l) => l.supplierId));
-  }
-
   const events: CalendarEvent[] = [];
 
   for (const r of reservations) {
@@ -142,7 +159,7 @@ export async function getCalendarData(
 
     let canSeeDetail = false;
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-    else if (role === "CLIENT" && (clientId === r.clientId || clientSupplierIds?.has(r.supplierId))) canSeeDetail = true;
+    else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
     else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
     else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
 
@@ -180,7 +197,7 @@ export async function getCalendarData(
 
     let canSeeDetail = false;
     if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-    else if (role === "CLIENT" && (clientId === r.clientId || clientSupplierIds?.has(r.supplierId))) canSeeDetail = true;
+    else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
     else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
     else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
 
@@ -265,7 +282,7 @@ export async function getCalendarData(
       if (endTime <= dateFrom) continue;
       let canSeeDetail = false;
       if (role === "ADMIN" || role === "WAREHOUSE_WORKER") canSeeDetail = true;
-      else if (role === "CLIENT" && (clientId === r.clientId || clientSupplierIds?.has(r.supplierId))) canSeeDetail = true;
+      else if (role === "CLIENT" && clientId === r.clientId) canSeeDetail = true;
       else if (role === "SUPPLIER" && supplierId === r.supplierId) canSeeDetail = true;
       else if (role === "CARRIER" && carrierId && r.carrierId === carrierId) canSeeDetail = true;
       events.push({
@@ -334,6 +351,38 @@ export async function getWarehouses() {
   if (role === "WAREHOUSE_WORKER") {
     return prisma.warehouse.findMany({
       where: { id: { in: warehouseIds }, isActive: true, deletedAt: null },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  // G5: External roles see only warehouses where their org has reservations.
+  if (role === "CLIENT") {
+    return prisma.warehouse.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        gates: { some: { reservations: { some: { clientId: clientId!, status: { notIn: ["CANCELLED"] } } } } },
+      },
+      orderBy: { name: "asc" },
+    });
+  }
+  if (role === "SUPPLIER") {
+    return prisma.warehouse.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        gates: { some: { reservations: { some: { supplierId: supplierId!, status: { notIn: ["CANCELLED"] } } } } },
+      },
+      orderBy: { name: "asc" },
+    });
+  }
+  if (role === "CARRIER") {
+    return prisma.warehouse.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        gates: { some: { reservations: { some: { carrierId: carrierId!, status: { notIn: ["CANCELLED"] } } } } },
+      },
       orderBy: { name: "asc" },
     });
   }
